@@ -221,12 +221,16 @@ const handleSubmit = async () => {
     }
 
     // Add name, email, phone if not anonymous or if user is not authenticated
+    // Always include email for notification purposes, even for anonymous requests
     if (!formData.value.anonymous || !userId) {
       payload.name = formData.value.name.trim()
       payload.email = formData.value.email.trim()
       if (formData.value.phone) {
         payload.phone = formData.value.phone.trim()
       }
+    } else if (formData.value.anonymous && userId) {
+      // For anonymous requests from authenticated users, still include email for notifications
+      payload.email = formData.value.email.trim()
     }
 
     await formsStore.createForm(payload)

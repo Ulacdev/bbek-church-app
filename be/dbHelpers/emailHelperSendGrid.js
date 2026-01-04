@@ -68,8 +68,8 @@ const sendAccountDetails = async (accountDetails) => {
     let subject, title, mainMessage, buttonText, importantNotes;
 
     if (emailType === 'new_account') {
-      subject = 'Welcome! Set Your Password - Church Management System';
-      title = 'Welcome to Church Management System';
+      subject = 'Welcome! Set Your Password - Bible Baptist Ekklesia of kawit';
+      title = 'Welcome to Bible Baptist Ekklesia of kawit';
       mainMessage = `Your account has been successfully created! To get started, please set your password by clicking the link below.`;
       buttonText = 'Set Password';
       importantNotes = `
@@ -83,9 +83,9 @@ const sendAccountDetails = async (accountDetails) => {
       `;
     } else {
       // forgot_password
-      subject = 'Password Reset Request - Church Management System';
+      subject = 'Password Reset Request - Bible Baptist Ekklesia of kawit';
       title = 'Password Reset Request';
-      mainMessage = `You have requested to reset your password for your Church Management System account.`;
+      mainMessage = `You have requested to reset your password for your Bible Baptist Ekklesia of kawit account.`;
       buttonText = 'Reset Password';
       importantNotes = `
         <p><strong>Important:</strong></p>
@@ -101,7 +101,7 @@ const sendAccountDetails = async (accountDetails) => {
       to: accountDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System Administrator'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
       subject: subject,
       html: `
@@ -141,7 +141,7 @@ const sendAccountDetails = async (accountDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -206,7 +206,7 @@ const sendMarriageDetails = async (marriageDetails) => {
       to: marriageDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
       subject: `Marriage Service Update - ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       html: `
@@ -260,7 +260,7 @@ const sendMarriageDetails = async (marriageDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -327,7 +327,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
       to: baptismDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
       subject: `Water Baptism Service Update - ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       html: `
@@ -377,7 +377,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -446,7 +446,7 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
       to: dedicationDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
       subject: `Child Dedication Service Update - ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       html: `
@@ -500,7 +500,7 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -565,9 +565,9 @@ const sendBurialServiceRequestNotification = async (requestDetails) => {
       to: requestDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: 'Burial Service Request Received - Church Management System',
+      subject: 'Burial Service Request Received - Bible Baptist Ekklesia of kawit',
       html: `
         <!DOCTYPE html>
         <html>
@@ -634,7 +634,7 @@ const sendBurialServiceRequestNotification = async (requestDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email. For inquiries, please contact the church administration.
             </p>
           </div>
@@ -703,7 +703,7 @@ const sendBurialDetails = async (burialDetails) => {
       to: burialDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
       subject: `Burial Service Update - ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       html: `
@@ -757,7 +757,7 @@ const sendBurialDetails = async (burialDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -807,9 +807,9 @@ const sendApprovalRequestNotification = async (approvalDetails) => {
       to: approvalDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: `${typeLabel} Join Request Received - Church Management System`,
+      subject: `${typeLabel} Join Request Received - Bible Baptist Ekklesia of kawit`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -867,7 +867,7 @@ const sendApprovalRequestNotification = async (approvalDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email. For inquiries, please contact the church administration.
             </p>
           </div>
@@ -930,9 +930,9 @@ const sendApprovalStatusUpdate = async (approvalDetails) => {
       to: approvalDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: `${typeLabel} Join Request ${status.charAt(0).toUpperCase() + status.slice(1)} - Church Management System`,
+      subject: `${typeLabel} Join Request ${status.charAt(0).toUpperCase() + status.slice(1)} - Bible Baptist Ekklesia of kawit`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -991,7 +991,7 @@ const sendApprovalStatusUpdate = async (approvalDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
@@ -1061,9 +1061,9 @@ const sendTransactionCompletionNotification = async (transactionDetails) => {
       to: transactionDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: `Transaction Completed - ${serviceTypeLabel} - Church Management System`,
+      subject: `Transaction Completed - ${serviceTypeLabel} - Bible Baptist Ekklesia of kawit`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -1125,7 +1125,7 @@ const sendTransactionCompletionNotification = async (transactionDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email. For inquiries, please contact the church administration.
             </p>
           </div>
@@ -1171,7 +1171,8 @@ const sendFormSubmissionNotification = async (formDetails) => {
     
     const formTypeLabels = {
       'schedule_change': 'Schedule Change Request',
-      'prayer_request': 'Prayer Request'
+      'prayer_request': 'Prayer Request',
+      'message': 'Contact Message'
     };
     
     const formTypeLabel = formTypeLabels[formType] || 'Form Submission';
@@ -1231,7 +1232,7 @@ const sendFormSubmissionNotification = async (formDetails) => {
     } else if (formType === 'prayer_request' && formDetails.formData) {
       const request = formDetails.formData.request || 'N/A';
       const isAnonymous = formDetails.formData.anonymous || false;
-      
+
       formDetailsHtml = `
         <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="color: #2c3e50; margin-top: 0;">Prayer Request Details</h3>
@@ -1247,15 +1248,34 @@ const sendFormSubmissionNotification = async (formDetails) => {
           </table>
         </div>
       `;
+    } else if (formType === 'message' && formDetails.formData) {
+      const subject = formDetails.formData.subject || 'N/A';
+      const message = formDetails.formData.message || 'N/A';
+
+      formDetailsHtml = `
+        <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #2c3e50; margin-top: 0;">Contact Message Details</h3>
+          <div style="margin-bottom: 15px;">
+            <strong>Message:</strong><br>
+            ${message}
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>Subject:</strong> ${subject}
+          </div>
+          <div style="background-color: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #27ae60;">
+            <strong>Thank you for contacting us!</strong> We appreciate your message and will respond as soon as possible.
+          </div>
+        </div>
+      `;
     }
 
     const msg = {
       to: formDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: `${formTypeLabel} Received - Church Management System`,
+      subject: `${formTypeLabel} Received - Bible Baptist Ekklesia of kawit`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -1287,6 +1307,7 @@ const sendFormSubmissionNotification = async (formDetails) => {
               <ul style="margin: 10px 0 0 20px; padding: 0;">
                 <li>Our team will review your request within 24-48 hours</li>
                 <li>You will receive a follow-up email once your request has been reviewed</li>
+                ${formType === 'prayer_request' || formType === 'message' ? '<li>Please wait for a response from our admin or staff</li>' : ''}
                 <li>If you have any questions, please contact the church administration</li>
               </ul>
             </div>
@@ -1296,7 +1317,7 @@ const sendFormSubmissionNotification = async (formDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email. For inquiries, please contact the church administration.
             </p>
           </div>
@@ -1346,7 +1367,7 @@ const sendFormStatusUpdate = async (formDetails) => {
     };
     const statusMessages = {
       pending: 'Your request is currently pending review.',
-      approved: 'Great news! Your request has been approved.',
+      approved: 'Great news! Your request has been approved. Thank you for your patience.',
       rejected: 'We regret to inform you that your request has been rejected.',
     };
 
@@ -1356,7 +1377,8 @@ const sendFormStatusUpdate = async (formDetails) => {
     
     const formTypeLabels = {
       'schedule_change': 'Schedule Change Request',
-      'prayer_request': 'Prayer Request'
+      'prayer_request': 'Prayer Request',
+      'message': 'Contact Message'
     };
     
     const formTypeLabel = formTypeLabels[formType] || 'Form Submission';
@@ -1410,11 +1432,30 @@ const sendFormStatusUpdate = async (formDetails) => {
       `;
     } else if (formType === 'prayer_request' && formDetails.formData) {
       const request = formDetails.formData.request || 'N/A';
-      
+
       formDetailsHtml = `
         <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="color: #2c3e50; margin-top: 0;">Prayer Request Details</h3>
           <p style="margin: 0;">${request}</p>
+        </div>
+      `;
+    } else if (formType === 'message' && formDetails.formData) {
+      const subject = formDetails.formData.subject || 'N/A';
+      const message = formDetails.formData.message || 'N/A';
+
+      formDetailsHtml = `
+        <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="color: #2c3e50; margin-top: 0;">Contact Message Details</h3>
+          <div style="margin-bottom: 15px;">
+            <strong>Message:</strong><br>
+            ${message}
+          </div>
+          <div style="margin-bottom: 15px;">
+            <strong>Subject:</strong> ${subject}
+          </div>
+          <div style="background-color: #d4edda; padding: 10px; border-radius: 5px; border-left: 4px solid #27ae60;">
+            <strong>Thank you for contacting us!</strong> We appreciate your message and will respond as soon as possible.
+          </div>
         </div>
       `;
     }
@@ -1434,9 +1475,9 @@ const sendFormStatusUpdate = async (formDetails) => {
       to: formDetails.email,
       from: {
         email: fromEmail,
-        name: 'Church Management System'
+        name: 'Bible Baptist Ekklesia of kawit'
       },
-      subject: `${formTypeLabel} ${status.charAt(0).toUpperCase() + status.slice(1)} - Church Management System`,
+      subject: `${formTypeLabel} ${status.charAt(0).toUpperCase() + status.slice(1)} - Bible Baptist Ekklesia of kawit`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -1475,7 +1516,14 @@ const sendFormStatusUpdate = async (formDetails) => {
               </ul>
             </div>
             ` : ''}
-            
+
+            ${(formType === 'prayer_request' || formType === 'message') && status === 'approved' ? `
+            <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #27ae60;">
+              <p style="margin: 0;"><strong>Please wait for a response from our admin or staff.</strong></p>
+              <p style="margin: 10px 0 0 0;">We will get back to you as soon as possible with any additional information or follow-up.</p>
+            </div>
+            ` : ''}
+
             ${status === 'rejected' ? `
             <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c;">
               <p style="margin: 0;"><strong>Note:</strong></p>
@@ -1488,7 +1536,7 @@ const sendFormStatusUpdate = async (formDetails) => {
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
             <p style="color: #95a5a6; font-size: 12px; margin-bottom: 0;">
-              This is an automated message from the Church Management System.<br>
+              This is an automated message from the Bible Baptist Ekklesia of kawit.<br>
               Please do not reply to this email.
             </p>
           </div>
