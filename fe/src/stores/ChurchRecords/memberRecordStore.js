@@ -374,8 +374,11 @@ export const useMemberRecordStore = defineStore('memberRecord', {
         }
 
         // Make request with responseType: 'blob' to handle binary data
-        const response = await axios.get(`/church-records/members/exportExcel?${params}`, {
-          responseType: 'blob'
+        const response = await axios.get(`/api/church-records/members/exportExcel?${params}`, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          }
         })
 
         // Create blob from response
@@ -392,7 +395,7 @@ export const useMemberRecordStore = defineStore('memberRecord', {
         const contentDisposition = response.headers['content-disposition']
         let filename = 'members_export.xlsx'
         if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i)
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
           if (filenameMatch) {
             filename = filenameMatch[1]
           }

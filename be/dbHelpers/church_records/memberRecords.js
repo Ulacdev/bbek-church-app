@@ -1,7 +1,10 @@
 const { query } = require('../../database/db');
 const moment = require('moment');
 const XLSX = require('xlsx');
+const csv = require('csv-parser');
+const fs = require('fs');
 const { archiveRecord } = require('../archiveRecords');
+const { parseCSVFile, processBatches, sanitizeRow } = require('../../utils/csvParser');
 /**
  * Member Records CRUD Operations
  * Based on tbl_members schema:
@@ -714,6 +717,8 @@ async function exportMembersToExcel(options = {}) {
     delete exportOptions.page;
     delete exportOptions.pageSize;
 
+    console.log('Export options:', exportOptions);
+
     const result = await getAllMembers(exportOptions);
     
     if (!result.success || !result.data || result.data.length === 0) {
@@ -721,6 +726,7 @@ async function exportMembersToExcel(options = {}) {
     }
 
     const members = result.data;
+    console.log(`Exporting ${members.length} members to Excel`);
 
     // Prepare data for Excel export
     const excelData = members.map((member, index) => {
@@ -779,6 +785,11 @@ async function exportMembersToExcel(options = {}) {
       compression: true
     });
 
+    if (!excelBuffer || excelBuffer.length === 0) {
+      throw new Error('Failed to generate Excel file buffer');
+    }
+
+    console.log(`Excel buffer generated: ${excelBuffer.length} bytes`);
     return excelBuffer;
   } catch (error) {
     console.error('Error exporting members to Excel:', error);
@@ -980,6 +991,220 @@ async function getAllDepartmentMembersForSelect() {
   }
 }
 
+/**
+ * IMPORT - Import members from CSV file with improved batch processing
+ * Uses streaming for large files and batch processing for better performance
+ * @param {String} filePath - Path to the uploaded CSV file
+ * @returns {Promise<Object>} Result object with import summary
+ */
+async function importMembersFromCSV(filePath) {
+  const startTime = Date.now();
+  const batchSize = 50; // Process members in batches of 50
+  
+  try {
+    // Step 1: Parse CSV with validation
+    const csvData = await parseCSVFile(filePath, {
+      requiredFields: ['firstname', 'lastname', 'birthdate', 'age', 'gender', 'address', 'email', 'phone_number'],
+      validationFn: validateMemberRow,
+      transformFn: sanitizeRow,
+      batchSize
+    });
+
+    if (!csvData.success) {
+      throw new Error(csvData.message);
+    }
+
+    console.log(`CSV parsed: ${csvData.stats.totalRows} total rows, ${csvData.stats.validRows} valid, ${csvData.stats.invalidRows} invalid`);
+
+    // Step 2: Separate valid rows for duplicate checking
+    const validRows = csvData.rows.filter(row => row.valid);
+    const invalidRowsFromParsing = csvData.rows.filter(row => !row.valid);
+
+    // Step 3: Check for duplicates in batches
+    const duplicateMembers = [];
+    for (let i = 0; i < validRows.length; i += batchSize) {
+      const batch = validRows.slice(i, i + batchSize);
+      
+      for (const row of batch) {
+        const duplicateCheck = await checkDuplicateMember(row.data);
+        if (duplicateCheck.isDuplicate) {
+          duplicateMembers.push({
+            rowNumber: row.rowNumber,
+            data: row.data,
+            duplicateDetails: duplicateCheck.duplicateDetails
+          });
+        }
+      }
+    }
+
+    // Step 4: Filter to only non-duplicate valid members
+    const membersToInsert = validRows.filter(row => 
+      !duplicateMembers.some(dup => dup.rowNumber === row.rowNumber)
+    );
+
+    // Step 5: Process members in batches for database insertion
+    const insertedMembers = [];
+    const insertionErrors = [];
+
+    for (let i = 0; i < membersToInsert.length; i += batchSize) {
+      const batch = membersToInsert.slice(i, i + batchSize);
+      
+      // Insert batch members in parallel for better performance
+      const insertPromises = batch.map(row => 
+        createMember(row.data)
+          .then(result => {
+            if (result.success) {
+              return {
+                success: true,
+                rowNumber: row.rowNumber,
+                member_id: result.data.member_id,
+                name: `${result.data.firstname} ${result.data.lastname}`
+              };
+            } else {
+              return {
+                success: false,
+                rowNumber: row.rowNumber,
+                error: result.message || 'Failed to insert member'
+              };
+            }
+          })
+          .catch(error => ({
+            success: false,
+            rowNumber: row.rowNumber,
+            error: error.message || 'Database insertion error'
+          }))
+      );
+
+      const batchResults = await Promise.all(insertPromises);
+      
+      batchResults.forEach(result => {
+        if (result.success) {
+          insertedMembers.push(result);
+        } else {
+          insertionErrors.push({
+            rowNumber: result.rowNumber,
+            error: result.error
+          });
+        }
+      });
+    }
+
+    // Step 6: Compile comprehensive results
+    const totalInvalidMembers = invalidRowsFromParsing.concat(
+      insertionErrors.map(err => ({
+        rowNumber: err.rowNumber,
+        data: membersToInsert.find(m => m.rowNumber === err.rowNumber)?.data || {},
+        errors: [err.error]
+      }))
+    );
+
+    const processingTime = Date.now() - startTime;
+    const totalProcessed = csvData.stats.totalRows;
+    const totalSuccessful = insertedMembers.length;
+    const totalDuplicates = duplicateMembers.length;
+    const totalInvalid = totalInvalidMembers.length;
+
+    return {
+      success: totalSuccessful > 0,
+      message: `Import completed in ${processingTime}ms. ${totalSuccessful} members imported successfully.`,
+      summary: {
+        totalRows: totalProcessed,
+        imported: totalSuccessful,
+        duplicates: totalDuplicates,
+        invalid: totalInvalid,
+        processingTimeMs: processingTime
+      },
+      data: {
+        imported: insertedMembers,
+        duplicates: duplicateMembers.map(d => ({
+          rowNumber: d.rowNumber,
+          data: d.data,
+          duplicateDetails: d.duplicateDetails
+        })),
+        invalid: totalInvalidMembers
+      }
+    };
+  } catch (error) {
+    console.error('Error importing members from CSV:', error);
+    return {
+      success: false,
+      message: `Import failed: ${error.message}`,
+      error: error.message,
+      summary: {
+        totalRows: 0,
+        imported: 0,
+        duplicates: 0,
+        invalid: 0
+      },
+      data: {
+        imported: [],
+        duplicates: [],
+        invalid: []
+      }
+    };
+  }
+}
+
+/**
+ * Validate a member row from CSV
+ * @param {Object} rowData - Row data from CSV
+ * @param {Number} rowNumber - Row number for error reporting
+ * @returns {Array} Array of validation error messages
+ */
+function validateMemberRow(rowData, rowNumber = null) {
+  const errors = [];
+
+  // Required fields
+  const requiredFields = ['firstname', 'lastname', 'birthdate', 'age', 'gender', 'address', 'email', 'phone_number'];
+  for (const field of requiredFields) {
+    if (!rowData[field] || rowData[field].trim() === '') {
+      errors.push(`Missing required field: ${field}`);
+    }
+  }
+
+  // Validate email format
+  if (rowData.email && rowData.email.trim() !== '') {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(rowData.email.trim())) {
+      errors.push('Invalid email format');
+    }
+  }
+
+  // Validate birthdate format
+  if (rowData.birthdate && rowData.birthdate.trim() !== '') {
+    const birthdate = moment(rowData.birthdate.trim(), ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'], true);
+    if (!birthdate.isValid()) {
+      errors.push('Invalid birthdate format (use YYYY-MM-DD, MM/DD/YYYY, or DD/MM/YYYY)');
+    }
+  }
+
+  // Validate gender
+  if (rowData.gender && rowData.gender.trim() !== '') {
+    const gender = rowData.gender.trim().toUpperCase();
+    if (!['M', 'F', 'O'].includes(gender)) {
+      errors.push('Invalid gender (must be M, F, or O)');
+    }
+  }
+
+  // Validate age (should be positive number)
+  if (rowData.age && rowData.age.trim() !== '') {
+    const age = parseInt(rowData.age.trim());
+    if (isNaN(age) || age < 0 || age > 150) {
+      errors.push('Invalid age (must be a number between 0 and 150)');
+    }
+  }
+
+  // Validate phone number format (basic validation)
+  if (rowData.phone_number && rowData.phone_number.trim() !== '') {
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    if (!phoneRegex.test(rowData.phone_number.trim())) {
+      errors.push('Invalid phone number format');
+    }
+  }
+
+  return errors;
+}
+
 module.exports = {
   createMember,
   getAllMembers,
@@ -992,6 +1217,8 @@ module.exports = {
   getAllDepartmentMembersForSelect,
   getAllPastorsForSelect,
   getAllMembersWithoutPastorsForSelect,
-  getSpecificMemberByEmailAndStatus
+  getSpecificMemberByEmailAndStatus,
+  importMembersFromCSV
 };
+
 

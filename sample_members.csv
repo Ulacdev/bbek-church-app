@@ -1,0 +1,5 @@
+firstname,lastname,middle_name,birthdate,age,gender,address,email,phone_number,position,civil_status,guardian_name,guardian_contact,guardian_relationship
+John,Doe,,1990-01-15,34,M,123 Main St,john.doe@example.com,+639123456789,member,single,,,
+Jane,Smith,Maria,1985-05-20,39,F,456 Oak Ave,jane.smith@example.com,+639987654321,member,married,,,
+Bob,Johnson,,2000-12-10,23,M,789 Pine Rd,bob.johnson@example.com,+639555123456,member,single,,,
+Alice,Brown,Lee,1975-03-08,49,F,321 Elm St,alice.brown@example.com,+639444567890,pastor,married,,,
