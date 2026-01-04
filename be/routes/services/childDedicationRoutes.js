@@ -1,0 +1,322 @@
+const express = require('express');
+const moment = require('moment');
+const {
+  createChildDedication,
+  getAllChildDedications,
+  getChildDedicationById,
+  getChildDedicationsByRequester,
+  updateChildDedication,
+  deleteChildDedication,
+  exportChildDedicationsToExcel
+} = require('../../dbHelpers/services/childDedicationRecords');
+
+const router = express.Router();
+
+/**
+ * CREATE - Insert a new child dedication record
+ * POST /api/church-records/child-dedications/createChildDedication
+ * Body: { requested_by, child_firstname, child_lastname, child_middle_name?, date_of_birth, place_of_birth, gender, preferred_dedication_date, contact_phone_number, contact_email?, contact_address, status?, date_created? }
+ */
+router.post('/createChildDedication', async (req, res) => {
+  try {
+    const result = await createChildDedication(req.body);
+    
+    if (result.success) {
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.error || result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error creating child dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create child dedication'
+    });
+  }
+});
+
+/**
+ * READ ALL - Get all child dedication records with pagination and filters
+ * GET /api/church-records/child-dedications/getAllChildDedications (query params)
+ * POST /api/church-records/child-dedications/getAllChildDedications (body payload)
+ * Parameters: search, limit, offset, page, pageSize, status, sortBy
+ */
+router.get('/getAllChildDedications', async (req, res) => {
+  try {
+    // Get parameters from query string
+    const options = req.query;
+    const result = await getAllChildDedications(options);
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        count: result.count, // Number of records in current page
+        totalCount: result.totalCount, // Total number of records
+        summaryStats: result.summaryStats, // Summary statistics from all records
+        pagination: result.pagination
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching child dedications:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch child dedications'
+    });
+  }
+});
+
+router.post('/getAllChildDedications', async (req, res) => {
+  try {
+    // Get parameters from request body (payload)
+    const options = req.body;
+    const result = await getAllChildDedications(options);
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        count: result.count, // Number of records in current page
+        totalCount: result.totalCount, // Total number of records
+        summaryStats: result.summaryStats, // Summary statistics from all records
+        pagination: result.pagination
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching child dedications:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch child dedications'
+    });
+  }
+});
+
+/**
+ * READ ONE - Get a single child dedication by ID
+ * GET /api/church-records/child-dedications/getChildDedicationById/:id
+ */
+router.get('/getChildDedicationById/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Child ID is required'
+      });
+    }
+
+    const result = await getChildDedicationById(id);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching child dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch child dedication'
+    });
+  }
+});
+
+/**
+ * READ - Get child dedication requests by requester member_id
+ * GET /api/church-records/child-dedications/getChildDedicationsByRequester/:memberId
+ */
+router.get('/getChildDedicationsByRequester/:memberId', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Member ID is required'
+      });
+    }
+
+    const result = await getChildDedicationsByRequester(memberId);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching child dedications by requester:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch child dedications'
+    });
+  }
+});
+
+/**
+ * UPDATE - Update an existing child dedication record
+ * PUT /api/church-records/child-dedications/updateChildDedication/:id
+ * Body: { requested_by?, child_firstname?, child_lastname?, child_middle_name?, date_of_birth?, place_of_birth?, gender?, preferred_dedication_date?, contact_phone_number?, contact_email?, contact_address?, status?, date_created? }
+ */
+router.put('/updateChildDedication/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Child ID is required'
+      });
+    }
+
+    const result = await updateChildDedication(id, req.body);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.error || result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error updating child dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to update child dedication'
+    });
+  }
+});
+
+/**
+ * DELETE - Delete a child dedication record
+ * DELETE /api/church-records/child-dedications/deleteChildDedication/:id
+ */
+router.delete('/deleteChildDedication/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Child ID is required'
+      });
+    }
+
+    const archivedBy = req.user?.acc_id || null;
+    const result = await deleteChildDedication(id, archivedBy);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error deleting child dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete child dedication'
+    });
+  }
+});
+
+/**
+ * EXPORT - Export child dedication records to Excel
+ * GET /api/church-records/child-dedications/exportExcel (query params)
+ * POST /api/church-records/child-dedications/exportExcel (body payload)
+ */
+router.get('/exportExcel', async (req, res) => {
+  try {
+    const options = req.query;
+    const excelBuffer = await exportChildDedicationsToExcel(options);
+    
+    const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
+    const filename = `child_dedications_export_${timestamp}.xlsx`;
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+    
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error('Error exporting child dedications to Excel:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to export child dedications to Excel'
+    });
+  }
+});
+
+router.post('/exportExcel', async (req, res) => {
+  try {
+    const options = req.body;
+    const excelBuffer = await exportChildDedicationsToExcel(options);
+    
+    const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
+    const filename = `child_dedications_export_${timestamp}.xlsx`;
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+    
+    res.send(excelBuffer);
+  } catch (error) {
+    console.error('Error exporting child dedications to Excel:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to export child dedications to Excel'
+    });
+  }
+});
+
+module.exports = router;
+

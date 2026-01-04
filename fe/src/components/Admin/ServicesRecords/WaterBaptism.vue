@@ -1,0 +1,522 @@
+<template>
+  <div class="water-baptism">
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h1 class="text-h4 font-weight-bold">Water Baptism Records</h1>
+      <v-btn 
+        color="success" 
+        prepend-icon="mdi-file-document" 
+        size="small" 
+        :disabled="loading"
+        :loading="loading"
+        @click="openBaptismDialog"
+      >
+        New Baptism
+      </v-btn>
+    </div>
+
+    <!-- Summary Cards -->
+    <v-row class="mb-6">
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">Total Baptisms</div>
+              <div class="text-h5 font-weight-bold">{{ totalBaptisms }}</div>
+            </div>
+            <v-avatar size="56" color="blue lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-water icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">This Year</div>
+              <div class="text-h5 font-weight-bold">{{ thisYear }}</div>
+            </div>
+            <v-avatar size="56" color="blue lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-water icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">Certificates Issued</div>
+              <div class="text-h5 font-weight-bold">{{ certificatesIssued }}</div>
+            </div>
+            <v-avatar size="56" color="green lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-file-document icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Filtering and Sorting Section -->
+    <v-card class="mb-4" elevation="2">
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="2">
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              placeholder="Search records..."
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleSearchChange"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.sortBy"
+              :items="sortByOptions"
+              label="Sort By"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.status"
+              :items="statusOptions"
+              label="Status"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center">
+            <v-select
+              v-model="itemsPerPage"
+              :items="pageSizeOptions"
+              label="Items per page"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              style="max-width: 150px;"
+              @update:model-value="handlePageSizeChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="4" class="d-flex align-center gap-2">
+            <v-tooltip text="Print" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-printer"
+                  variant="outlined"
+                  v-bind="props"
+                  :disabled="loading"
+                  @click="handlePrint"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip text="Export Excel" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-download"
+                  variant="outlined"
+                  v-bind="props"
+                  :loading="loading"
+                  :disabled="loading"
+                  @click="handleExportExcel"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12" class="d-flex align-center">
+            <span class="text-body-2">Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} baptisms</span>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Table -->
+    <v-card elevation="2" v-loading="loading" loading-text="Loading water baptisms..." class="position-relative">
+      <v-table>
+        <thead>
+          <tr>
+            <!-- <th class="text-left font-weight-bold">Baptism ID</th> -->
+            <th class="text-left font-weight-bold">Member</th>
+            <th class="text-left font-weight-bold">Baptism Date</th>
+            <th class="text-left font-weight-bold">Status</th>
+            <th class="text-left font-weight-bold">Date Created</th>
+            <th class="text-left font-weight-bold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!loading && baptisms.length === 0">
+            <td colspan="6" class="text-center py-12">
+              <div class="text-h6 font-weight-bold">No Record Found</div>
+            </td>
+          </tr>
+          <tr v-for="baptism in baptisms" :key="baptism.baptism_id">
+            <!-- <td>{{ baptism.baptism_id }}</td> -->
+            <td>{{ baptism.fullname || baptism.member_id }}</td>
+            <td>{{ formatDateTime(baptism.baptism_date) }}</td>
+            <td>
+              <v-chip :color="getStatusColor(baptism.status)" size="small">
+                {{ formatStatus(baptism.status) }}
+              </v-chip>
+            </td>
+            <td>{{ formatDateTime(baptism.date_created) }}</td>
+            <td>
+              <v-tooltip text="Edit Baptism Record" location="top">
+                <template v-slot:activator="{ props }">
+                  <v-btn 
+                    icon="mdi-pencil" 
+                    variant="text" 
+                    size="small" 
+                    class="mr-2"
+                    :disabled="loading"
+                    v-bind="props"
+                    @click="editBaptism(baptism)"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Delete Baptism Record" location="top">
+                <template v-slot:activator="{ props }">
+                  <v-btn 
+                    icon="mdi-delete" 
+                    variant="text" 
+                    size="small" 
+                    color="error"
+                    :disabled="loading"
+                    v-bind="props"
+                    @click="deleteBaptism(baptism.baptism_id)"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-space-between align-center pa-4">
+        <div class="text-body-2">
+          Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} baptisms
+        </div>
+        <v-pagination
+          v-model="currentPage"
+          :length="totalPages"
+          :total-visible="7"
+          density="compact"
+          :disabled="loading"
+          @update:model-value="handlePageChange"
+        ></v-pagination>
+      </div>
+    </v-card>
+    <WaterBaptismDialog 
+      v-model="baptismDialog" 
+      :baptism-data="baptismData" 
+      @update:model-value="baptismDialog = $event"
+      @submit="handleSubmit"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useWaterBaptismStore } from '@/stores/ServicesRecords/waterBaptismStore'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import WaterBaptismDialog from '@/components/Dialogs/WaterBaptismDialog.vue'
+
+const waterBaptismStore = useWaterBaptismStore()
+
+// Computed properties from store
+const baptisms = computed(() => waterBaptismStore.baptisms)
+const loading = computed(() => waterBaptismStore.loading)
+const currentPage = computed({
+  get: () => waterBaptismStore.currentPage,
+  set: (value) => waterBaptismStore.setCurrentPage(value)
+})
+const totalPages = computed(() => waterBaptismStore.totalPages)
+const totalCount = computed(() => waterBaptismStore.totalCount)
+const totalBaptisms = computed(() => waterBaptismStore.totalBaptisms)
+const thisYear = computed(() => waterBaptismStore.thisYear)
+const certificatesIssued = computed(() => waterBaptismStore.certificatesIssued)
+const itemsPerPage = computed({
+  get: () => waterBaptismStore.itemsPerPage,
+  set: (value) => waterBaptismStore.setPageSize(value)
+})
+const pageSizeOptions = computed(() => waterBaptismStore.pageSizeOptions)
+const searchQuery = computed({
+  get: () => waterBaptismStore.searchQuery,
+  set: (value) => waterBaptismStore.setSearchQuery(value)
+})
+const filters = computed({
+  get: () => waterBaptismStore.filters,
+  set: (value) => waterBaptismStore.setFilters(value)
+})
+
+const sortByOptions = [
+  'Baptism Date (Newest)',
+  'Baptism Date (Oldest)',
+  'Baptism ID (A-Z)',
+  'Baptism ID (Z-A)',
+  'Date Created (Newest)',
+  'Date Created (Oldest)',
+  'Status (A-Z)'
+]
+
+const statusOptions = ['All Statuses', 'pending', 'ongoing', 'completed']
+
+// Dialog state
+const baptismDialog = ref(false)
+const baptismData = ref(null)
+
+// Handlers
+const openBaptismDialog = () => {
+  baptismData.value = null
+  baptismDialog.value = true
+}
+
+const editBaptism = (baptism) => {
+  baptismData.value = {
+    baptism_id: baptism.baptism_id,
+    member_id: baptism.member_id,
+    baptism_date: baptism.baptism_date,
+    status: baptism.status
+  }
+  baptismDialog.value = true
+}
+
+const deleteBaptism = async (id) => {
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you want to delete this water baptism record?',
+      'Confirm Delete',
+      {
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    const result = await waterBaptismStore.deleteBaptism(id)
+    if (result.success) {
+      ElMessage.success('Water baptism record deleted successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to delete water baptism record')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error deleting water baptism:', error)
+      ElMessage.error('Failed to delete water baptism record')
+    }
+  }
+}
+
+const handleSubmit = async (data) => {
+  try {
+    let result
+    if (baptismData.value && baptismData.value.baptism_id) {
+      // Update
+      result = await waterBaptismStore.updateBaptism(baptismData.value.baptism_id, data)
+    } else {
+      // Create
+      result = await waterBaptismStore.createBaptism(data)
+    }
+
+    if (result.success) {
+      ElMessage.success(baptismData.value ? 'Water baptism record updated successfully' : 'Water baptism record created successfully')
+      baptismDialog.value = false
+      baptismData.value = null
+    } else {
+      ElMessage.error(result.error || 'Failed to save water baptism record')
+    }
+  } catch (error) {
+    console.error('Error submitting water baptism:', error)
+    ElMessage.error('Failed to save water baptism record')
+  }
+}
+
+const handleSearchChange = (value) => {
+  waterBaptismStore.setSearchQuery(value)
+}
+
+const handleFilterChange = () => {
+  waterBaptismStore.setFilters(filters.value)
+}
+
+const handlePageChange = (page) => {
+  waterBaptismStore.setCurrentPage(page)
+}
+
+const handlePageSizeChange = (pageSize) => {
+  waterBaptismStore.setPageSize(pageSize)
+}
+
+const handleExportExcel = async () => {
+  try {
+    const result = await waterBaptismStore.exportBaptismsToExcel()
+    if (result.success) {
+      ElMessage.success(result.message || 'Excel file downloaded successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to export Excel file')
+    }
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    ElMessage.error('An error occurred while exporting to Excel')
+  }
+}
+
+const getStartIndex = () => {
+  if (baptisms.value.length === 0) return 0
+  return (currentPage.value - 1) * itemsPerPage.value + 1
+}
+
+const getEndIndex = () => {
+  const end = currentPage.value * itemsPerPage.value
+  return Math.min(end, totalCount.value)
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatStatus = (status) => {
+  const statusMap = {
+    'pending': 'Pending',
+    'ongoing': 'Ongoing',
+    'completed': 'Completed'
+  }
+  return statusMap[status] || status
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    'completed': 'success',
+    'pending': 'warning',
+    'ongoing': 'info'
+  }
+  return colors[status] || 'default'
+}
+
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank')
+  const tableHeaders = ['Member', 'Baptism Date', 'Status', 'Date Created']
+  
+  let tableRows = ''
+  baptisms.value.forEach((baptism) => {
+    tableRows += `
+      <tr>
+        <td>${baptism.fullname || baptism.member_id || 'N/A'}</td>
+        <td>${formatDateTime(baptism.baptism_date)}</td>
+        <td>${formatStatus(baptism.status)}</td>
+        <td>${formatDateTime(baptism.date_created)}</td>
+      </tr>
+    `
+  })
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Water Baptism Records - Print</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+          }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          .print-date {
+            text-align: right;
+            margin-bottom: 10px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Water Baptism Records</h1>
+        <div class="print-date">Printed on: ${new Date().toLocaleString()}</div>
+        <table>
+          <thead>
+            <tr>
+              ${tableHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="' + tableHeaders.length + '" style="text-align: center;">No records found</td></tr>'}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `)
+  
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => {
+    printWindow.print()
+    printWindow.close()
+  }, 250)
+}
+
+// Initialize on mount
+onMounted(async () => {
+  await waterBaptismStore.fetchBaptisms()
+})
+</script>
+
+<style scoped>
+.water-baptism {
+  padding: 24px;
+}
+
+.icon-custom {
+  font-size: 32px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  font-family: "Material Design Icons" !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+</style>

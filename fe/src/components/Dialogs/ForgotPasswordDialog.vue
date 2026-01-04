@@ -1,0 +1,280 @@
+<template>
+  <el-dialog
+    :model-value="modelValue"
+    @update:model-value="$emit('update:modelValue', $event)"
+    width="500px"
+    :close-on-click-modal="false"
+    :close-on-press-escape="true"
+    :show-close="false"
+    class="forgot-password-dialog"
+  >
+    <template #header>
+      <div class="dialog-header">
+        <div class="logo-section">
+          <el-image
+            src="/img/logobbek.png"
+            alt="BBEK Logo"
+            class="logo-image"
+            fit="contain"
+          ></el-image>
+          <div class="logo-text">
+            <h2 class="logo-title">BBEK</h2>
+            <p class="logo-subtitle">Bible Baptist Ekklesia of Kawit</p>
+          </div>
+        </div>
+        <el-button
+          text
+          circle
+          @click="closeDialog"
+          class="close-btn"
+        >
+          <el-icon><Close /></el-icon>
+        </el-button>
+      </div>
+    </template>
+
+    <el-form
+      ref="forgotPasswordFormRef"
+      :model="forgotPasswordForm"
+      :rules="rules"
+      label-position="top"
+      size="large"
+      @submit.prevent="handleForgotPassword"
+    >
+      <div class="form-header">
+        <h2 class="form-title">Forgot Password</h2>
+        <p class="form-subtitle">Enter your email address and we'll send you a link to reset your password</p>
+      </div>
+
+      <el-form-item label="Email" prop="email">
+        <el-input
+          v-model="forgotPasswordForm.email"
+          type="email"
+          placeholder="Enter your email"
+          clearable
+        >
+          <template #prefix>
+            <el-icon><Message /></el-icon>
+          </template>
+        </el-input>
+      </el-form-item>
+
+      <el-form-item>
+        <el-button
+          type="success"
+          class="submit-btn"
+          :loading="loading"
+          native-type="submit"
+        >
+          Send Reset Link
+        </el-button>
+      </el-form-item>
+
+      <div class="form-footer">
+        <el-link
+          type="primary"
+          :underline="false"
+          @click="handleBackToLogin"
+        >
+          <el-icon><ArrowLeft /></el-icon>
+          Back to Login
+        </el-link>
+      </div>
+    </el-form>
+  </el-dialog>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+import { Close, Message, ArrowLeft } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { useAccountsStore } from '@/stores/ChurchRecords/accountsStore'
+
+const accountsStore = useAccountsStore()
+
+// Props
+defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false
+  }
+})
+
+// Emits
+const emit = defineEmits(['update:modelValue', 'back-to-login'])
+
+// Form ref
+const forgotPasswordFormRef = ref(null)
+
+// Loading state
+const loading = ref(false)
+
+// Form data
+const forgotPasswordForm = reactive({
+  email: ''
+})
+
+// Validation rules
+const rules = {
+  email: [
+    { required: true, message: 'Please enter your email', trigger: 'blur' },
+    { type: 'email', message: 'Please enter a valid email address', trigger: ['blur', 'change'] }
+  ]
+}
+
+// Methods
+const closeDialog = () => {
+  // Reset form when closing
+  forgotPasswordFormRef.value?.resetFields()
+  forgotPasswordForm.email = ''
+  loading.value = false
+  emit('update:modelValue', false)
+}
+
+const handleForgotPassword = async () => {
+  if (!forgotPasswordFormRef.value) return
+
+  // Validate form
+  await forgotPasswordFormRef.value.validate(async (valid) => {
+    if (!valid) {
+      return false
+    }
+
+    loading.value = true
+
+    try {
+      const result = await accountsStore.forgotPassword(forgotPasswordForm.email)
+      if (result) {
+        ElMessage.success('Password reset link has been sent to your email address')
+        closeDialog()
+      } else {
+        ElMessage.error(accountsStore.error || 'Failed to send reset link. Please try again.')
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error)
+      ElMessage.error('An error occurred. Please try again.')
+    } finally {
+      loading.value = false
+    }
+  })
+}
+
+const handleBackToLogin = () => {
+  closeDialog()
+  emit('closeForgotPasswordDialog', false)
+}
+</script>
+
+<style scoped>
+.forgot-password-dialog :deep(.el-dialog__header) {
+  padding: 20px 20px 0 20px;
+  margin-bottom: 0;
+}
+
+.forgot-password-dialog :deep(.el-dialog__body) {
+  padding: 20px;
+}
+
+.forgot-password-dialog :deep(.el-overlay) {
+  backdrop-filter: blur(8px);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-image {
+  width: 48px;
+  height: 48px;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--el-text-color-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.logo-subtitle {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.close-btn {
+  color: var(--el-text-color-regular);
+}
+
+.close-btn:hover {
+  color: var(--el-text-color-primary);
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin: 0 0 8px 0;
+  line-height: 1.2;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.forgot-password-dialog :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.forgot-password-dialog :deep(.el-form-item__label) {
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  padding-bottom: 8px;
+}
+
+.forgot-password-dialog :deep(.el-input__wrapper) {
+  border-radius: 6px;
+}
+
+.submit-btn {
+  width: 100%;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.form-footer .el-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+}
+</style>
+

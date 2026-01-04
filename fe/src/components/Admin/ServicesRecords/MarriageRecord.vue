@@ -1,0 +1,579 @@
+<template>
+  <div class="marriage-record">
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h1 class="text-h4 font-weight-bold">Marriage Records</h1>
+      <v-btn 
+        color="success" 
+        prepend-icon="mdi-plus" 
+        size="small" 
+        :disabled="loading"
+        :loading="loading"
+        @click="handleMarriageServiceDialog"
+      >
+        New Marriage
+      </v-btn>
+    </div>
+
+    <!-- Summary Cards -->
+    <v-row class="mb-6">
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">Total Marriages</div>
+              <div class="text-h5 font-weight-bold">{{ totalMarriages }}</div>
+            </div>
+            <v-avatar size="56" color="red lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-heart-outline icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">Completed</div>
+              <div class="text-h5 font-weight-bold">{{ completed }}</div>
+            </div>
+            <v-avatar size="56" color="green lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-heart-outline icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="4">
+        <v-card class="pa-4" elevation="2">
+          <div class="d-flex align-center justify-space-between">
+            <div>
+              <div class="text-caption grey--text mb-1">Pending Approvals</div>
+              <div class="text-h5 font-weight-bold">{{ pendingApprovals }}</div>
+            </div>
+            <v-avatar size="56" color="orange lighten-5" class="d-flex align-center justify-center">
+              <span style="color: white !important;" class="mdi mdi-heart-outline icon-custom" aria-hidden="true"></span>
+            </v-avatar>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- Filtering and Sorting Section -->
+    <v-card class="mb-4" elevation="2">
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="2">
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              placeholder="Search records..."
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleSearchChange"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.sortBy"
+              :items="sortByOptions"
+              label="Sort By"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.status"
+              :items="statusOptions"
+              label="Status"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center">
+            <v-select
+              v-model="itemsPerPage"
+              :items="pageSizeOptions"
+              label="Items per page"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              style="max-width: 150px;"
+              @update:model-value="handlePageSizeChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="4" class="d-flex align-center gap-2">
+            <v-tooltip text="Print" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-printer"
+                  variant="outlined"
+                  v-bind="props"
+                  :disabled="loading"
+                  @click="handlePrint"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip text="Export Excel" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-download"
+                  variant="outlined"
+                  v-bind="props"
+                  :loading="loading"
+                  :disabled="loading"
+                  @click="handleExportExcel"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12" class="d-flex align-center">
+            <span class="text-body-2">Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} marriages</span>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Table Section -->
+    <v-card elevation="2" v-loading="loading" loading-text="Loading marriages..." class="position-relative">
+      <v-card-title class="pb-2">
+        <div>
+          <h2 class="text-h6 font-weight-bold">Marriage Records</h2>
+          <p class="text-body-2 grey--text mt-1 mb-0">View and manage all registered marriage records.</p>
+        </div>
+      </v-card-title>
+      <v-table>
+        <thead>
+          <tr>
+            <!-- <th class="text-left font-weight-bold">Marriage ID</th> -->
+            <th class="text-left font-weight-bold">Groom</th>
+            <th class="text-left font-weight-bold">Bride</th>
+            <th class="text-left font-weight-bold">Guardians</th>
+            <th class="text-left font-weight-bold">Pastor ID</th>
+            <th class="text-left font-weight-bold">Location</th>
+            <th class="text-left font-weight-bold">Marriage Date</th>
+            <th class="text-left font-weight-bold">Status</th>
+            <th class="text-left font-weight-bold">Date Created</th>
+            <th class="text-left font-weight-bold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!loading && marriages.length === 0">
+            <td colspan="10" class="text-center py-12">
+              <div class="text-h6 font-weight-bold">No Record Found</div>
+            </td>
+          </tr>
+          <tr v-for="marriage in marriages" :key="marriage.marriage_id">
+            <!-- <td>{{ marriage.marriage_id }}</td> -->
+            <td>{{ getGroomDisplayName(marriage) }}</td>
+            <td>{{ getBrideDisplayName(marriage) }}</td>
+            <td>{{ formatGuardians(marriage.guardians) }}</td>
+            <td>{{ marriage.pastor_id }}</td>
+            <td>{{ marriage.location }}</td>
+            <td>{{ marriage.marriage_date ? formatDateTime(marriage.marriage_date) : 'Not scheduled' }}</td>
+            <td>
+              <v-chip :color="getStatusColor(marriage.status)" size="small">
+                {{ formatStatus(marriage.status) }}
+              </v-chip>
+            </td>
+            <td>{{ formatDateTime(marriage.date_created) }}</td>
+            <td>
+              <v-tooltip text="Edit Marriage Record" location="top">
+                <template v-slot:activator="{ props }">
+              <v-btn 
+                icon="mdi-pencil" 
+                variant="text" 
+                size="small" 
+                class="mr-2"
+                :disabled="loading"
+                    v-bind="props"
+                @click="editMarriage(marriage)"
+              ></v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Delete Marriage Record" location="top">
+                <template v-slot:activator="{ props }">
+              <v-btn 
+                icon="mdi-delete" 
+                variant="text" 
+                size="small" 
+                color="error"
+                :disabled="loading"
+                    v-bind="props"
+                @click="deleteMarriage(marriage.marriage_id)"
+              ></v-btn>
+                </template>
+              </v-tooltip>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-space-between align-center pa-4">
+        <div class="text-body-2">
+          Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} marriages
+        </div>
+        <v-pagination
+          v-model="currentPage"
+          :length="totalPages"
+          :total-visible="7"
+          density="compact"
+          :disabled="loading"
+          @update:model-value="handlePageChange"
+        ></v-pagination>
+      </div>
+    </v-card>
+    <MarriageServiceDialog
+      v-model="marriageServiceDialog"
+      :marriage-service-data="marriageServiceData"
+      @update:model-value="marriageServiceDialog = $event"
+      @submit="handleSubmit"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useMarriageServiceStore } from '@/stores/ServicesRecords/marriageServiceStore'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import MarriageServiceDialog from '@/components/Dialogs/MarriageServiceDialog.vue'
+
+const marriageServiceStore = useMarriageServiceStore()
+
+// Computed properties from store
+const marriages = computed(() => marriageServiceStore.marriages)
+const loading = computed(() => marriageServiceStore.loading)
+const currentPage = computed({
+  get: () => marriageServiceStore.currentPage,
+  set: (value) => marriageServiceStore.setCurrentPage(value)
+})
+const totalPages = computed(() => marriageServiceStore.totalPages)
+const totalCount = computed(() => marriageServiceStore.totalCount)
+const totalMarriages = computed(() => marriageServiceStore.totalMarriages)
+const completed = computed(() => marriageServiceStore.completed)
+const pendingApprovals = computed(() => marriageServiceStore.pendingApprovals)
+const itemsPerPage = computed({
+  get: () => marriageServiceStore.itemsPerPage,
+  set: (value) => marriageServiceStore.setPageSize(value)
+})
+const pageSizeOptions = computed(() => marriageServiceStore.pageSizeOptions)
+const searchQuery = computed({
+  get: () => marriageServiceStore.searchQuery,
+  set: (value) => marriageServiceStore.setSearchQuery(value)
+})
+const filters = computed({
+  get: () => marriageServiceStore.filters,
+  set: (value) => marriageServiceStore.setFilters(value)
+})
+
+// Sort options
+const sortByOptions = [
+  'Marriage Date (Newest)',
+  'Marriage Date (Oldest)',
+  'Marriage ID (A-Z)',
+  'Marriage ID (Z-A)',
+  'Groom Member ID (A-Z)',
+  'Bride Member ID (A-Z)',
+  'Date Created (Newest)',
+  'Date Created (Oldest)',
+  'Status (A-Z)'
+]
+
+const statusOptions = ['All Statuses', 'pending', 'ongoing', 'completed']
+
+// Dialog state
+const marriageServiceDialog = ref(false)
+const marriageServiceData = ref(null)
+
+// Handlers
+const handleMarriageServiceDialog = () => {
+  marriageServiceData.value = null
+  marriageServiceDialog.value = true
+}
+
+const editMarriage = (marriage) => {
+  marriageServiceData.value = {
+    marriage_id: marriage.marriage_id,
+    groom_member_id: marriage.groom_member_id,
+    groom_name: marriage.groom_name,
+    bride_member_id: marriage.bride_member_id,
+    bride_name: marriage.bride_name,
+    guardians: Array.isArray(marriage.guardians) ? marriage.guardians : [],
+    pastor_id: marriage.pastor_id,
+    location: marriage.location,
+    marriage_date: marriage.marriage_date,
+    status: marriage.status
+  }
+  marriageServiceDialog.value = true
+}
+
+const deleteMarriage = async (id) => {
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you want to delete this marriage record?',
+      'Confirm Delete',
+      {
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    const result = await marriageServiceStore.deleteMarriage(id)
+    if (result.success) {
+      ElMessage.success('Marriage record deleted successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to delete marriage record')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error deleting marriage:', error)
+      ElMessage.error('Failed to delete marriage record')
+    }
+  }
+}
+
+const handleSubmit = async (data) => {
+  try {
+    let result
+    if (marriageServiceData.value && marriageServiceData.value.marriage_id) {
+      // Update
+      result = await marriageServiceStore.updateMarriage(marriageServiceData.value.marriage_id, data)
+    } else {
+      // Create
+      result = await marriageServiceStore.createMarriage(data)
+    }
+
+    if (result.success) {
+      ElMessage.success(marriageServiceData.value ? 'Marriage record updated successfully' : 'Marriage record created successfully')
+      marriageServiceDialog.value = false
+      marriageServiceData.value = null
+    } else {
+      ElMessage.error(result.error || 'Failed to save marriage record')
+    }
+  } catch (error) {
+    console.error('Error submitting marriage:', error)
+    ElMessage.error('Failed to save marriage record')
+  }
+}
+
+const handleSearchChange = (value) => {
+  marriageServiceStore.setSearchQuery(value)
+}
+
+const handleFilterChange = () => {
+  marriageServiceStore.setFilters(filters.value)
+}
+
+const handlePageChange = (page) => {
+  marriageServiceStore.setCurrentPage(page)
+}
+
+const handlePageSizeChange = (pageSize) => {
+  marriageServiceStore.setPageSize(pageSize)
+}
+
+const handleExportExcel = async () => {
+  try {
+    const result = await marriageServiceStore.exportMarriagesToExcel()
+    if (result.success) {
+      ElMessage.success(result.message || 'Excel file downloaded successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to export Excel file')
+    }
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    ElMessage.error('An error occurred while exporting to Excel')
+  }
+}
+
+const getStartIndex = () => {
+  if (marriages.value.length === 0) return 0
+  return (currentPage.value - 1) * itemsPerPage.value + 1
+}
+
+const getEndIndex = () => {
+  const end = currentPage.value * itemsPerPage.value
+  return Math.min(end, totalCount.value)
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatGuardians = (guardians) => {
+  if (!guardians) return 'N/A'
+  if (Array.isArray(guardians)) {
+    return guardians.map(g => {
+      const parts = []
+      if (g.firstname) parts.push(g.firstname)
+      if (g.middle_name) parts.push(g.middle_name)
+      if (g.lastname) parts.push(g.lastname)
+      return parts.join(' ')
+    }).join(', ') || 'N/A'
+  }
+  return 'N/A'
+}
+
+const getGroomDisplayName = (marriage) => {
+  // Priority: groom_fullname > groom_name > groom_member_id
+  if (marriage.groom_fullname) return marriage.groom_fullname
+  if (marriage.groom_name) return marriage.groom_name
+  if (marriage.groom_member_id) return marriage.groom_member_id
+  return 'N/A'
+}
+
+const getBrideDisplayName = (marriage) => {
+  // Priority: bride_fullname > bride_name > bride_member_id
+  if (marriage.bride_fullname) return marriage.bride_fullname
+  if (marriage.bride_name) return marriage.bride_name
+  if (marriage.bride_member_id) return marriage.bride_member_id
+  return 'N/A'
+}
+
+const formatStatus = (status) => {
+  const statusMap = {
+    'pending': 'Pending',
+    'ongoing': 'Ongoing',
+    'completed': 'Completed'
+  }
+  return statusMap[status] || status
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    'completed': 'success',
+    'pending': 'warning',
+    'ongoing': 'info'
+  }
+  return colors[status] || 'default'
+}
+
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank')
+  const tableHeaders = ['Groom', 'Bride', 'Guardians', 'Pastor ID', 'Location', 'Marriage Date', 'Status', 'Date Created']
+  
+  let tableRows = ''
+  marriages.value.forEach((marriage) => {
+    tableRows += `
+      <tr>
+        <td>${getGroomDisplayName(marriage)}</td>
+        <td>${getBrideDisplayName(marriage)}</td>
+        <td>${formatGuardians(marriage.guardians)}</td>
+        <td>${marriage.pastor_id || 'N/A'}</td>
+        <td>${marriage.location || 'N/A'}</td>
+        <td>${marriage.marriage_date ? formatDateTime(marriage.marriage_date) : 'Not scheduled'}</td>
+        <td>${formatStatus(marriage.status)}</td>
+        <td>${formatDateTime(marriage.date_created)}</td>
+      </tr>
+    `
+  })
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Marriage Records - Print</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+          }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          .print-date {
+            text-align: right;
+            margin-bottom: 10px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Marriage Records</h1>
+        <div class="print-date">Printed on: ${new Date().toLocaleString()}</div>
+        <table>
+          <thead>
+            <tr>
+              ${tableHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="' + tableHeaders.length + '" style="text-align: center;">No records found</td></tr>'}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `)
+  
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => {
+    printWindow.print()
+    printWindow.close()
+  }, 250)
+}
+
+// Initialize on mount
+onMounted(async () => {
+  await marriageServiceStore.fetchMarriages()
+})
+</script>
+
+<style scoped>
+.marriage-record {
+  padding: 24px;
+}
+
+.icon-custom {
+  font-size: 32px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+  font-family: "Material Design Icons" !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+</style>

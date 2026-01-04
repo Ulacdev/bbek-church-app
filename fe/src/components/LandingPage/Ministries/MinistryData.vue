@@ -1,0 +1,405 @@
+<template>
+  <div class="all-ministries-page">
+    
+    <div class="w-screen h-auto items-center flex flex-col justify-center">
+      <!-- Hero Section -->
+      <section
+        class="hero-section relative w-full"
+        :style="{ backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('/img/youth (4).jpg')` }"
+      >
+        <!-- Floating elements -->
+        <div class="absolute top-10 right-10 w-14 h-14 bg-blue-100/40 rounded-full float-animation" style="animation-delay: 0.5s; animation-duration: 3.5s;"></div>
+        <div class="absolute bottom-20 left-10 w-12 h-12 bg-white/30 rounded-full float-animation" style="animation-delay: 1.5s; animation-duration: 4s;"></div>
+        <div class="absolute top-1/2 left-1/2 w-10 h-10 bg-blue-200/35 rounded-full float-animation" style="animation-delay: 2.5s; animation-duration: 3s;"></div>
+
+        <div class="hero-content relative z-10 text-center px-4 max-w-5xl mx-auto w-full">
+          <h1 class="hero-title text-3xl md:text-5xl font-weight-bold text-white mb-4">
+            <!-- {{ departmentName || (isMemberLandPage ? 'My Ministry' : 'All Ministries') }} -->
+            {{ ministryDataFromState?.ministry_name }}
+          </h1>
+          <p class="hero-subtitle text-lg md:text-xl text-white font-weight-light">
+            {{  ministryDataFromState?.description }}
+          </p>
+        </div>
+      </section>
+
+      <!-- Ministries List Section -->
+      <section class="ministries-section relative py-16 px-4 bg-white overflow-hidden">
+        <!-- Floating elements -->
+        <div class="floating-elements">
+          <div
+            v-for="(element, index) in floatingElements"
+            :key="index"
+            class="floating-element"
+            :style="element.style"
+          ></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto">
+          <h2 class="text-4xl md:text-5xl font-weight-bold text-black mb-6 text-center" style="font-family: 'Georgia', serif; font-style: italic; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Our Ministry
+          </h2>
+          <p class="text-lg md:text-xl text-black text-center leading-relaxed mb-8" style="font-family: 'Georgia', serif; font-style: italic; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+            Discover our various ministries designed to help you grow in faith and serve our community.
+          </p>
+
+        
+
+          <!-- Ministries Grid -->
+          <div
+            class="ministries-grid mt-16"
+            :class="{
+              'grid-cols-1': ministryData.length === 1,
+              'grid-cols-2': ministryData.length === 2,
+              'grid-cols-1 md:grid-cols-2 lg:grid-cols-3': ministryData.length > 2
+            }"
+          >
+            <v-card
+              v-for="(ministry, index) in ministryData"
+              :key="index"
+              class="ministry-card"
+              elevation="4"
+              hover
+            >
+            <div
+                class="ministry-image"
+                :style="{ backgroundImage: ministry.imageUrl ? `url(${ministry.imageUrl})` : 'url(/img/events.jpg)' }"
+              ></div>
+              <div class="ministry-overlay"></div>
+              <div class="ministry-content">
+                <h3 class="ministry-title">{{ ministry.ministry_name }}</h3>
+                <v-btn
+                  color="white"
+                  variant="outlined"
+                  class="mt-4"
+                  @click.stop="goToLearnMore(ministry)"
+                >
+                  Learn More
+                </v-btn>
+              </div>
+            </v-card>
+          </div>
+
+          <!-- Pagination -->
+          <div class="w-full p-4 d-flex align-center justify-center relative mt-8">
+            <v-btn
+              variant="text"
+              :disabled="pageNumber === 1"
+              @click="previousPage"
+            >
+              &laquo; Previous
+            </v-btn>
+            <span class="mx-4">
+              Page {{ pageNumber }} of {{ totalPage }}
+            </span>
+            <v-btn
+              variant="text"
+              :disabled="pageNumber >= totalPage"
+              @click="nextPage"
+            >
+              Next &raquo;
+            </v-btn>
+          </div>
+        </div>
+      </section>
+
+      <!-- Join Community Section -->
+      <section class="join-section py-16 bg-white text-black">
+        <v-container>
+          <div class="text-center">
+            <h2 class="text-4xl font-weight-bold mb-6 text-black" style="font-family: 'Georgia', serif; font-style: italic; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+              Join Our Faith Community
+            </h2>
+            <p class="text-xl mb-10 max-w-2xl mx-auto text-grey-darken-1" style="font-family: 'Georgia', serif; font-style: italic; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+              We invite you to be a part of our church family. Come worship with us and experience the love of Christ.
+            </p>
+            <v-btn
+              color="#14b8a6"
+              size="large"
+              rounded
+              class="text-white"
+              style="font-family: 'Georgia', serif; font-style: italic;"
+              @click="$router.push('/beoneofus/accept-jesus')"
+            >
+              Become a Member
+            </v-btn>
+          </div>
+        </v-container>
+      </section>
+    </div>
+
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const ministryData = ref([])
+const ministryDataFromState = ref(
+  route.query?.ministryData ? JSON.parse(decodeURIComponent(route.query.ministryData)) : null
+)
+const showSort = ref(false)
+const query = ref('')
+const pageNumber = ref(1)
+const totalPage = ref(1)
+const refresh = ref(true)
+const isMemberLandPage = ref(false)
+const departmentList = ref([])
+const departmentId = computed(() => route.params.departmentId)
+
+const departmentName = computed(() => {
+  if (!departmentId.value) return null
+  const dept = departmentList.value.find((d) => d.id === Number(departmentId.value))
+  return dept?.departmentName || null
+})
+
+const floatingElements = ref([
+  { style: { top: '40px', left: '40px', width: '64px', height: '64px', animationDelay: '0s' } },
+  { style: { top: '80px', right: '80px', width: '48px', height: '48px', animationDelay: '1s' } },
+  { style: { bottom: '80px', left: '80px', width: '56px', height: '56px', animationDelay: '2s' } },
+  { style: { bottom: '40px', right: '40px', width: '40px', height: '40px', animationDelay: '0.5s' } },
+  { style: { top: '50%', left: '33%', width: '32px', height: '32px', animationDelay: '1.5s' } },
+  { style: { top: '25%', right: '25%', width: '24px', height: '24px', animationDelay: '0.8s' } },
+  { style: { bottom: '33%', left: '50%', width: '36px', height: '36px', animationDelay: '2.2s' } },
+  { style: { top: '75%', left: '40px', width: '20px', height: '20px', animationDelay: '1.8s' } },
+  { style: { bottom: '25%', right: '25%', width: '28px', height: '28px', animationDelay: '0.3s' } },
+  { style: { top: '33%', right: '40px', width: '44px', height: '44px', animationDelay: '2.8s' } },
+  { style: { top: '50%', right: '33%', width: '16px', height: '16px', animationDelay: '1.1s' } },
+  { style: { bottom: '50%', left: '25%', width: '52px', height: '52px', animationDelay: '0.9s' } }
+])
+
+const toggleSort = () => {
+  showSort.value = !showSort.value
+}
+
+const handleQueryChange = () => {
+  refresh.value = true
+}
+
+const getAllMinistryList = async () => {
+  try {
+    // TODO: Replace with actual API calls
+    // let data = ''
+    // switch (departmentId.value) {
+    //   case '1':
+    //     data = await MinistryRepo().getAllLadies(query.value, pageNumber.value)
+    //     break
+    //   case '2':
+    //     data = await MinistryRepo().getAllMen(query.value, pageNumber.value)
+    //     break
+    //   case '3':
+    //     data = await MinistryRepo().getYoungPeople(query.value, pageNumber.value)
+    //     break
+    //   default:
+    //     data = await MinistryRepo().getUserMinistries(query.value, pageNumber.value)
+    //     if (data.statusCode === 200) {
+    //       ministryData.value = data.data
+    //       return
+    //     }
+    //     break
+    // }
+    // ministryData.value = data
+    // totalPage.value = Math.ceil((data[0]?.totalRows ?? 0) / 11)
+    
+    // Mock data for now
+    ministryData.value = []
+    totalPage.value = 1
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const fetchDepartmentList = async () => {
+  try {
+    // TODO: Replace with actual API call
+    // const response = await MemberRepo().departments()
+    // if (response.statusCode === 200) {
+    //   departmentList.value = response.data
+    // }
+    
+    // Mock data for now
+    departmentList.value = []
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const goToLearnMore = (ministry) => {
+  console.log(ministry , 'ministry')
+  router.push({
+    name: 'LearnMoreMinistry',
+    params: { id: ministry.ministry_id },
+    query: { ministryModel: encodeURIComponent(JSON.stringify(ministry)) }
+  })
+}
+
+const previousPage = () => {
+  if (pageNumber.value > 1) {
+    pageNumber.value--
+    refresh.value = true
+  }
+}
+
+const nextPage = () => {
+  if (pageNumber.value < totalPage.value) {
+    pageNumber.value++
+    refresh.value = true
+  }
+}
+
+watch([refresh, pageNumber, departmentId], () => {
+  if (refresh.value) {
+    getAllMinistryList()
+    refresh.value = false
+  }
+})
+
+onMounted(() => {
+  const isMember = sessionStorage.getItem('isMember') === 'true'
+  isMemberLandPage.value = isMember
+
+  ministryData.value = [ministryDataFromState.value]
+  console.log(ministryDataFromState.value , 'ministryData.value')
+  // fetchDepartmentList()
+  // getAllMinistryList()
+})
+</script>
+
+<style scoped>
+.all-ministries-page {
+  min-height: 100vh;
+  background: white;
+  margin-top: 64px;
+}
+
+.hero-section {
+  height: 50vh;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 960px) {
+  .hero-section {
+    height: 60vh;
+    min-height: 600px;
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+}
+
+.hero-title {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtitle {
+  font-family: 'Poppins', 'Inter', sans-serif;
+}
+
+.float-animation {
+  animation: float 3.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+.floating-elements {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.floating-element {
+  position: absolute;
+  background: rgba(63, 211, 194, 0.62);
+  border-radius: 50%;
+  animation: float 3.5s ease-in-out infinite;
+}
+
+.ministries-section {
+  position: relative;
+}
+
+.ministries-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ministry-card {
+  position: relative;
+  height: 384px;
+  overflow: hidden;
+  border-radius: 1rem;
+}
+
+.ministry-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.ministry-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(55, 65, 81, 0.7), rgba(75, 85, 99, 0.2), transparent);
+  z-index: 1;
+}
+
+.ministry-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 1.5rem;
+  color: white;
+}
+
+.ministry-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  font-family: 'Poppins', 'Inter', sans-serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+
+.join-section {
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 960px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+}
+</style>
+

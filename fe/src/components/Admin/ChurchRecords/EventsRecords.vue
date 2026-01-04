@@ -1,0 +1,542 @@
+<template>
+  <div class="events-records">
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h1 class="text-h4 font-weight-bold">Church Events</h1>
+      <v-btn 
+        color="success" 
+        prepend-icon="mdi-calendar-plus" 
+        size="small" 
+        :disabled="loading"
+        :loading="loading"
+        @click="handleEventRecordsDialog"
+      >
+        Create New Event
+      </v-btn>
+    </div>
+
+    <!-- Filtering and Sorting Section -->
+    <v-card class="mb-4" elevation="2">
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="2">
+            <v-text-field
+              v-model="searchQuery"
+              prepend-inner-icon="mdi-magnify"
+              placeholder="Search events..."
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleSearchChange"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.sortBy"
+              :items="sortByOptions"
+              label="Sort By"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.type"
+              :items="typeOptions"
+              label="Type"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2">
+            <v-select
+              v-model="filters.status"
+              :items="statusOptions"
+              label="Status"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              @update:model-value="handleFilterChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center">
+            <v-select
+              v-model="itemsPerPage"
+              :items="pageSizeOptions"
+              label="Items per page"
+              variant="outlined"
+              density="compact"
+              :disabled="loading"
+              hide-details
+              style="max-width: 150px;"
+              @update:model-value="handlePageSizeChange"
+            ></v-select>
+          </v-col>
+          <v-col cols="12" md="2" class="d-flex align-center gap-2">
+            <v-tooltip text="Print" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-printer"
+                  variant="outlined"
+                  v-bind="props"
+                  :disabled="loading"
+                  @click="handlePrint"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+            <v-tooltip text="Export Excel" location="top">
+              <template v-slot:activator="{ props }">
+                <v-btn 
+                  icon="mdi-download"
+                  variant="outlined"
+                  v-bind="props"
+                  :loading="loading"
+                  :disabled="loading"
+                  @click="handleExportExcel"
+                ></v-btn>
+              </template>
+            </v-tooltip>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12" class="d-flex align-center">
+            <span class="text-body-2">Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} events</span>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
+
+    <!-- Table -->
+    <v-card elevation="2" v-loading="loading" loading-text="Loading events..." class="position-relative">
+      <v-table>
+        <thead>
+          <tr>
+            <th class="text-left font-weight-bold">Event Title</th>
+            <th class="text-left font-weight-bold">Start Date</th>
+            <th class="text-left font-weight-bold">End Date</th>
+            <th class="text-left font-weight-bold">Location</th>
+            <th class="text-left font-weight-bold">Type</th>
+            <th class="text-left font-weight-bold">Status</th>
+            <th class="text-left font-weight-bold">Joined Members</th>
+            <th class="text-left font-weight-bold">Date Created</th>
+            <th class="text-left font-weight-bold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!loading && events.length === 0">
+            <td colspan="9" class="text-center py-12">
+              <div class="text-h6 font-weight-bold">No Record Found</div>
+            </td>
+          </tr>
+          <tr v-for="event in events" :key="event.event_id">
+            <td>{{ event.title }}</td>
+            <td>{{ formatDateTime(event.start_date) }}</td>
+            <td>{{ formatDateTime(event.end_date) }}</td>
+            <td>{{ event.location }}</td>
+            <td>{{ formatType(event.type) }}</td>
+            <td>
+              <v-chip :color="getStatusColor(event.status)" size="small">
+                {{ formatStatus(event.status) }}
+              </v-chip>
+            </td>
+            <td>{{ getJoinedMembersCount(event.joined_members) }}</td>
+            <td>{{ formatDateTime(event.date_created) }}</td>
+            <td>
+              <v-tooltip text="Edit Event" location="top">
+                <template v-slot:activator="{ props }">
+                  <v-btn 
+                    icon="mdi-pencil" 
+                    variant="text" 
+                    size="small" 
+                    class="mr-2"
+                    :disabled="loading"
+                    v-bind="props"
+                    @click="editEvent(event)"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+              <v-tooltip text="Delete Event" location="top">
+                <template v-slot:activator="{ props }">
+                  <v-btn 
+                    icon="mdi-delete" 
+                    variant="text" 
+                    size="small" 
+                    color="error"
+                    :disabled="loading"
+                    v-bind="props"
+                    @click="deleteEvent(event.event_id)"
+                  ></v-btn>
+                </template>
+              </v-tooltip>
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-space-between align-center pa-4">
+        <div class="text-body-2">
+          Showing {{ getStartIndex() }} - {{ getEndIndex() }} of {{ totalCount }} events
+        </div>
+        <v-pagination
+          v-model="currentPage"
+          :length="totalPages"
+          :total-visible="7"
+          density="compact"
+          :disabled="loading"
+          @update:model-value="handlePageChange"
+        ></v-pagination>
+      </div>
+    </v-card>
+
+    <EventRecordsDialog
+      v-model="eventRecordsDialog"
+      :event-records-data="eventRecordsData"
+      :member-options="memberOptions"
+      @update:model-value="eventRecordsDialog = $event"
+      @submit="handleSubmit"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useEventsRecordsStore } from '@/stores/ChurchRecords/eventsRecordsStore'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import EventRecordsDialog from '@/components/Dialogs/EventRecordsDialog.vue'
+
+const eventsRecordsStore = useEventsRecordsStore()
+
+// Computed properties from store
+const events = computed(() => eventsRecordsStore.events)
+const memberOptions = computed(() => eventsRecordsStore.memberOptions)
+const loading = computed(() => eventsRecordsStore.loading)
+const currentPage = computed({
+  get: () => eventsRecordsStore.currentPage,
+  set: (value) => eventsRecordsStore.setCurrentPage(value)
+})
+const totalPages = computed(() => eventsRecordsStore.totalPages)
+const totalCount = computed(() => eventsRecordsStore.totalCount)
+const itemsPerPage = computed({
+  get: () => eventsRecordsStore.itemsPerPage,
+  set: (value) => eventsRecordsStore.setPageSize(value)
+})
+const pageSizeOptions = computed(() => eventsRecordsStore.pageSizeOptions)
+const searchQuery = computed({
+  get: () => eventsRecordsStore.searchQuery,
+  set: (value) => eventsRecordsStore.setSearchQuery(value)
+})
+const filters = computed({
+  get: () => eventsRecordsStore.filters,
+  set: (value) => eventsRecordsStore.setFilters(value)
+})
+
+// Sort options
+const sortByOptions = [
+  'Title (A-Z)',
+  'Title (Z-A)',
+  'Start Date (Newest)',
+  'Start Date (Oldest)',
+  'End Date (Newest)',
+  'End Date (Oldest)',
+  'Date Created (Newest)',
+  'Date Created (Oldest)',
+  'Type (A-Z)',
+  'Status (A-Z)'
+]
+
+const typeOptions = [
+  'All Types',
+  'worship_service',
+  'prayer_meeting',
+  'bible_study',
+  'youth_fellowship',
+  'conference',
+  'seminar',
+  'outreach',
+  'other'
+]
+
+const statusOptions = ['All Statuses', 'pending', 'ongoing', 'completed']
+
+// Dialog state
+const eventRecordsDialog = ref(false)
+const eventRecordsData = ref(null)
+
+// Handlers
+const handleEventRecordsDialog = () => {
+  eventRecordsData.value = null
+  eventRecordsDialog.value = true
+}
+
+const editEvent = (event) => {
+  eventRecordsData.value = {
+    event_id: event.event_id,
+    title: event.title,
+    description: event.description,
+    start_date: event.start_date,
+    end_date: event.end_date,
+    location: event.location,
+    link: event.link || '',
+    type: event.type,
+    status: event.status,
+    joined_members: event.joined_members || [],
+    image: event.image || null // Include image if available
+  }
+  eventRecordsDialog.value = true
+}
+
+const deleteEvent = async (id) => {
+  try {
+    await ElMessageBox.confirm(
+      'Are you sure you want to delete this event?',
+      'Confirm Delete',
+      {
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    const result = await eventsRecordsStore.deleteEvent(id)
+    if (result.success) {
+      ElMessage.success('Event deleted successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to delete event')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error deleting event:', error)
+      ElMessage.error('Failed to delete event')
+    }
+  }
+}
+
+const handleSubmit = async (data) => {
+  try {
+    let result
+    if (eventRecordsData.value && eventRecordsData.value.event_id) {
+      // Update
+      result = await eventsRecordsStore.updateEvent(eventRecordsData.value.event_id, data)
+    } else {
+      // Create
+      result = await eventsRecordsStore.createEvent(data)
+    }
+
+    if (result.success) {
+      ElMessage.success(eventRecordsData.value ? 'Event updated successfully' : 'Event created successfully')
+      eventRecordsDialog.value = false
+      eventRecordsData.value = null
+    } else {
+      ElMessage.error(result.error || 'Failed to save event')
+    }
+  } catch (error) {
+    console.error('Error submitting event:', error)
+    ElMessage.error('Failed to save event')
+  }
+}
+
+const handleSearchChange = (value) => {
+  eventsRecordsStore.setSearchQuery(value)
+}
+
+const handleFilterChange = () => {
+  eventsRecordsStore.setFilters(filters.value)
+}
+
+const handlePageChange = (page) => {
+  eventsRecordsStore.setCurrentPage(page)
+}
+
+const handlePageSizeChange = (pageSize) => {
+  eventsRecordsStore.setPageSize(pageSize)
+}
+
+const handleExportExcel = async () => {
+  try {
+    const result = await eventsRecordsStore.exportEventsToExcel()
+    if (result.success) {
+      ElMessage.success(result.message || 'Excel file downloaded successfully')
+    } else {
+      ElMessage.error(result.error || 'Failed to export Excel file')
+    }
+  } catch (error) {
+    console.error('Error exporting to Excel:', error)
+    ElMessage.error('An error occurred while exporting to Excel')
+  }
+}
+
+const getStartIndex = () => {
+  if (events.value.length === 0) return 0
+  return (currentPage.value - 1) * itemsPerPage.value + 1
+}
+
+const getEndIndex = () => {
+  const end = currentPage.value * itemsPerPage.value
+  return Math.min(end, totalCount.value)
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatType = (type) => {
+  const typeMap = {
+    'worship_service': 'Worship Service',
+    'prayer_meeting': 'Prayer Meeting',
+    'bible_study': 'Bible Study',
+    'youth_fellowship': 'Youth Fellowship',
+    'conference': 'Conference',
+    'seminar': 'Seminar / Training',
+    'outreach': 'Outreach',
+    'other': 'Other'
+  }
+  return typeMap[type] || type
+}
+
+const formatStatus = (status) => {
+  const statusMap = {
+    'pending': 'Pending',
+    'ongoing': 'Ongoing',
+    'completed': 'Completed'
+  }
+  return statusMap[status] || status
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    'pending': 'info',
+    'ongoing': 'warning',
+    'completed': 'success'
+  }
+  return colors[status] || 'default'
+}
+
+const getJoinedMembersCount = (joined_members) => {
+  if (!joined_members) return 0
+  try {
+    if (Array.isArray(joined_members)) {
+      return joined_members.length
+    } else if (typeof joined_members === 'string') {
+      const parsed = JSON.parse(joined_members)
+      return Array.isArray(parsed) ? parsed.length : 0
+    }
+    return 0
+  } catch (e) {
+    return 0
+  }
+}
+
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank')
+  const tableHeaders = ['Event Title', 'Start Date', 'End Date', 'Location', 'Type', 'Status', 'Joined Members', 'Date Created']
+  
+  let tableRows = ''
+  events.value.forEach((event) => {
+    tableRows += `
+      <tr>
+        <td>${event.title || 'N/A'}</td>
+        <td>${formatDateTime(event.start_date)}</td>
+        <td>${formatDateTime(event.end_date)}</td>
+        <td>${event.location || 'N/A'}</td>
+        <td>${formatType(event.type)}</td>
+        <td>${formatStatus(event.status)}</td>
+        <td>${getJoinedMembersCount(event.joined_members)}</td>
+        <td>${formatDateTime(event.date_created)}</td>
+      </tr>
+    `
+  })
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Church Events - Print</title>
+        <style>
+          @media print {
+            @page { margin: 1cm; }
+          }
+          body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #f9f9f9;
+          }
+          .print-date {
+            text-align: right;
+            margin-bottom: 10px;
+            color: #666;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Church Events</h1>
+        <div class="print-date">Printed on: ${new Date().toLocaleString()}</div>
+        <table>
+          <thead>
+            <tr>
+              ${tableHeaders.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRows || '<tr><td colspan="' + tableHeaders.length + '" style="text-align: center;">No records found</td></tr>'}
+          </tbody>
+        </table>
+      </body>
+    </html>
+  `)
+  
+  printWindow.document.close()
+  printWindow.focus()
+  setTimeout(() => {
+    printWindow.print()
+    printWindow.close()
+  }, 250)
+}
+
+// Initialize on mount
+onMounted(async () => {
+  await eventsRecordsStore.fetchEvents()
+  await eventsRecordsStore.fetchMemberOptions()
+})
+</script>
+
+<style scoped>
+.events-records {
+  padding: 24px;
+}
+</style>

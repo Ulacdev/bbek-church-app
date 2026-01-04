@@ -1,0 +1,686 @@
+<template>
+  <section class="hero-section" style="position: relative;">
+    <!-- Loading overlay -->
+    <v-overlay :model-value="isLoadingHome" contained class="align-center justify-center" style="z-index: 10;">
+      <v-progress-circular indeterminate color="white" size="64"></v-progress-circular>
+    </v-overlay>
+    
+    <!-- Floating Elements -->
+    <div class="floating-elements">
+      <div
+        v-for="(element, index) in floatingElements"
+        :key="index"
+        class="floating-element"
+        :style="element.style"
+      ></div>
+    </div>
+
+    <!-- Background Container -->
+    <div
+      class="background-container"
+      @mouseenter="showControlsOnHover"
+      @mouseleave="hideControls"
+      @mousemove="showControlsOnHover"
+    >
+      <!-- Background Image -->
+      <div
+        v-if="homeData.backgroundType === 'image' && homeData.homeBackgroundImage"
+        class="hero-background-image"
+        :style="{ backgroundImage: `url(${homeData.homeBackgroundImage})` }"
+      ></div>
+      <!-- Video Background -->
+      <video
+        v-else-if="homeData.backgroundType === 'video' && videoExists && videoSrc"
+        ref="videoRef"
+        :key="`video-${videoKey}`"
+        class="hero-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        @loadedmetadata="onVideoLoaded"
+        @timeupdate="onTimeUpdate"
+        @error="onVideoError"
+      >
+        <source :src="videoSrc" type="video/mp4" @error="onVideoError" />
+        Your browser does not support the video tag.
+      </video>
+      <!-- Fallback Background -->
+      <div
+        v-else
+        class="hero-video hero-fallback"
+        :style="{ backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }"
+      ></div>
+
+      <!-- Overlay -->
+      <div class="hero-overlay"></div>
+
+      <!-- Video Controls -->
+      <div
+        v-if="homeData.backgroundType === 'video' && videoExists && showControls"
+        class="video-controls"
+        @mouseenter="showControls = true"
+        @mouseleave="hideControls"
+      >
+        <div class="video-controls-bar">
+          <v-btn
+            icon
+            variant="text"
+            color="white"
+            size="small"
+            @click="togglePlay"
+          >
+            <v-icon size="20">{{ isPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+          </v-btn>
+          <span class="time-display">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+          <v-btn
+            icon
+            variant="text"
+            color="white"
+            size="small"
+            @click="toggleMute"
+          >
+            <v-icon size="20">{{ isMuted ? 'mdi-volume-mute' : 'mdi-volume-high' }}</v-icon>
+          </v-btn>
+          <v-menu location="top">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                icon
+                variant="text"
+                color="white"
+                size="small"
+                v-bind="props"
+                @click.stop
+              >
+                <v-icon size="20">mdi-dots-vertical</v-icon>
+              </v-btn>
+            </template>
+            <v-list density="compact" class="speed-menu">
+              <v-list-subheader>Playback Speed</v-list-subheader>
+              <v-list-item
+                v-for="speed in playbackSpeeds"
+                :key="speed"
+                :active="playbackRate === speed"
+                @click="changePlaybackRate(speed)"
+              >
+                <v-list-item-title>{{ speed }}x</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="hero-content">
+      <div class="hero-text-container">
+        <h1 class="hero-title fade-in-up">
+          {{ homeData.welcomeText || `Welcome to ${churchName || 'BBEK Church'}` }}
+        </h1>
+        <div class="hero-schedule mb-6 fade-in-up-delay">
+          <h2 class="hero-subtitle">Service Schedule</h2>
+          <p class="hero-text">{{ homeData.sundayService || 'Sunday Worship: 9:30 AM - 12:00 PM' }}</p>
+          <p class="hero-text">{{ homeData.wednesdayService || 'Wednesday Service: 7:00 PM - 9:00 PM' }}</p>
+        </div>
+        <div class="hero-buttons fade-in-up-delay-2">
+          <v-btn
+            :color="homeData.planVisitButtonColor || '#14b8a6'"
+            class="text-white mr-4 mb-2 hero-btn"
+            size="large"
+            rounded
+            @click="$router.push('/plan-your-visit')"
+          >
+            {{ homeData.planVisitButtonText || 'Plan Your Visit' }}
+          </v-btn>
+          <v-btn
+            :color="homeData.beOneOfUsButtonColor || 'black'"
+            class="text-white mb-2 hero-btn hero-btn-black"
+            size="large"
+            rounded
+            @click="$router.push('/services/water-baptism')"
+          >
+            {{ homeData.beOneOfUsButtonText || 'Be One Of Us' }}
+          </v-btn>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
+import { useCmsStore } from '@/stores/cmsStore'
+
+const cmsStore = useCmsStore()
+
+// Loading state for CMS data
+const isLoadingHome = computed(() => cmsStore.isPageLoading('home'))
+
+const videoRef = ref(null)
+const isPlaying = ref(true)
+const isMuted = ref(true)
+const currentTime = ref(0)
+const duration = ref(0)
+const showControls = ref(false)
+const churchName = ref('Bible Baptist Ekklesia of Kawit')
+const videoExists = ref(true)
+const videoSrc = ref(null)
+const videoKey = ref(0) // Force video element recreation
+const playbackRate = ref(1)
+const playbackSpeeds = ref([0.5, 0.75, 1, 1.25, 1.5, 2])
+let controlsTimeout = null
+
+// Home page data from CMS
+const homeData = ref({
+  backgroundType: 'none',
+  welcomeText: 'Welcome to Bible Baptist Church of Kwali',
+  sundayService: 'Sunday Worship 9:30 AM - 12:00 PM',
+  wednesdayService: 'Wednesday Service 7:00 PM - 9:00 PM',
+  planVisitButtonText: 'Plan Your Visit',
+  planVisitButtonColor: '#14b8a6',
+  beOneOfUsButtonText: 'Be One Of Us',
+  beOneOfUsButtonColor: '#14b8a6',
+  homeVideo: null,
+  homeBackgroundImage: null
+})
+
+const floatingElements = ref([
+  { style: { top: '80px', left: '80px', width: '48px', height: '48px', animationDelay: '0s' } },
+  { style: { top: '33%', right: '64px', width: '32px', height: '32px', animationDelay: '1.5s' } },
+  { style: { bottom: '33%', left: '64px', width: '40px', height: '40px', animationDelay: '2s' } },
+  { style: { bottom: '80px', right: '80px', width: '24px', height: '24px', animationDelay: '0.8s' } },
+  { style: { top: '50%', left: '25%', width: '28px', height: '28px', animationDelay: '1.2s' } },
+  { style: { bottom: '25%', right: '33%', width: '36px', height: '36px', animationDelay: '2.5s' } },
+  { style: { top: '25%', left: '33%', width: '16px', height: '16px', animationDelay: '1.8s' } },
+  { style: { top: '75%', right: '25%', width: '44px', height: '44px', animationDelay: '0.3s' } },
+  { style: { bottom: '50%', left: '16%', width: '20px', height: '20px', animationDelay: '2.1s' } }
+])
+
+const togglePlay = () => {
+  if (videoRef.value) {
+    if (isPlaying.value) {
+      videoRef.value.pause()
+    } else {
+      videoRef.value.play()
+    }
+    isPlaying.value = !isPlaying.value
+  }
+}
+
+const toggleMute = () => {
+  if (videoRef.value) {
+    videoRef.value.muted = !isMuted.value
+    isMuted.value = !isMuted.value
+  }
+}
+
+const changePlaybackRate = (rate) => {
+  if (videoRef.value) {
+    videoRef.value.playbackRate = rate
+    playbackRate.value = rate
+  }
+}
+
+const onVideoLoaded = () => {
+  if (videoRef.value) {
+    duration.value = videoRef.value.duration
+  }
+}
+
+const onVideoError = () => {
+  videoExists.value = false
+}
+
+const onTimeUpdate = () => {
+  if (videoRef.value) {
+    currentTime.value = videoRef.value.currentTime
+  }
+}
+
+const formatTime = (time) => {
+  const minutes = Math.floor(time / 60)
+  const seconds = Math.floor(time % 60)
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+
+const showControlsOnHover = () => {
+  if (controlsTimeout) {
+    clearTimeout(controlsTimeout)
+  }
+  showControls.value = true
+}
+
+const hideControls = () => {
+  if (controlsTimeout) {
+    clearTimeout(controlsTimeout)
+  }
+  controlsTimeout = setTimeout(() => {
+    showControls.value = false
+  }, 2000)
+}
+
+// Fetch home data from CMS
+const fetchHomeData = async () => {
+  try {
+    // First, clear the video completely to force refresh
+    if (videoRef.value) {
+      videoRef.value.pause()
+      videoRef.value.src = ''
+      videoRef.value.load()
+    }
+    videoSrc.value = null
+    videoExists.value = false
+    homeData.value.homeVideo = null
+    
+    // Wait for DOM to update and clear
+    await nextTick()
+    
+    const cmsData = await cmsStore.fetchPageData('home')
+    if (cmsData) {
+      const { page, images } = cmsData
+      const content = page?.content || {}
+      
+      // Update home data
+      homeData.value.backgroundType = content.backgroundType || homeData.value.backgroundType
+      homeData.value.welcomeText = content.welcomeText || homeData.value.welcomeText
+      homeData.value.sundayService = content.sundayService || homeData.value.sundayService
+      homeData.value.wednesdayService = content.wednesdayService || homeData.value.wednesdayService
+      homeData.value.planVisitButtonText = content.planVisitButtonText || homeData.value.planVisitButtonText
+      homeData.value.planVisitButtonColor = content.planVisitButtonColor || homeData.value.planVisitButtonColor
+      homeData.value.beOneOfUsButtonText = content.beOneOfUsButtonText || homeData.value.beOneOfUsButtonText
+      homeData.value.beOneOfUsButtonColor = content.beOneOfUsButtonColor || homeData.value.beOneOfUsButtonColor
+
+      // Handle home background image
+      if (images?.homeBackgroundImage) {
+        homeData.value.homeBackgroundImage = images.homeBackgroundImage
+      }
+      
+      // Handle video - wait a bit more to ensure DOM is cleared
+      await nextTick()
+      
+      if (images?.homeVideo) {
+        homeData.value.homeVideo = images.homeVideo
+        // Increment key to force video element recreation
+        videoKey.value++
+        // Set new video source - the :key attribute will force video element to re-render
+        videoSrc.value = images.homeVideo
+        videoExists.value = true
+        
+        // Wait for video element to be created and then load it
+        await nextTick()
+        await nextTick() // Double nextTick to ensure element is ready
+        
+        if (videoRef.value) {
+          videoRef.value.load()
+          if (isPlaying.value) {
+            videoRef.value.play().catch(err => {
+              console.warn('Video autoplay prevented:', err)
+            })
+          }
+        }
+      } else {
+        // No video in CMS - show fallback background
+        videoKey.value++ // Increment to force removal
+        videoSrc.value = null
+        videoExists.value = false
+      }
+    } else {
+      // No data from CMS - show fallback
+      videoSrc.value = null
+      videoExists.value = false
+    }
+  } catch (error) {
+    if (error.response?.status !== 404) {
+      console.error('Error fetching home data from CMS:', error)
+    }
+    // On error, show fallback
+    videoSrc.value = null
+    videoExists.value = false
+  }
+}
+
+// Watch for video source changes and reload video
+// Note: The :key attribute on the video element should handle most of the recreation
+// This watch is mainly for ensuring the video plays after being created
+watch([videoSrc, videoExists], async ([newSrc, exists], [oldSrc, oldExists]) => {
+  // Only handle if we have a new valid source and video should exist
+  if (newSrc && exists && newSrc !== oldSrc) {
+    // Wait for DOM to update and video element to be created (key change forces recreation)
+    await nextTick()
+    await nextTick() // Double nextTick to ensure element is ready
+    
+    // Retry a few times in case the element isn't ready yet
+    let retries = 0
+    const maxRetries = 5
+    
+    const tryLoadVideo = async () => {
+      if (videoRef.value && videoRef.value.load) {
+        try {
+          videoRef.value.load()
+          if (isPlaying.value && videoRef.value.play) {
+            videoRef.value.play().catch(err => {
+              console.warn('Video autoplay prevented:', err)
+            })
+          }
+        } catch (error) {
+          console.error('Error loading video:', error)
+        }
+      } else if (retries < maxRetries) {
+        retries++
+        await new Promise(resolve => setTimeout(resolve, 100))
+        await tryLoadVideo()
+      }
+    }
+    
+    await tryLoadVideo()
+  }
+}, { flush: 'post' }) // Use 'post' flush to ensure DOM has updated
+
+onMounted(async () => {
+  await fetchHomeData()
+})
+
+onUnmounted(() => {
+  if (controlsTimeout) {
+    clearTimeout(controlsTimeout)
+  }
+})
+</script>
+
+<style scoped>
+.hero-section {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: white;
+}
+
+.background-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.hero-background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-fallback {
+  background-size: cover;
+  background-position: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom right, rgba(55, 65, 81, 0.4), rgba(75, 85, 99, 0.3), rgba(156, 163, 175, 0.2));
+  z-index: 2;
+  pointer-events: none;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 40px;
+  pointer-events: none;
+}
+
+.hero-content > * {
+  pointer-events: auto;
+}
+
+.hero-text-container {
+  max-width: 550px;
+  background: rgba(1, 1, 1, 0.58);
+  border: 20px solid rgba(253, 253, 253, 0);
+  color: white;
+  padding: 1.25rem 2rem;
+  line-height: 1.5;
+}
+
+.hero-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 1rem;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 0.5rem;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-text {
+  color: white;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.floating-elements {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.floating-element {
+  position: absolute;
+  background: rgba(63, 211, 194, 0.62);
+  border-radius: 50%;
+  animation: float 3.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(180deg);
+  }
+}
+
+.video-controls {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 25;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.video-controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background-color: rgba(55, 65, 81, 0.9);
+  border: 1px solid rgba(156, 163, 175, 0.5);
+  border-radius: 24px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.time-display {
+  color: white;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+  min-width: 80px;
+  text-align: center;
+}
+
+.speed-menu {
+  background-color: white;
+  backdrop-filter: blur(8px);
+}
+
+.speed-menu :deep(.v-list-item) {
+  color: black;
+}
+
+.speed-menu :deep(.v-list-item--active) {
+  background-color: rgba(20, 184, 166, 0.3);
+  color: #14b8a6;
+}
+
+.speed-menu :deep(.v-list-subheader) {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.hero-buttons :deep(.hero-btn) {
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-buttons :deep(.hero-btn:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hero-buttons :deep(.hero-btn-black:hover) {
+  background-color: #14b8a6 !important;
+}
+
+.hero-buttons :deep(.hero-btn:not(.hero-btn-black):hover) {
+  background-color: #000000 !important;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.fade-in-up-delay {
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.fade-in-up-delay-2 {
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 960px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+  
+  .hero-text-container {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .hero-content {
+    padding: 24px;
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+  }
+
+  .hero-buttons :deep(.v-btn) {
+    width: 100%;
+    margin-right: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-section {
+    height: 100vh;
+    min-height: 600px;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .hero-text {
+    font-size: 0.875rem;
+  }
+
+  .hero-text-container {
+    padding: 0.75rem;
+    border-width: 10px;
+  }
+
+  .hero-content {
+    padding: 16px;
+  }
+
+  .video-controls {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .video-controls-bar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .time-display {
+    font-size: 12px;
+    min-width: 60px;
+  }
+
+  .floating-element {
+    display: none;
+  }
+}
+</style>
+
