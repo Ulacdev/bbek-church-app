@@ -14,7 +14,7 @@ if (import.meta.env.PROD) {
   if (!import.meta.env.VITE_API_URL) {
     console.error('❌ VITE_API_URL not set in production!')
     console.error('💡 Set VITE_API_URL in Vercel environment variables to your backend URL')
-    console.error('💡 Example: https://your-backend-api.vercel.app')
+    console.error('💡 Example: https://bbek-church-app.onrender.com')
   } else {
     console.log('🔧 Production API URL:', API_URL)
   }
