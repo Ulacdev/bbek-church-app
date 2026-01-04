@@ -49,63 +49,35 @@
       </div>
 
       <div v-if="events.length > 0">
-        <!-- Horizontal Scroll for 4+ events -->
+        <!-- 4-Column Grid with RTL Auto-Scroll for 4+ events -->
         <div
-          v-if="events.length >= 4"
           ref="eventsScrollContainer"
-          class="events-scroll"
+          class="events-grid-container"
+          :class="[
+            { 'auto-scroll': events.length >= 4 },
+            `events-count-${events.length}`
+          ]"
           @mouseenter="pauseAutoScroll"
           @mouseleave="resumeAutoScroll"
         >
           <v-card
-            v-for="(event, index) in duplicatedEvents"
+            v-for="(event, index) in displayedEvents"
             :key="`${event.id}-${index}`"
             :class="`event-card event-card-${(index % events.length) + 1}`"
             height="384"
-            @mouseenter="pauseAutoScroll"
-            @mouseleave="resumeAutoScroll"
-          >
-            <div
-              class="event-image"
-              :style="{ backgroundImage: event.imageUrl ? `url('${event.imageUrl}')` : 'url(/img/events.jpg)' }"
-            ></div>
-            <div class="event-overlay"></div>
-            <div class="event-content">
-              <h3 class="event-title">{{ event.eventName }}</h3>
-              <p class="event-date">{{ event.start_date }} - {{ event.end_date }}</p>
-              <p class="event-location">{{ event.location }}</p>
-              <v-btn
-                color="white"
-                variant="outlined"
-                class="mt-4"
-                @click="goToLearnMore(event)"
-              >
-                Learn More
-              </v-btn>
-            </div>
-          </v-card>
-        </div>
-
-        <!-- Grid Layout for < 4 events -->
-        <div v-else class="events-grid" :class="{
-          'grid-1': events.length === 1,
-          'grid-2': events.length === 2,
-          'grid-3': events.length === 3
-        }">
-          <v-card
-            v-for="(event, index) in events"
-            :key="index"
-            :class="`event-card event-card-${index + 1}`"
-            height="384"
             elevation="4"
             hover
+            @mouseenter="pauseAutoScroll"
+            @mouseleave="resumeAutoScroll"
           >
             <div
               class="event-background"
               :style="{
                 backgroundImage: event.imageUrl
                   ? `url(${event.imageUrl})`
-                  : `url(/img/events.jpg)`,
+                  : `url(http://localhost:8081/bbek/event_image?eventName=${encodeURIComponent(
+                      event.eventName
+                    )})`,
               }"
             ></div>
             <div class="event-overlay"></div>
@@ -158,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCmsStore } from "@/stores/cmsStore";
 import { useEventsRecordsStore } from "@/stores/ChurchRecords/eventsRecordsStore";
@@ -171,6 +143,8 @@ const loading = ref(false);
 const eventsScrollContainer = ref(null);
 const autoScrollInterval = ref(null);
 const isAutoScrolling = ref(true);
+const focusedCardIndex = ref(0); // Track which card is in focus
+const scrollListenerActive = ref(false); // Track if scroll listener is attached
 
 // Loading state for CMS data
 const isLoadingHome = computed(() => cmsStore.isPageLoading("home"));
@@ -179,6 +153,17 @@ const isLoadingHome = computed(() => cmsStore.isPageLoading("home"));
 const duplicatedEvents = computed(() => {
   if (events.value.length >= 4) {
     return [...events.value, ...events.value];
+  }
+  return events.value;
+});
+
+// Displayed events (for 4-column grid with RTL scroll - reversed order)
+const displayedEvents = computed(() => {
+  if (events.value.length >= 4) {
+    // Reverse the order for RTL scrolling effect (right to left)
+    const reversed = [...events.value].reverse();
+    // Duplicate for seamless looping
+    return [...reversed, ...reversed, ...reversed];
   }
   return events.value;
 });
@@ -261,6 +246,56 @@ const fetchPastEventsData = async () => {
   }
 };
 
+// Preload images to prevent disappearing when fetching
+const preloadImages = async (eventList) => {
+  // Cache images in browser memory
+  const imageCache = {};
+  
+  const imagePromises = eventList.map((event) => {
+    return new Promise((resolve) => {
+      if (event.imageUrl) {
+        const img = new Image();
+        
+        img.onload = () => {
+          imageCache[event.id] = event.imageUrl; // Cache successful loads
+          resolve();
+        };
+        
+        img.onerror = () => {
+          console.warn(`Failed to load image for event: ${event.eventName}`);
+          // Try fallback endpoint if primary fails
+          if (!event.imageUrl.includes('event_image')) {
+            const fallbackUrl = `http://localhost:8081/bbek/event_image?eventName=${encodeURIComponent(event.eventName)}`;
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+              event.imageUrl = fallbackUrl;
+              imageCache[event.id] = fallbackUrl;
+              resolve();
+            };
+            fallbackImg.onerror = resolve; // Still resolve even if fallback fails
+            fallbackImg.src = fallbackUrl;
+          } else {
+            resolve();
+          }
+        };
+        
+        img.src = event.imageUrl;
+      } else {
+        resolve();
+      }
+    });
+  });
+  
+  await Promise.all(imagePromises);
+  
+  // Store cache in sessionStorage for persistence
+  try {
+    sessionStorage.setItem('eventImageCache', JSON.stringify(imageCache));
+  } catch (e) {
+    console.warn('Could not cache images in sessionStorage', e);
+  }
+};
+
 // Fetch events from API
 const fetchEvents = async () => {
   loading.value = true;
@@ -274,7 +309,7 @@ const fetchEvents = async () => {
 
     if (result.success && result.data) {
       // Map the events data to match the expected format
-      events.value = result.data.map((event) => ({
+      const mappedEvents = result.data.map((event) => ({
         id: event.event_id,
         eventName: event.title || event.eventName,
         description: event.description || "",
@@ -293,9 +328,14 @@ const fetchEvents = async () => {
               : `data:image/jpeg;base64,${event.image}`
             : null),
       }));
+      
+      // Preload images before updating state
+      await preloadImages(mappedEvents);
+      events.value = mappedEvents;
     } else {
       events.value = [];
     }
+    console.log('Past events fetched:', events.value.length, events.value);
   } catch (error) {
     console.error("Error fetching events:", error);
     events.value = [];
@@ -305,6 +345,41 @@ const fetchEvents = async () => {
 };
 
 
+const pauseAutoScroll = () => {
+  isAutoScrolling.value = false;
+};
+
+const resumeAutoScroll = () => {
+  isAutoScrolling.value = true;
+};
+
+const updateCinemaFocus = () => {
+  if (!eventsScrollContainer.value || events.value.length < 3) return;
+  
+  const container = eventsScrollContainer.value;
+  const cardWidth = 324; // card width + gap (300px + 24px gap)
+  const containerCenter = container.clientWidth / 2;
+  const scrollOffset = container.scrollLeft;
+  
+  // Calculate which card is in the center
+  const centerPosition = scrollOffset + containerCenter;
+  const focusIndex = Math.round(centerPosition / cardWidth) % (displayedEvents.value.length);
+  
+  focusedCardIndex.value = focusIndex;
+  
+  // Update all cards with focus state
+  const cards = container.querySelectorAll('.event-card');
+  cards.forEach((card, idx) => {
+    if (idx === focusIndex) {
+      card.classList.add('cinema-focused');
+      card.classList.remove('cinema-dimmed');
+    } else {
+      card.classList.add('cinema-dimmed');
+      card.classList.remove('cinema-focused');
+    }
+  });
+};
+
 const startAutoScroll = () => {
   if (autoScrollInterval.value) return;
 
@@ -312,23 +387,21 @@ const startAutoScroll = () => {
     if (isAutoScrolling.value && eventsScrollContainer.value) {
       const container = eventsScrollContainer.value;
       const scrollAmount = 2; // pixels per frame
-      const maxScroll = container.scrollWidth / 2; // Halfway point for seamless loop
+      
+      // Since we have 3 copies of events (reversed), scroll to 1/3 of total width for seamless loop
+      const oneSetWidth = container.scrollWidth / 3;
 
-      if (container.scrollLeft <= 0) {
-        container.scrollLeft = maxScroll; // Reset to end for seamless right-to-left loop
+      // Smoothly scroll and reset when reaching the second set
+      if (container.scrollLeft >= oneSetWidth * 2) {
+        container.scrollLeft = oneSetWidth; // Reset to middle set
       } else {
-        container.scrollLeft -= scrollAmount; // Scroll right to left
+        container.scrollLeft += scrollAmount; // Continuous scroll
       }
+      
+      // Update cinema focus
+      updateCinemaFocus();
     }
-  }, 50); // 50ms interval for smooth scrolling
-};
-
-const pauseAutoScroll = () => {
-  isAutoScrolling.value = false;
-};
-
-const resumeAutoScroll = () => {
-  isAutoScrolling.value = true;
+  }, 30); // 30ms interval for smoother scrolling
 };
 
 const stopAutoScroll = () => {
@@ -352,12 +425,32 @@ onMounted(async () => {
 
   // Start auto-scroll if there are 4+ events
   if (events.value.length >= 4) {
+    await nextTick();
+    // Position container for RTL scrolling
+    if (eventsScrollContainer.value) {
+      eventsScrollContainer.value.scrollLeft = 0;
+    }
     startAutoScroll();
+  }
+
+  // Setup scroll listener for cinema effect (3+ events)
+  if (events.value.length >= 3 && eventsScrollContainer.value) {
+    eventsScrollContainer.value.addEventListener('scroll', updateCinemaFocus);
+    scrollListenerActive.value = true;
+    
+    // Call once on mount to set initial focus
+    updateCinemaFocus();
   }
 });
 
 onBeforeUnmount(() => {
   stopAutoScroll();
+  
+  // Cleanup scroll listener
+  if (scrollListenerActive.value && eventsScrollContainer.value) {
+    eventsScrollContainer.value.removeEventListener('scroll', updateCinemaFocus);
+    scrollListenerActive.value = false;
+  }
 });
 </script>
 
@@ -408,6 +501,72 @@ onBeforeUnmount(() => {
   display: none; /* Hide scrollbar for Chrome/Safari */
 }
 
+/* 4-Column Grid Container with RTL Auto-Scroll */
+.events-grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  place-items: center;
+}
+
+/* 1 Event - Centered and larger */
+.events-grid-container.events-count-1 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.events-grid-container.events-count-1 .event-card {
+  width: 100%;
+  max-width: 500px;
+  height: 450px;
+}
+
+/* 2 Events - Centered with space between */
+.events-grid-container.events-count-2 {
+  grid-template-columns: repeat(2, 1fr);
+  justify-items: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.events-grid-container.events-count-2 .event-card {
+  width: 100%;
+  max-width: 420px;
+  height: 400px;
+}
+
+/* 3 Events - Centered in grid */
+.events-grid-container.events-count-3 {
+  grid-template-columns: repeat(3, 1fr);
+  justify-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.events-grid-container.events-count-3 .event-card {
+  width: 100%;
+  max-width: 380px;
+  height: 380px;
+}
+
+/* Auto-scroll layout - flex for horizontal scroll (RTL) */
+.events-grid-container.auto-scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+
+.events-grid-container.auto-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 .events-grid {
   display: grid;
   gap: 1.5rem;
@@ -441,8 +600,18 @@ onBeforeUnmount(() => {
   animation: fadeInUp 0.6s ease-out both;
   transition: all 0.3s ease;
   width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
+  min-width: 300px;
+  flex-shrink: 0;
+}
+
+.events-grid-container:not(.auto-scroll) .event-card {
+  max-width: 100%;
+}
+
+.events-grid-container.auto-scroll .event-card {
+  min-width: 300px;
+  width: 300px;
+  height: 340px;
 }
 
 .event-card-1 {
@@ -463,11 +632,43 @@ onBeforeUnmount(() => {
 
 .event-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .event-card:hover .event-image {
   transform: scale(1.1);
+}
+
+/* Cinema focus effect */
+.event-card.cinema-focused {
+  opacity: 1;
+  filter: brightness(1);
+  transform: scale(1);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-card.cinema-dimmed {
+  opacity: 1;
+  filter: brightness(1);
+  transform: scale(1);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.event-card:hover .event-background {
+  transform: scale(1.05);
+}
+
+.event-background {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: #e0e0e0; /* Fallback color if image fails */
+  transition: transform 0.5s ease;
+  z-index: 0;
+  will-change: transform;
 }
 
 .event-image {
@@ -475,13 +676,15 @@ onBeforeUnmount(() => {
   inset: 0;
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-color: #e0e0e0; /* Fallback color */
   transition: transform 0.5s ease;
 }
 
 .event-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(55, 65, 81, 0.7), rgba(75, 85, 99, 0.2), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.3));
   z-index: 1;
 }
 
@@ -559,6 +762,14 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1024px) {
+  .events-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .events-grid-container.auto-scroll {
+    display: flex;
+  }
+
   .events-grid.grid-2,
   .events-grid.grid-3 {
     grid-template-columns: 1fr;
@@ -568,6 +779,61 @@ onBeforeUnmount(() => {
   .events-grid.grid-3 {
     grid-template-columns: repeat(2, 1fr);
     max-width: 800px;
+  }
+}
+
+@media (max-width: 768px) {
+  .events-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .events-grid-container.auto-scroll {
+    display: flex;
+  }
+
+  .event-card {
+    height: 300px;
+  }
+
+  .events-grid-container.auto-scroll .event-card {
+    height: 280px;
+    width: 280px;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 640px) {
+  .event-card {
+    height: 280px;
+  }
+
+  .events-grid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .events-grid-container.auto-scroll {
+    display: flex;
+  }
+
+  .events-grid-container.auto-scroll .event-card {
+    height: 250px;
+    width: 250px;
+    min-width: 250px;
+  }
+
+  .events-grid {
+    gap: 1rem;
+  }
+
+  .events-grid.grid-1,
+  .events-grid.grid-2,
+  .events-grid.grid-3 {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+
+  .events-grid.grid-3 {
+    grid-template-columns: 1fr;
   }
 }
 
