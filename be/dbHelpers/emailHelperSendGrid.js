@@ -317,7 +317,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
         <p style="font-size: 15px; color: #555;">${statusMessages[status] || 'Your water baptism service status has been updated.'}</p>
         ${getStatusBadge(status, {}, statusMessages)}
         ${getInfoBox('Baptism Details', [
-          { label: 'Member Name', value: baptismDetails.memberName || 'N/A' },
+          { label: 'Name', value: baptismDetails.memberName || 'N/A' },
           { label: 'Baptism Date', value: baptismDetails.baptismDate || 'To be determined' },
           { label: 'Location', value: baptismDetails.location || 'To be determined' }
         ])}
@@ -737,9 +737,9 @@ const sendFormSubmissionNotification = async (formDetails) => {
     
     if (formType === 'prayer_request' && formDetails.formData) {
       formDetailsHtml = `
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
-          <h4 style="color: #1a5f2a; margin: 0 0 15px 0;">Your Prayer Request</h4>
-          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">${formDetails.formData.request || 'N/A'}</p>
+        <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${COLORS.primaryLight};">
+          <h4 style="color: ${COLORS.primary}; margin: 0 0 15px 0; font-size: 18px;">Your Prayer Request</h4>
+          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #ffffff; border-radius: 5px;">${formDetails.formData.request || 'N/A'}</p>
           <p style="color: #888; font-size: 12px; margin: 10px 0 0 0;">
             Submitted as: ${formDetails.formData.anonymous ? 'Anonymous 🙏' : 'Named Request'}
           </p>
@@ -747,9 +747,9 @@ const sendFormSubmissionNotification = async (formDetails) => {
       `;
     } else if (formType === 'message' && formDetails.formData) {
       formDetailsHtml = `
-        <div style="background-color: #fff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
-          <h4 style="color: #1a5f2a; margin: 0 0 15px 0;">${formDetails.formData.subject || 'Contact Message'}</h4>
-          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">${formDetails.formData.message || 'N/A'}</p>
+        <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${COLORS.primaryLight};">
+          <h4 style="color: ${COLORS.primary}; margin: 0 0 15px 0; font-size: 18px;">${formDetails.formData.subject || 'Contact Message'}</h4>
+          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #ffffff; border-radius: 5px;">${formDetails.formData.message || 'N/A'}</p>
         </div>
       `;
     }
