@@ -158,12 +158,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!loading && baptisms.length === 0">
+          <tr v-if="!loading && sortedBaptisms.length === 0">
             <td colspan="6" class="text-center py-12">
               <div class="text-h6 font-weight-bold">No Record Found</div>
             </td>
           </tr>
-          <tr v-for="baptism in baptisms" :key="baptism.baptism_id">
+          <tr v-for="baptism in sortedBaptisms" :key="baptism.baptism_id">
             <!-- <td>{{ baptism.baptism_id }}</td> -->
             <td>{{ baptism.fullname || baptism.member_id }}</td>
             <td>{{ formatDateTime(baptism.baptism_date) }}</td>
@@ -239,6 +239,33 @@ const waterBaptismStore = useWaterBaptismStore()
 
 // Computed properties from store
 const baptisms = computed(() => waterBaptismStore.baptisms)
+
+// Sort baptisms with Pending status first, followed by other statuses in specified order
+const sortedBaptisms = computed(() => {
+  const statusOrder = {
+    'pending': 1,
+    'approved': 2,
+    'disapproved': 3,
+    'completed': 4,
+    'cancelled': 5
+  }
+  
+  return [...baptisms.value].sort((a, b) => {
+    const aOrder = statusOrder[a.status] || 999
+    const bOrder = statusOrder[b.status] || 999
+    
+    // First sort by status order
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder
+    }
+    
+    // If same status, sort by date created (newest first)
+    const aDate = new Date(a.date_created || 0)
+    const bDate = new Date(b.date_created || 0)
+    return bDate - aDate
+  })
+})
+
 const loading = computed(() => waterBaptismStore.loading)
 const currentPage = computed({
   get: () => waterBaptismStore.currentPage,
@@ -273,7 +300,7 @@ const sortByOptions = [
   'Status (A-Z)'
 ]
 
-const statusOptions = ['All Statuses', 'pending', 'ongoing', 'completed']
+const statusOptions = computed(() => waterBaptismStore.filters.statusOptions)
 
 // Dialog state
 const baptismDialog = ref(false)
@@ -290,7 +317,12 @@ const editBaptism = (baptism) => {
     baptism_id: baptism.baptism_id,
     member_id: baptism.member_id,
     baptism_date: baptism.baptism_date,
-    status: baptism.status
+    location: baptism.location,
+    pastor_name: baptism.pastor_name,
+    status: baptism.status,
+    guardian_name: baptism.guardian_name,
+    guardian_contact: baptism.guardian_contact,
+    guardian_relationship: baptism.guardian_relationship
   }
   baptismDialog.value = true
 }
@@ -376,13 +408,13 @@ const handleExportExcel = async () => {
 }
 
 const getStartIndex = () => {
-  if (baptisms.value.length === 0) return 0
+  if (sortedBaptisms.value.length === 0) return 0
   return (currentPage.value - 1) * itemsPerPage.value + 1
 }
 
 const getEndIndex = () => {
   const end = currentPage.value * itemsPerPage.value
-  return Math.min(end, totalCount.value)
+  return Math.min(end, sortedBaptisms.value.length)
 }
 
 const formatDateTime = (dateString) => {
@@ -400,8 +432,10 @@ const formatDateTime = (dateString) => {
 const formatStatus = (status) => {
   const statusMap = {
     'pending': 'Pending',
-    'ongoing': 'Ongoing',
-    'completed': 'Completed'
+    'approved': 'Approved',
+    'disapproved': 'Disapproved',
+    'completed': 'Completed',
+    'cancelled': 'Cancelled'
   }
   return statusMap[status] || status
 }
@@ -410,7 +444,9 @@ const getStatusColor = (status) => {
   const colors = {
     'completed': 'success',
     'pending': 'warning',
-    'ongoing': 'info'
+    'approved': 'info',
+    'disapproved': 'error',
+    'cancelled': 'grey'
   }
   return colors[status] || 'default'
 }
@@ -420,7 +456,7 @@ const handlePrint = () => {
   const tableHeaders = ['Member', 'Baptism Date', 'Status', 'Date Created']
   
   let tableRows = ''
-  baptisms.value.forEach((baptism) => {
+  sortedBaptisms.value.forEach((baptism) => {
     tableRows += `
       <tr>
         <td>${baptism.fullname || baptism.member_id || 'N/A'}</td>

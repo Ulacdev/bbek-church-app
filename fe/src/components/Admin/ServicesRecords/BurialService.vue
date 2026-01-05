@@ -190,7 +190,7 @@
             <td>{{ formatDateTime(service.date_death) }}</td>
             <td>{{ service.relationship }}</td>
             <td>{{ service.location }}</td>
-            <td>{{ service.pastor_id }}</td>
+            <td>{{ service.pastor_name }}</td>
             <td>{{ service.service_date ? formatDateTime(service.service_date) : 'Not scheduled' }}</td>
             <td>
               <v-chip :color="getStatusColor(service.status)" size="small">
@@ -320,7 +320,7 @@ const editService = (service) => {
     date_death: service.date_death,
     relationship: service.relationship,
     location: service.location,
-    pastor_id: service.pastor_id,
+    pastor_name: service.pastor_name,
     service_date: service.service_date,
     status: service.status
   }
@@ -473,7 +473,7 @@ const handlePrint = () => {
         <td>${formatDateTime(service.date_death)}</td>
         <td>${service.relationship || 'N/A'}</td>
         <td>${service.location || 'N/A'}</td>
-        <td>${service.pastor_id || 'N/A'}</td>
+        <td>${service.pastor_name || 'N/A'}</td>
         <td>${service.service_date ? formatDateTime(service.service_date) : 'Not scheduled'}</td>
         <td>${formatStatus(service.status)}</td>
         <td>${formatDateTime(service.date_created)}</td>

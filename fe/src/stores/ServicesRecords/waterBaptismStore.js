@@ -9,7 +9,8 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
     searchQuery: '',
     filters: {
       sortBy: 'Baptism Date (Newest)',
-      status: 'All Statuses'
+      status: 'All Statuses',
+      statusOptions: ['All Statuses', 'Pending', 'Approved', 'Disapproved', 'Completed', 'Cancelled']
     },
     currentPage: 1,
     totalPages: 1,
@@ -17,6 +18,7 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
     itemsPerPage: 10,
     pageSizeOptions: [10, 20, 50, 100],
     memberOptions: [],
+    pastorOptions: [],
     summaryStats: {
       total: 0,
       completed: 0,
@@ -47,6 +49,26 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
       catch (error) {
         this.error = error.response?.data?.error || error.message || 'Failed to fetch member options'
         console.error('Error fetching member options:', error)
+      }
+      finally {
+        this.loading = false
+      }
+    },
+
+    async fetchPastorOptions() {
+      this.loading = true
+      this.error = null
+      try {
+        const response = await axios.get('/church-records/church-leaders/getAllChurchLeadersForSelect')
+        if (response.data.success) {
+          this.pastorOptions = response.data.data
+        } else {
+          this.error = response.data.message || 'Failed to fetch pastor options'
+        }
+      }
+      catch (error) {
+        this.error = error.response?.data?.error || error.message || 'Failed to fetch pastor options'
+        console.error('Error fetching pastor options:', error)
       }
       finally {
         this.loading = false
@@ -168,13 +190,18 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
       this.loading = true
       this.error = null
       try {
-        const response = await axios.put(`/services/water-baptisms/updateWaterBaptism/${id}`, baptismData)
+        // Only send the status field to preserve existing data
+        const updateData = {
+          status: baptismData.status
+        }
+
+        const response = await axios.put(`/services/water-baptisms/updateWaterBaptism/${id}`, updateData)
         if (response.data.success) {
-          await this.fetchBaptisms({
-            page: this.currentPage,
-            pageSize: this.itemsPerPage,
-            search: this.searchQuery
-          })
+          // Update the local baptisms array with the updated data
+          const index = this.baptisms.findIndex(baptism => baptism.id === id)
+          if (index !== -1) {
+            this.baptisms[index] = { ...this.baptisms[index], status: baptismData.status }
+          }
           return { success: true, data: response.data.data }
         } else {
           this.error = response.data.message || 'Failed to update water baptism'

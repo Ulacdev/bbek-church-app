@@ -7,7 +7,8 @@ const {
   getBurialServicesByMemberId,
   updateBurialService,
   deleteBurialService,
-  exportBurialServicesToExcel
+  exportBurialServicesToExcel,
+  searchBurialServicesFulltext
 } = require('../../dbHelpers/services/burialServiceRecords');
 
 const router = express.Router();
@@ -314,6 +315,74 @@ router.post('/exportExcel', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to export burial services to Excel'
+    });
+  }
+});
+
+/**
+ * FULLTEXT SEARCH - Advanced search using FULLTEXT indexes
+ * GET /api/church-records/burial-services/searchFulltext
+ * POST /api/church-records/burial-services/searchFulltext
+ * Parameters: search (required), limit, offset, minRelevance
+ */
+router.get('/searchFulltext', async (req, res) => {
+  try {
+    const options = { ...req.query, useFulltext: true };
+    const result = await searchBurialServicesFulltext(options);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        count: result.count,
+        totalCount: result.totalCount,
+        searchTerm: result.searchTerm,
+        relevanceThreshold: result.relevanceThreshold
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error in FULLTEXT search:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to perform FULLTEXT search'
+    });
+  }
+});
+
+router.post('/searchFulltext', async (req, res) => {
+  try {
+    const options = { ...req.body, useFulltext: true };
+    const result = await searchBurialServicesFulltext(options);
+    
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        count: result.count,
+        totalCount: result.totalCount,
+        searchTerm: result.searchTerm,
+        relevanceThreshold: result.relevanceThreshold
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error in FULLTEXT search:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to perform FULLTEXT search'
     });
   }
 });

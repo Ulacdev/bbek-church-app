@@ -108,9 +108,9 @@
       </el-form-item>
 
       <!-- Pastor -->
-      <el-form-item label="Pastor" prop="pastor_id" v-if="userInfo.account.position === 'admin' || userInfo.account.position === 'staff'">
+      <el-form-item label="Pastor" prop="pastor_name" v-if="userInfo.account.position === 'admin' || userInfo.account.position === 'staff'">
         <el-select
-          v-model="formData.pastor_id"
+          v-model="formData.pastor_name"
           placeholder="Select pastor"
           size="large"
           style="width: 100%"
@@ -119,9 +119,9 @@
         >
           <el-option
             v-for="pastor in pastorOptions"
-            :key="pastor.id"
+            :key="pastor.name"
             :label="pastor.name"
-            :value="pastor.id"
+            :value="pastor.name"
           />
         </el-select>
       </el-form-item>
@@ -265,7 +265,7 @@ const formData = reactive({
   date_death: '',
   relationship: '',
   location: '',
-  pastor_id: null,
+  pastor_name: null,
   service_date: null,
   status: 'pending'
 })
@@ -338,7 +338,7 @@ watch(
       formData.date_death = newData.date_death || ''
       formData.relationship = newData.relationship || ''
       formData.location = newData.location || ''
-      formData.pastor_id = newData.pastor_id ?? null
+      formData.pastor_name = newData.pastor_name ?? null
       formData.service_date = (newData.service_date === null || newData.service_date === '' || !newData.service_date) ? null : newData.service_date
       
 
@@ -375,7 +375,7 @@ watch(
         formData.date_death = data.date_death || ''
         formData.relationship = data.relationship || ''
         formData.location = data.location || ''
-        formData.pastor_id = data.pastor_id ?? null
+        formData.pastor_name = data.pastor_name ?? null
         formData.service_date = data.service_date || null
 
         if (data.status) {
@@ -401,7 +401,7 @@ const resetForm = () => {
   formData.date_death = ''
   formData.relationship = ''
   formData.location = ''
-  formData.pastor_id = null
+  formData.pastor_name = null
   formData.service_date = null
   formData.status = 'pending'
 
@@ -449,7 +449,7 @@ const handleSubmit = async () => {
       date_death: formData.date_death || null,
       relationship: formData.relationship,
       location: formData.location.trim(),
-      pastor_id: formData.pastor_id ? parseInt(formData.pastor_id) : null, // pastor_id is an integer or null
+      pastor_name: formData.pastor_name ? String(formData.pastor_name).trim() : null, // pastor_name is a string or null
       service_date: (formData.service_date === null || formData.service_date === '' || !formData.service_date) ? null : formData.service_date, // Handle null, empty string, or falsy values as null
       status: formData.status
     }

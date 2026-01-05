@@ -2,7 +2,7 @@ const { query } = require('../../database/db');
 const moment = require('moment');
 const XLSX = require('xlsx');
 const { archiveBeforeDelete } = require('../archiveHelper');
-const { sendWaterBaptismDetails } = require('../emailHelperSendGrid');
+const { sendWaterBaptismDetails } = require('../emailHelper');
 
 /**
  * Water Baptism Records CRUD Operations
@@ -66,6 +66,8 @@ async function createWaterBaptism(baptismData) {
       baptism_id = new_baptism_id,
       member_id,
       baptism_date,
+      location,
+      pastor_name,
       status = 'pending',
       date_created = new Date(),
       guardian_name,
@@ -98,12 +100,14 @@ async function createWaterBaptism(baptismData) {
       // Omit baptism_date column when it's null
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
         final_member_id,
+        location || null,
+        pastor_name || null,
         status,
         guardian_name || null,
         guardian_contact || null,
@@ -114,13 +118,15 @@ async function createWaterBaptism(baptismData) {
       // Include baptism_date when it has a value
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, baptism_date, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, baptism_date, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
         final_member_id,
         formattedBaptismDate,
+        location || null,
+        pastor_name || null,
         status,
         guardian_name || null,
         guardian_contact || null,
@@ -155,7 +161,7 @@ async function createWaterBaptism(baptismData) {
           baptismDate: createdBaptism.data.baptism_date
             ? moment(createdBaptism.data.baptism_date).format('YYYY-MM-DD HH:mm:ss')
             : 'To be determined',
-          location: 'To be determined'
+          location: createdBaptism.data.location || 'To be determined'
         });
       }
     } catch (emailError) {
@@ -214,15 +220,15 @@ async function getAllWaterBaptisms(options = {}) {
     const whereConditions = [];
     let hasWhere = false;
 
-    // Add search functionality (search by baptism_id, member_id, or member name)
+    // Add search functionality (search by baptism_id, member_id, member name, location, or pastor_name)
     const searchValue = search && search.trim() !== '' ? search.trim() : null;
     if (searchValue) {
-      const searchCondition = `(wb.baptism_id LIKE ? OR wb.member_id LIKE ? OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?)`;
+      const searchCondition = `(wb.baptism_id LIKE ? OR wb.member_id LIKE ? OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? OR wb.location LIKE ? OR wb.pastor_name LIKE ? OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?)`;
       const searchPattern = `%${searchValue}%`;
 
       whereConditions.push(searchCondition);
-      countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
       hasWhere = true;
     }
 
@@ -477,6 +483,8 @@ async function updateWaterBaptism(baptismId, baptismData) {
     const {
       member_id,
       baptism_date,
+      location,
+      pastor_name,
       status,
       date_created,
       guardian_name,
@@ -497,6 +505,16 @@ async function updateWaterBaptism(baptismId, baptismData) {
       const formattedBaptismDate = moment(baptism_date).format('YYYY-MM-DD HH:mm:ss');
       fields.push('baptism_date = ?');
       params.push(formattedBaptismDate);
+    }
+
+    if (location !== undefined) {
+      fields.push('location = ?');
+      params.push(location || null);
+    }
+
+    if (pastor_name !== undefined) {
+      fields.push('pastor_name = ?');
+      params.push(pastor_name || null);
     }
 
     if (status !== undefined) {
@@ -577,7 +595,7 @@ async function updateWaterBaptism(baptismId, baptismData) {
           baptismDate: updatedBaptism.data.baptism_date
             ? moment(updatedBaptism.data.baptism_date).format('YYYY-MM-DD HH:mm:ss')
             : 'To be determined',
-          location: 'To be determined'
+          location: updatedBaptism.data.location || 'To be determined'
         });
       }
     } catch (emailError) {
@@ -675,8 +693,13 @@ async function exportWaterBaptismsToExcel(options = {}) {
         'No.': index + 1,
         'Baptism ID': baptism.baptism_id || '',
         'Member ID': baptism.member_id || '',
+        'Location': baptism.location || '',
+        'Pastor Name': baptism.pastor_name || '',
         'Baptism Date': baptism.baptism_date ? moment(baptism.baptism_date).format('YYYY-MM-DD HH:mm:ss') : '',
         'Status': baptism.status || '',
+        'Guardian Name': baptism.guardian_name || '',
+        'Guardian Contact': baptism.guardian_contact || '',
+        'Guardian Relationship': baptism.guardian_relationship || '',
         'Date Created': baptism.date_created ? moment(baptism.date_created).format('YYYY-MM-DD HH:mm:ss') : ''
       };
     });
@@ -688,8 +711,13 @@ async function exportWaterBaptismsToExcel(options = {}) {
       { wch: 5 },   // No.
       { wch: 15 },  // Baptism ID
       { wch: 15 },  // Member ID
+      { wch: 20 },  // Location
+      { wch: 20 },  // Pastor Name
       { wch: 20 },  // Baptism Date
       { wch: 15 },  // Status
+      { wch: 20 },  // Guardian Name
+      { wch: 20 },  // Guardian Contact
+      { wch: 20 },  // Guardian Relationship
       { wch: 20 }   // Date Created
     ];
     worksheet['!cols'] = columnWidths;

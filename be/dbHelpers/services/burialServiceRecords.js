@@ -1,7 +1,7 @@
 const { query } = require('../../database/db');
 const moment = require('moment');
 const XLSX = require('xlsx');
-const { sendBurialDetails } = require('../emailHelperSendGrid');
+const { sendBurialDetails } = require('../emailHelper');
 const { archiveBeforeDelete } = require('../archiveHelper');
 
 /**
@@ -70,7 +70,7 @@ async function createBurialService(burialData) {
       member_id,
       relationship,
       location,
-      pastor_id,
+      pastor_name,
       service_date,
       status = 'pending',
       date_created = new Date(),
@@ -115,14 +115,9 @@ async function createBurialService(burialData) {
     // Ensure burial_id is set and convert to string
     const final_burial_id = String(burial_id || new_burial_id).trim();
     
-    // Convert member_id to string, pastor_id to integer
+    // Convert member_id to string, pastor_name to string
     const final_member_id = String(member_id).trim();
-    const final_pastor_id =pastor_id ? parseInt(pastor_id) : null;
-    
-    // Validate pastor_id is a valid integer
-    if (final_pastor_id !== null && isNaN(final_pastor_id)) {
-      throw new Error('Invalid pastor_id: must be a valid integer');
-    }
+    const final_pastor_name = pastor_name ? String(pastor_name).trim() : null;
 
     // Format dates
     // Handle null, empty string, or falsy values as null for service_date
@@ -135,7 +130,7 @@ async function createBurialService(burialData) {
 
     const sql = `
       INSERT INTO tbl_burialservice 
-        (burial_id, member_id, relationship, location, pastor_id, service_date, status, date_created, deceased_name, deceased_birthdate, date_death)
+        (burial_id, member_id, relationship, location, pastor_name, service_date, status, date_created, deceased_name, deceased_birthdate, date_death)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -144,7 +139,7 @@ async function createBurialService(burialData) {
       final_member_id,
       relationship.trim(),
       location.trim(),
-      final_pastor_id,
+      final_pastor_name,
       formattedServiceDate,
       status,
       formattedDateCreated,
@@ -201,7 +196,8 @@ async function createBurialService(burialData) {
 
 /**
  * READ ALL - Get all burial service records with pagination and filters
- * @param {Object} options - Optional query parameters (search, limit, offset, page, pageSize, status, sortBy)
+ * Enhanced with FULLTEXT search capabilities
+ * @param {Object} options - Optional query parameters (search, limit, offset, page, pageSize, status, sortBy, useFulltext)
  * @returns {Promise<Object>} Object with paginated burial service records and metadata
  */
 async function getAllBurialServices(options = {}) {
@@ -209,17 +205,18 @@ async function getAllBurialServices(options = {}) {
     // Extract and normalize parameters from options
     const search = options.search || options.q || null;
     const limit = options.limit !== undefined ? parseInt(options.limit) : undefined;
-    const offset = options.offset !== undefined ? parseInt(options.offset) : undefined;
+    const offset = options.offset !== undefined ? parseInt(offset) : undefined;
     const page = options.page !== undefined ? parseInt(options.page) : undefined;
     const pageSize = options.pageSize !== undefined ? parseInt(options.pageSize) : undefined;
     const status = options.status || null;
     const sortBy = options.sortBy || null;
+    const useFulltext = options.useFulltext !== false; // Default to true for better performance
 
     // Build base query for counting total records (with JOIN for accurate count)
     let countSql = 'SELECT COUNT(*) as total FROM tbl_burialservice bs INNER JOIN tbl_members m ON bs.member_id = m.member_id';
     let countParams = [];
 
-    // Build query for fetching records with member data
+    // Build query for fetching records with member data using FULLTEXT
     let sql = `SELECT 
       bs.*,
       m.firstname,
@@ -239,15 +236,29 @@ async function getAllBurialServices(options = {}) {
     const whereConditions = [];
     let hasWhere = false;
 
-    // Add search functionality (search by burial_id, deceased_name, location, pastor_id, or member name)
+    // Add search functionality with FULLTEXT support
     const searchValue = search && search.trim() !== '' ? search.trim() : null;
     if (searchValue) {
-      const searchCondition = `(bs.burial_id LIKE ? OR bs.deceased_name LIKE ? OR bs.location LIKE ? OR bs.pastor_id LIKE ? OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?)`;
-      const searchPattern = `%${searchValue}%`;
+      if (useFulltext) {
+        // Use FULLTEXT search for better performance and relevance
+        const fulltextCondition = `MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE)`;
+        const memberFulltextCondition = `MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE)`;
+        
+        // Combine FULLTEXT conditions with OR logic
+        const searchCondition = `(${fulltextCondition} OR ${memberFulltextCondition})`;
+        
+        whereConditions.push(searchCondition);
+        countParams.push(searchValue, searchValue);
+        params.push(searchValue, searchValue);
+      } else {
+        // Fallback to LIKE search for compatibility
+        const searchCondition = `(bs.burial_id LIKE ? OR bs.deceased_name LIKE ? OR bs.location LIKE ? OR bs.pastor_name LIKE ? OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?)`;
+        const searchPattern = `%${searchValue}%`;
 
-      whereConditions.push(searchCondition);
-      countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        whereConditions.push(searchCondition);
+        countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+        params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      }
       hasWhere = true;
     }
 
@@ -266,7 +277,7 @@ async function getAllBurialServices(options = {}) {
       sql += whereClause;
     }
 
-    // Add sorting
+    // Add sorting with FULLTEXT relevance support
     let orderByClause = ' ORDER BY ';
     const sortByValue = sortBy && sortBy.trim() !== '' ? sortBy.trim() : null;
     switch (sortByValue) {
@@ -290,6 +301,26 @@ async function getAllBurialServices(options = {}) {
         break;
       case 'Status (A-Z)':
         orderByClause += 'bs.status ASC';
+        break;
+      case 'Pastor Name (A-Z)':
+        orderByClause += 'bs.pastor_name ASC';
+        break;
+      case 'Pastor Name (Z-A)':
+        orderByClause += 'bs.pastor_name DESC';
+        break;
+      case 'Location (A-Z)':
+        orderByClause += 'bs.location ASC';
+        break;
+      case 'Location (Z-A)':
+        orderByClause += 'bs.location DESC';
+        break;
+      case 'Relevance':
+        // Only available with FULLTEXT search
+        if (useFulltext && searchValue) {
+          orderByClause += 'MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE) DESC, ';
+          params.push(searchValue);
+        }
+        orderByClause += 'bs.date_created DESC';
         break;
       default:
         orderByClause += 'bs.date_created DESC'; // Default sorting
@@ -483,7 +514,7 @@ async function updateBurialService(burialId, burialData) {
       member_id,
       relationship,
       location,
-      pastor_id,
+      pastor_name,
       service_date,
       status,
       date_created,
@@ -511,18 +542,9 @@ async function updateBurialService(burialId, burialData) {
       params.push(location.trim());
     }
 
-    if (pastor_id !== undefined) {
-      if (pastor_id === null || pastor_id === '') {
-        fields.push('pastor_id = ?');
-        params.push(null);
-      } else {
-        const pastorIdInt = parseInt(pastor_id);
-        if (isNaN(pastorIdInt)) {
-          throw new Error('Invalid pastor_id: must be a valid integer');
-        }
-        fields.push('pastor_id = ?');
-        params.push(pastorIdInt);
-      }
+    if (pastor_name !== undefined) {
+      fields.push('pastor_name = ?');
+      params.push(pastor_name ? String(pastor_name).trim() : null);
     }
 
     if (service_date !== undefined) {
@@ -715,10 +737,11 @@ async function exportBurialServicesToExcel(options = {}) {
         'No.': index + 1,
         'Burial ID': service.burial_id || '',
         'Member ID': service.member_id || '',
+        'Member Name': service.fullname || '',
         'Deceased Name': service.deceased_name || '',
         'Relationship': service.relationship || '',
         'Location': service.location || '',
-        'Pastor ID': service.pastor_id || '',
+        'Pastor Name': service.pastor_name || '',
         'Service Date': service.service_date ? moment(service.service_date).format('YYYY-MM-DD HH:mm:ss') : '',
         'Status': service.status || '',
         'Date Created': service.date_created ? moment(service.date_created).format('YYYY-MM-DD HH:mm:ss') : '',
@@ -734,10 +757,11 @@ async function exportBurialServicesToExcel(options = {}) {
       { wch: 5 },   // No.
       { wch: 15 },  // Burial ID
       { wch: 15 },  // Member ID
+      { wch: 25 },  // Member Name
       { wch: 30 },  // Deceased Name
       { wch: 20 },  // Relationship
       { wch: 25 },  // Location
-      { wch: 15 },  // Pastor ID
+      { wch: 25 },  // Pastor Name
       { wch: 20 },  // Service Date
       { wch: 15 },  // Status
       { wch: 20 },  // Date Created
@@ -761,6 +785,91 @@ async function exportBurialServicesToExcel(options = {}) {
   }
 }
 
+/**
+ * FULLTEXT SEARCH - Specialized function for advanced search using FULLTEXT indexes
+ * @param {Object} options - Search options
+ * @returns {Promise<Object>} Search results with relevance scoring
+ */
+async function searchBurialServicesFulltext(options = {}) {
+  try {
+    const {
+      search,
+      limit = 50,
+      offset = 0,
+      minRelevance = 0
+    } = options;
+
+    if (!search || search.trim() === '') {
+      return {
+        success: false,
+        message: 'Search term is required for FULLTEXT search',
+        data: [],
+        count: 0
+      };
+    }
+
+    const searchTerm = search.trim();
+
+    // FULLTEXT search query with relevance scoring
+    const sql = `SELECT 
+      bs.*,
+      m.firstname,
+      m.lastname,
+      m.middle_name,
+      CONCAT(
+        m.firstname,
+        IF(m.middle_name IS NOT NULL AND m.middle_name != '', CONCAT(' ', m.middle_name), ''),
+        ' ',
+        m.lastname
+      ) as fullname,
+      MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE) as burial_relevance,
+      MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE) as member_relevance,
+      (MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE) +
+       MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE)) as total_relevance
+    FROM tbl_burialservice bs
+    INNER JOIN tbl_members m ON bs.member_id = m.member_id
+    WHERE MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE)
+       OR MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE)
+    HAVING total_relevance > ?
+    ORDER BY total_relevance DESC, bs.date_created DESC
+    LIMIT ? OFFSET ?`;
+
+    const params = [
+      searchTerm, searchTerm, searchTerm, // For MATCH AGAINST
+      minRelevance,
+      parseInt(limit),
+      parseInt(offset)
+    ];
+
+    const [rows] = await query(sql, params);
+
+    // Get total count for pagination
+    const countSql = `SELECT COUNT(*) as total
+      FROM tbl_burialservice bs
+      INNER JOIN tbl_members m ON bs.member_id = m.member_id
+      WHERE MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE)
+         OR MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE)
+      HAVING (MATCH(bs.burial_id, bs.location, bs.deceased_name, bs.relationship, bs.status, bs.pastor_name) AGAINST(? IN NATURAL LANGUAGE MODE) +
+              MATCH(m.firstname, m.lastname, m.middle_name) AGAINST(? IN NATURAL LANGUAGE MODE)) > ?`;
+    
+    const [countResult] = await query(countSql, [searchTerm, searchTerm, searchTerm, searchTerm, minRelevance]);
+    const totalCount = countResult[0]?.total || 0;
+
+    return {
+      success: true,
+      message: 'FULLTEXT search completed successfully',
+      data: rows,
+      count: rows.length,
+      totalCount: totalCount,
+      searchTerm: searchTerm,
+      relevanceThreshold: minRelevance
+    };
+  } catch (error) {
+    console.error('Error in FULLTEXT search:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createBurialService,
   getAllBurialServices,
@@ -768,6 +877,7 @@ module.exports = {
   getBurialServicesByMemberId,
   updateBurialService,
   deleteBurialService,
-  exportBurialServicesToExcel
+  exportBurialServicesToExcel,
+  searchBurialServicesFulltext  // New FULLTEXT search function
 };
 

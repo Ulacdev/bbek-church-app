@@ -103,6 +103,35 @@
         />
       </el-form-item>
 
+      <!-- Location -->
+      <el-form-item label="Location" prop="location">
+        <el-input
+          v-model="formData.location"
+          placeholder="Enter baptism location"
+          size="large"
+          :disabled="loading"
+        />
+      </el-form-item>
+
+      <!-- Pastor -->
+      <el-form-item label="Pastor" prop="pastor_name">
+        <el-select
+          v-model="formData.pastor_name"
+          placeholder="Select pastor"
+          size="large"
+          style="width: 100%"
+          clearable
+          :disabled="loading"
+        >
+          <el-option
+            v-for="option in pastorOptions"
+            :key="option.name"
+            :label="option.name"
+            :value="option.name"
+          />
+        </el-select>
+      </el-form-item>
+
       <!-- Status -->
       <el-form-item label="Status" prop="status">
         <el-select
@@ -231,12 +260,17 @@ const labelPosition = computed(() => {
 })
 
 // Member options - will be fetched from API
-const memberOptions = ref([])
+const memberOptions = computed(() => waterBaptismStore.memberOptions || [])
 
+// Pastor options - will be fetched from API
+const pastorOptions = computed(() => waterBaptismStore.pastorOptions || [])
 
-// Fetch member options when component mounts
-onMounted(() => {
-  waterBaptismStore.fetchMemberOptions()
+// Fetch member options and pastor options when component mounts
+onMounted(async () => {
+  await Promise.all([
+    waterBaptismStore.fetchMemberOptions(),
+    waterBaptismStore.fetchPastorOptions()
+  ])
 })
 // Check if in edit mode
 const isEditMode = computed(() => !!props.baptismData)
@@ -250,13 +284,12 @@ const statusOptions = [
   { name: 'Cancelled', value: 'cancelled' }
 ]
 
-// Pastor options - will be fetched from API if needed
-const pastorOptions = ref([])
-
 // Form data
 const formData = reactive({
   member_id:"",
   baptism_date: null,
+  location: '',
+  pastor_name: '',
   status: 'pending', // Default status
   age: '',
   gender: '',
@@ -295,6 +328,12 @@ const rules = {
       trigger: 'change'
     }
   ],
+  location: [
+    { required: true, message: 'Location is required', trigger: 'blur' }
+  ],
+  pastor_name: [
+    { required: true, message: 'Pastor is required', trigger: 'change' }
+  ],
   status: [
     { required: true, message: 'Status is required', trigger: 'change' }
   ]
@@ -314,6 +353,8 @@ watch(() => props.baptismData, async (newData) => {
   if (newData && props.modelValue) {
     formData.member_id = newData.member_id || ''
     formData.baptism_date = newData.baptism_date || null
+    formData.location = newData.location || ''
+    formData.pastor_name = newData.pastor_name || ''
     formData.status = newData.status || 'pending'
     formData.guardian_name = newData.guardian_name || ''
     formData.guardian_contact = newData.guardian_contact || ''
@@ -342,6 +383,8 @@ watch(() => props.modelValue, async (isOpen) => {
     const data = props.baptismData
     formData.member_id = data.member_id || ''
     formData.baptism_date = data.baptism_date || null
+    formData.location = data.location || ''
+    formData.pastor_name = data.pastor_name || ''
     formData.status = data.status || 'pending'
     formData.guardian_name = data.guardian_name || ''
     formData.guardian_contact = data.guardian_contact || ''
@@ -396,6 +439,8 @@ const onMemberChange = async (memberId) => {
 const resetForm = () => {
   formData.member_id = ''
   formData.baptism_date = null
+  formData.location = ''
+  formData.pastor_name = ''
   formData.status = 'pending' // Reset to default
   formData.age = ''
   formData.gender = ''
@@ -445,11 +490,13 @@ const handleSubmit = async () => {
     })
     
     // Prepare data for submission
-    // Backend expects: { member_id, baptism_date, status?, guardian_name?, guardian_contact?, guardian_relationship? }
+    // Backend expects: { member_id, baptism_date, location, pastor_name, status?, guardian_name?, guardian_contact?, guardian_relationship? }
     // baptism_date is required and will be formatted by backend as DATETIME
     const submitData = {
       member_id: String(formData.member_id).trim(),
       baptism_date: formData.baptism_date, // Required - backend will format as DATETIME
+      location: formData.location?.trim() || null,
+      pastor_name: formData.pastor_name || null,
       status: formData.status || 'pending',
       guardian_name: formData.guardian_name?.trim() || null,
       guardian_contact: formData.guardian_contact?.trim() || null,
