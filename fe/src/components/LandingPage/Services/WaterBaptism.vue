@@ -799,7 +799,7 @@ const handleSubmit = async () => {
       guardianRelationship: formData.guardianRelationship || null
     }
     console.log(payload ,'register water baptism')
-    const result = await memberRegistrationStore.registerMemberFromWaterBaptism(payload)
+    const result = await memberRegistrationStore.registerNonMemberWaterBaptism(payload)
     
     if (result.success) {
       submitMessage.value = 'Registration submitted successfully!'

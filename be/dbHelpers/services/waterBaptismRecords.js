@@ -6,12 +6,16 @@ const { sendWaterBaptismDetails } = require('../emailHelperSendGrid');
 
 /**
  * Water Baptism Records CRUD Operations
- * Based on tbl_waterbaptism schema:
+ * Supports both member and non-member registrations
+ * 
+ * tbl_waterbaptism schema:
  * - baptism_id (VARCHAR(45), PK, NN)
- * - member_id (VARCHAR(45), NN)
+ * - member_id (VARCHAR(45), nullable for non-members)
+ * - firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status (for non-members)
  * - baptism_date (DATETIME, nullable) - can be null for pending baptisms
  * - status (VARCHAR(45), NN, default: 'pending')
  * - date_created (VARCHAR(45), NN)
+ * - is_member (TINYINT(1), default 1) - 1=member, 0=non-member
  */
 
 /**
@@ -50,8 +54,14 @@ async function getNextBaptismId() {
 
 /**
  * CREATE - Insert a new water baptism record
+ * Supports both member and non-member registrations
  * @param {Object} baptismData - Water baptism data object
- * @param {string} baptismData.member_id - Member ID (required)
+ * @param {string} baptismData.member_id - Member ID (optional for non-members)
+ * @param {boolean} baptismData.is_member - Whether this is a member (default: true)
+ * @param {string} baptismData.firstname - First name (for non-members)
+ * @param {string} baptismData.lastname - Last name (for non-members)
+ * @param {string} baptismData.email - Email (for non-members)
+ * @param {string} baptismData.phone_number - Phone number (for non-members)
  * @param {Date|string|null} baptismData.baptism_date - Baptism date (optional, can be null)
  * @param {string} baptismData.status - Status (default: 'pending')
  * @returns {Promise<Object>} Result object
@@ -65,6 +75,17 @@ async function createWaterBaptism(baptismData) {
     const {
       baptism_id = new_baptism_id,
       member_id,
+      is_member = true,
+      firstname,
+      lastname,
+      middle_name,
+      email,
+      phone_number,
+      birthdate,
+      age,
+      gender,
+      address,
+      civil_status,
       baptism_date,
       location,
       pastor_name,
@@ -75,22 +96,26 @@ async function createWaterBaptism(baptismData) {
       guardian_relationship
     } = baptismData;
 
-    // Validate required fields (baptism_id is auto-generated if not provided)
-    if (!member_id) {
-      throw new Error('Missing required field: member_id');
+    // Validate: either member_id (for members) or personal info (for non-members) is required
+    if (!member_id && is_member) {
+      throw new Error('Missing required field: member_id for member registration');
     }
-    // baptism_date is optional and can be null
+    
+    if (!is_member && (!firstname || !lastname || !email)) {
+      throw new Error('Missing required fields: firstname, lastname, and email are required for non-member registration');
+    }
 
     // Ensure baptism_id is set and convert to string
     const final_baptism_id = String(baptism_id || new_baptism_id).trim();
     
-    // Convert member_id to string
-    const final_member_id = String(member_id).trim();
+    // Convert member_id to string (can be null for non-members)
+    const final_member_id = member_id ? String(member_id).trim() : null;
 
     // Format dates - baptism_date can be null
     const formattedBaptismDate = baptism_date ? moment(baptism_date).format('YYYY-MM-DD HH:mm:ss') : null;
     // date_created is VARCHAR(45), so format as string
     const formattedDateCreated = moment(date_created).format('YYYY-MM-DD HH:mm:ss');
+    const formattedBirthdate = birthdate ? moment(birthdate).format('YYYY-MM-DD') : null;
 
     // Build SQL conditionally based on whether baptism_date is provided
     let sql;
@@ -100,12 +125,23 @@ async function createWaterBaptism(baptismData) {
       // Omit baptism_date column when it's null
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
         final_member_id,
+        is_member ? 1 : 0,
+        firstname || null,
+        lastname || null,
+        middle_name || null,
+        email || null,
+        phone_number || null,
+        formattedBirthdate,
+        age || null,
+        gender || null,
+        address || null,
+        civil_status || null,
         location || null,
         pastor_name || null,
         status,
@@ -118,12 +154,23 @@ async function createWaterBaptism(baptismData) {
       // Include baptism_date when it has a value
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, baptism_date, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, baptism_date, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
         final_member_id,
+        is_member ? 1 : 0,
+        firstname || null,
+        lastname || null,
+        middle_name || null,
+        email || null,
+        phone_number || null,
+        formattedBirthdate,
+        age || null,
+        gender || null,
+        address || null,
+        civil_status || null,
         formattedBaptismDate,
         location || null,
         pastor_name || null,
@@ -140,21 +187,33 @@ async function createWaterBaptism(baptismData) {
     // Fetch the created baptism
     const createdBaptism = await getWaterBaptismById(final_baptism_id);
 
-    // Send email notification to the member (best-effort; do not fail creation)
+    // Send email notification (best-effort; do not fail creation)
     try {
-      const [memberRows] = await query(
-        `SELECT firstname, lastname, middle_name, email, phone_number
-         FROM tbl_members
-         WHERE member_id = ?`,
-        [final_member_id]
-      );
-
-      if (memberRows && memberRows.length > 0 && memberRows[0].email) {
-        const member = memberRows[0];
-        const recipientName = `${member.firstname || ''} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname || ''}`.trim() || 'Valued Member';
+      let recipientName, recipientEmail;
+      
+      if (is_member && member_id) {
+        // Get member details from tbl_members
+        const [memberRows] = await query(
+          `SELECT firstname, lastname, middle_name, email, phone_number
+           FROM tbl_members
+           WHERE member_id = ?`,
+          [final_member_id]
+        );
         
+        if (memberRows && memberRows.length > 0 && memberRows[0].email) {
+          const member = memberRows[0];
+          recipientName = `${member.firstname || ''} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname || ''}`.trim() || 'Valued Member';
+          recipientEmail = member.email;
+        }
+      } else {
+        // Use non-member details directly from the baptism record
+        recipientName = `${firstname || ''} ${middle_name ? middle_name + ' ' : ''}${lastname || ''}`.trim() || 'Valued Member';
+        recipientEmail = email;
+      }
+      
+      if (recipientEmail) {
         await sendWaterBaptismDetails({
-          email: member.email,
+          email: recipientEmail,
           status: createdBaptism.data.status,
           recipientName: recipientName,
           memberName: recipientName,
@@ -196,50 +255,71 @@ async function getAllWaterBaptisms(options = {}) {
     const status = options.status || null;
     const sortBy = options.sortBy || null;
 
-    // Build base query for counting total records (with JOIN for accurate count)
-    let countSql = 'SELECT COUNT(*) as total FROM tbl_waterbaptism wb INNER JOIN tbl_members m ON wb.member_id = m.member_id';
+    // Build base query for counting total records (with LEFT JOIN for accurate count including non-members)
+    let countSql = 'SELECT COUNT(*) as total FROM tbl_waterbaptism wb LEFT JOIN tbl_members m ON wb.member_id = m.member_id';
     let countParams = [];
 
     // Build query for fetching records with member data
+    // Use LEFT JOIN to include non-member records (where member_id is null)
     let sql = `SELECT 
       wb.*,
-      m.firstname,
-      m.lastname,
-      m.middle_name,
-      m.birthdate,
-      m.age,
-      m.gender,
-      m.address,
-      m.email,
-      m.phone_number,
-      m.civil_status,
-      m.position,
+      m.firstname as member_firstname,
+      m.lastname as member_lastname,
+      m.middle_name as member_middle_name,
+      m.birthdate as member_birthdate,
+      m.age as member_age,
+      m.gender as member_gender,
+      m.address as member_address,
+      m.email as member_email,
+      m.phone_number as member_phone_number,
+      m.civil_status as member_civil_status,
+      m.position as member_position,
       m.guardian_name as member_guardian_name,
       m.guardian_contact as member_guardian_contact,
       m.guardian_relationship as member_guardian_relationship,
+      -- For members: use member table data
+      -- For non-members: use waterbaptism table's own fields
+      COALESCE(m.firstname, wb.firstname) as firstname,
+      COALESCE(m.lastname, wb.lastname) as lastname,
+      COALESCE(m.middle_name, wb.middle_name) as middle_name,
+      COALESCE(m.birthdate, wb.birthdate) as birthdate,
+      COALESCE(m.age, wb.age) as age,
+      COALESCE(m.gender, wb.gender) as gender,
+      COALESCE(m.address, wb.address) as address,
+      COALESCE(m.email, wb.email) as email,
+      COALESCE(m.phone_number, wb.phone_number) as phone_number,
+      COALESCE(m.civil_status, wb.civil_status) as civil_status,
+      COALESCE(m.guardian_name, wb.guardian_name) as guardian_name,
+      COALESCE(m.guardian_contact, wb.guardian_contact) as guardian_contact,
+      COALESCE(m.guardian_relationship, wb.guardian_relationship) as guardian_relationship,
       CONCAT(
-        m.firstname,
-        IF(m.middle_name IS NOT NULL AND m.middle_name != '', CONCAT(' ', m.middle_name), ''),
+        COALESCE(m.firstname, wb.firstname),
+        IF(COALESCE(m.middle_name, wb.middle_name) IS NOT NULL AND COALESCE(m.middle_name, wb.middle_name) != '', CONCAT(' ', COALESCE(m.middle_name, wb.middle_name)), ''),
         ' ',
-        m.lastname
+        COALESCE(m.lastname, wb.lastname)
       ) as fullname
     FROM tbl_waterbaptism wb
-    INNER JOIN tbl_members m ON wb.member_id = m.member_id`;
+    LEFT JOIN tbl_members m ON wb.member_id = m.member_id`;
     const params = [];
 
     // Build WHERE conditions array
     const whereConditions = [];
     let hasWhere = false;
 
-    // Add search functionality (search by baptism_id, member_id, member name, location, or pastor_name)
+    // Add search functionality (search by baptism_id, member_id, member name, non-member name, location, or pastor_name)
     const searchValue = search && search.trim() !== '' ? search.trim() : null;
     if (searchValue) {
-      const searchCondition = `(wb.baptism_id LIKE ? OR wb.member_id LIKE ? OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? OR wb.location LIKE ? OR wb.pastor_name LIKE ? OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?)`;
+      const searchCondition = `(wb.baptism_id LIKE ? OR wb.member_id LIKE ? 
+        OR m.firstname LIKE ? OR m.lastname LIKE ? OR m.middle_name LIKE ? 
+        OR wb.firstname LIKE ? OR wb.lastname LIKE ? OR wb.email LIKE ? 
+        OR wb.location LIKE ? OR wb.pastor_name LIKE ? 
+        OR CONCAT(m.firstname, ' ', IFNULL(m.middle_name, ''), ' ', m.lastname) LIKE ?
+        OR CONCAT(wb.firstname, ' ', IFNULL(wb.middle_name, ''), ' ', wb.lastname) LIKE ?)`;
       const searchPattern = `%${searchValue}%`;
 
       whereConditions.push(searchCondition);
-      countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
-      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      countParams.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
+      params.push(searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern);
       hasWhere = true;
     }
 
@@ -525,6 +605,17 @@ async function updateWaterBaptism(baptismId, baptismData) {
 
     const {
       member_id,
+      is_member,
+      firstname,
+      lastname,
+      middle_name,
+      email,
+      phone_number,
+      birthdate,
+      age,
+      gender,
+      address,
+      civil_status,
       baptism_date,
       location,
       pastor_name,
@@ -541,7 +632,63 @@ async function updateWaterBaptism(baptismId, baptismData) {
 
     if (member_id !== undefined) {
       fields.push('member_id = ?');
-      params.push(String(member_id).trim());
+      params.push(member_id ? String(member_id).trim() : null);
+    }
+
+    if (is_member !== undefined) {
+      fields.push('is_member = ?');
+      params.push(is_member ? 1 : 0);
+    }
+
+    if (firstname !== undefined) {
+      fields.push('firstname = ?');
+      params.push(firstname);
+    }
+
+    if (lastname !== undefined) {
+      fields.push('lastname = ?');
+      params.push(lastname);
+    }
+
+    if (middle_name !== undefined) {
+      fields.push('middle_name = ?');
+      params.push(middle_name);
+    }
+
+    if (email !== undefined) {
+      fields.push('email = ?');
+      params.push(email);
+    }
+
+    if (phone_number !== undefined) {
+      fields.push('phone_number = ?');
+      params.push(phone_number);
+    }
+
+    if (birthdate !== undefined) {
+      const formattedBirthdate = birthdate ? moment(birthdate).format('YYYY-MM-DD') : null;
+      fields.push('birthdate = ?');
+      params.push(formattedBirthdate);
+    }
+
+    if (age !== undefined) {
+      fields.push('age = ?');
+      params.push(age);
+    }
+
+    if (gender !== undefined) {
+      fields.push('gender = ?');
+      params.push(gender);
+    }
+
+    if (address !== undefined) {
+      fields.push('address = ?');
+      params.push(address);
+    }
+
+    if (civil_status !== undefined) {
+      fields.push('civil_status = ?');
+      params.push(civil_status);
     }
 
     if (baptism_date !== undefined) {
@@ -616,22 +763,33 @@ async function updateWaterBaptism(baptismId, baptismData) {
     // Fetch updated baptism
     const updatedBaptism = await getWaterBaptismById(baptismId);
 
-    // Send email notification to the member (if we can resolve email)
+    // Send email notification to the member/non-member (if we can resolve email)
     try {
-      // Get member contact details
-      const [memberRows] = await query(
-        `SELECT firstname, lastname, middle_name, email, phone_number
-         FROM tbl_members
-         WHERE member_id = ?`,
-        [updatedBaptism.data.member_id]
-      );
+      let recipientName, recipientEmail;
+      
+      if (updatedBaptism.data.is_member === 1 && updatedBaptism.data.member_id) {
+        // Get member contact details from tbl_members
+        const [memberRows] = await query(
+          `SELECT firstname, lastname, middle_name, email, phone_number
+           FROM tbl_members
+           WHERE member_id = ?`,
+          [updatedBaptism.data.member_id]
+        );
 
-      if (memberRows && memberRows.length > 0 && memberRows[0].email) {
-        const member = memberRows[0];
-        const recipientName = `${member.firstname || ''} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname || ''}`.trim() || 'Valued Member';
-        
+        if (memberRows && memberRows.length > 0 && memberRows[0].email) {
+          const member = memberRows[0];
+          recipientName = `${member.firstname || ''} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname || ''}`.trim() || 'Valued Member';
+          recipientEmail = member.email;
+        }
+      } else {
+        // Use non-member details directly from the baptism record
+        recipientName = `${updatedBaptism.data.firstname || ''} ${updatedBaptism.data.middle_name ? updatedBaptism.data.middle_name + ' ' : ''}${updatedBaptism.data.lastname || ''}`.trim() || 'Valued Member';
+        recipientEmail = updatedBaptism.data.email;
+      }
+      
+      if (recipientEmail) {
         await sendWaterBaptismDetails({
-          email: member.email,
+          email: recipientEmail,
           status: updatedBaptism.data.status,
           recipientName: recipientName,
           memberName: recipientName,
@@ -736,6 +894,7 @@ async function exportWaterBaptismsToExcel(options = {}) {
         'No.': index + 1,
         'Baptism ID': baptism.baptism_id || '',
         'Member ID': baptism.member_id || '',
+        'Is Member': baptism.is_member === 1 ? 'Yes' : 'No',
         'First Name': baptism.firstname || '',
         'Middle Name': baptism.middle_name || '',
         'Last Name': baptism.lastname || '',
@@ -746,7 +905,6 @@ async function exportWaterBaptismsToExcel(options = {}) {
         'Email': baptism.email || '',
         'Phone Number': baptism.phone_number || '',
         'Civil Status': baptism.civil_status || '',
-        'Position': baptism.position || '',
         'Location': baptism.location || '',
         'Pastor Name': baptism.pastor_name || '',
         'Baptism Date': baptism.baptism_date ? moment(baptism.baptism_date).format('YYYY-MM-DD HH:mm:ss') : '',

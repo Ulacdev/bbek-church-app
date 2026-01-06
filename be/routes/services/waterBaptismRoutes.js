@@ -18,7 +18,29 @@ const router = express.Router();
 /**
  * CREATE - Insert a new water baptism record
  * POST /api/services/water-baptisms/createWaterBaptism
- * Body: { baptism_id?, member_id, baptism_date, status?, date_created? }
+ * Body: {
+ *   baptism_id?,
+ *   member_id?,           // Required for members
+ *   is_member?,           // true = member, false = non-member (default: true)
+ *   firstname?,           // Required for non-members
+ *   lastname?,            // Required for non-members
+ *   middle_name?,
+ *   email?,               // Required for non-members
+ *   phone_number?,
+ *   birthdate?,
+ *   age?,
+ *   gender?,
+ *   address?,
+ *   civil_status?,
+ *   baptism_date?,
+ *   location?,
+ *   pastor_name?,
+ *   status?,
+ *   guardian_name?,
+ *   guardian_contact?,
+ *   guardian_relationship?,
+ *   date_created?
+ * }
  */
 router.post('/createWaterBaptism', async (req, res) => {
   try {
@@ -363,6 +385,61 @@ router.post('/exportExcel', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to export water baptisms to Excel'
+    });
+  }
+});
+
+/**
+ * CREATE - Non-member water baptism registration
+ * POST /api/services/water-baptisms/register-non-member
+ * Body: {
+ *   firstname, lastname, middle_name, email, phone_number,
+ *   birthdate, age, gender, address, civil_status,
+ *   guardian_name, guardian_contact, guardian_relationship,
+ *   baptism_date?, location?, pastor_name?
+ * }
+ * This creates a water baptism record WITHOUT creating a member record
+ */
+router.post('/register-non-member', async (req, res) => {
+  try {
+    // Validate required fields for non-member
+    const { firstname, lastname, email } = req.body;
+    
+    if (!firstname || !lastname || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name, last name, and email are required for non-member registration'
+      });
+    }
+    
+    // Create water baptism record with is_member = 0
+    const baptismData = {
+      ...req.body,
+      is_member: false,
+      member_id: null,
+      status: 'pending'
+    };
+    
+    const result = await createWaterBaptism(baptismData);
+    
+    if (result.success) {
+      res.status(201).json({
+        success: true,
+        message: 'Water baptism registration submitted successfully! You will receive an email with further instructions.',
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.error || result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error registering non-member for water baptism:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to register for water baptism'
     });
   }
 });
