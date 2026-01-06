@@ -278,54 +278,37 @@
           </p>
         </div>
 
-        <v-row>
+        <v-row class="sermons-grid" v-if="sermons.length > 0">
           <v-col
             v-for="(sermon, index) in sermons"
             :key="index"
             cols="12"
+            sm="6"
             md="4"
           >
             <v-card
-              :class="`sermon-card sermon-card-${index + 1}`"
-              elevation="2"
-              hover
+              class="sermon-card"
+              elevation="0"
+              rounded="lg"
+              @click="selectSermon(sermon)"
             >
-              <v-img
-                :src="
-                  sermon.imageUrl || sermon.image || '/img/default-sermon.jpg'
-                "
-                height="200"
-                cover
-              ></v-img>
-              <v-card-title
-                class="pa-3 text-center text-white"
-                style="background-color: #14b8a6; line-height: 1.2"
-              >
-                {{ sermon.title }}
-              </v-card-title>
-              <v-card-subtitle
-                class="pa-3 text-center text-white"
-                style="background-color: #14b8a6; padding-top: 0"
-              >
-                {{ formatDate(sermon.start_date) }}
-              </v-card-subtitle>
-              <v-card-actions
-                class="pa-3 pt-0"
-                style="background-color: #14b8a6"
-              >
-                <v-btn
-                  v-if="sermon.link"
-                  variant="flat"
-                  style="
-                    background-color: rgba(255, 255, 255, 0.2);
-                    color: white;
+              <div class="sermon-image-wrapper">
+                <v-img
+                  :src="
+                    sermon.imageUrl || sermon.image || '/img/default-sermon.jpg'
                   "
-                  block
-                  @click="selectSermon(sermon)"
-                >
-                  Watch Now
-                </v-btn>
-              </v-card-actions>
+                  height="180"
+                  cover
+                  class="sermon-image"
+                ></v-img>
+                <div class="sermon-play-overlay">
+                  <v-icon size="48" color="white" class="play-icon">mdi-play-circle</v-icon>
+                </div>
+              </div>
+              <div class="sermon-content">
+                <h3 class="sermon-title">{{ sermon.title }}</h3>
+                <p class="sermon-date">{{ formatDate(sermon.start_date) }}</p>
+              </div>
             </v-card>
           </v-col>
         </v-row>
@@ -854,45 +837,79 @@ onMounted(async () => {
   z-index: 2;
 }
 
-.sermons-section :deep(.v-card) {
-  transition: all 0.3s ease;
-}
-
-.sermons-section :deep(.v-card:hover) {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-}
-
-.sermons-section :deep(.v-card:hover .v-img) {
-  transform: scale(1.05);
-}
-
-.sermons-section :deep(.v-img) {
-  transition: transform 0.5s ease;
-}
-
-.sermons-section :deep(.v-btn) {
-  transition: all 0.3s ease;
-}
-
-.sermons-section :deep(.v-btn:hover) {
-  transform: translateX(4px);
+.sermons-grid {
+  margin-top: 32px;
 }
 
 .sermon-card {
-  animation: fadeInUp 0.6s ease-out both;
+  cursor: pointer;
+  border-radius: 12px !important;
+  overflow: hidden;
+  background: #ffffff !important;
+  border: 1px solid #f0f0f0 !important;
+  transition: all 0.3s ease;
 }
 
-.sermon-card-1 {
-  animation-delay: 200ms;
+.sermon-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+  border-color: #e0e0e0 !important;
 }
 
-.sermon-card-2 {
-  animation-delay: 300ms;
+.sermon-image-wrapper {
+  position: relative;
+  overflow: hidden;
 }
 
-.sermon-card-3 {
-  animation-delay: 400ms;
+.sermon-image {
+  transition: transform 0.4s ease;
+}
+
+.sermon-card:hover .sermon-image {
+  transform: scale(1.05);
+}
+
+.sermon-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sermon-card:hover .sermon-play-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.sermon-content {
+  padding: 16px 20px 20px;
+  text-align: left;
+}
+
+.sermon-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sermon-date {
+  font-size: 0.85rem;
+  color: #888888;
+  font-weight: 400;
+  margin: 0;
 }
 
 .fade-in-up {

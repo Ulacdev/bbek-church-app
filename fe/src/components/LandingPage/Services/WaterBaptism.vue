@@ -194,7 +194,7 @@
                     <div class="form-row">
                       <el-form-item label="First Name" prop="firstname" class="form-group">
                         <template #label>
-                          <span>First Name <span class="required">*</span> <span class="required-text">Required</span></span>
+                          <span>First Name <span class="required-text">Required</span></span>
                         </template>
                         <el-input
                           v-model="formData.firstname"
@@ -219,7 +219,7 @@
                     <div class="form-row">
                       <el-form-item label="Last Name" prop="lastname" class="form-group">
                         <template #label>
-                          <span>Last Name <span class="required">*</span> <span class="required-text">Required</span></span>
+                          <span>Last Name <span class="required-text">Required</span></span>
                         </template>
                         <el-input
                           v-model="formData.lastname"
@@ -230,7 +230,7 @@
                       </el-form-item>
                       <el-form-item label="Birthdate" prop="birthdate" class="form-group">
                         <template #label>
-                          <span>Birthdate <span class="required">*</span> <span class="required-text">Required</span></span>
+                          <span>Birthdate <span class="required-text">Required</span></span>
                         </template>
                         <el-date-picker
                           v-model="formData.birthdate"
@@ -248,7 +248,7 @@
                     <div class="form-row">
                       <el-form-item label="Age" prop="age" class="form-group">
                         <template #label>
-                          <span>Age <span class="required">*</span> <span class="required-text">Required (12+ years old)</span></span>
+                          <span>Age <span class="required-text">Required (12+ years old)</span></span>
                         </template>
                         <el-input
                           v-model.number="formData.age"
@@ -261,7 +261,7 @@
                       </el-form-item>
                       <el-form-item label="Sex" prop="gender" class="form-group">
                         <template #label>
-                          <span>Sex <span class="required">*</span> <span class="required-text">Required</span></span>
+                          <span>Sex <span class="required-text">Required</span></span>
                         </template>
                         <el-select
                           v-model="formData.gender"
@@ -278,7 +278,7 @@
 
                     <el-form-item label="Address" prop="address" class="form-group">
                       <template #label>
-                        <span>Address <span class="required">*</span> <span class="required-text">Required</span></span>
+                        <span>Address <span class="required-text">Required</span></span>
                       </template>
                       <el-input
                         v-model="formData.address"
@@ -292,7 +292,7 @@
 
                     <el-form-item label="Email" prop="email" class="form-group">
                       <template #label>
-                        <span>Email <span class="required">*</span> <span class="required-text">Required</span></span>
+                        <span>Email <span class="required-text">Required</span></span>
                       </template>
                       <el-input
                         v-model="formData.email"
@@ -305,7 +305,7 @@
 
                     <el-form-item label="Phone Number" prop="phoneNumber" class="form-group">
                       <template #label>
-                        <span>Phone Number <span class="required">*</span> <span class="required-text">Required</span></span>
+                        <span>Phone Number <span class="required-text">Required</span></span>
                       </template>
                       <el-input
                         v-model="formData.phoneNumber"
@@ -321,7 +321,7 @@
 
                     <el-form-item label="Civil Status" prop="civilStatus" class="form-group">
                       <template #label>
-                        <span>Civil Status <span class="required">*</span> <span class="required-text">Required</span></span>
+                        <span>Civil Status <span class="required-text">Required</span></span>
                       </template>
                       <el-select
                         v-model="formData.civilStatus"

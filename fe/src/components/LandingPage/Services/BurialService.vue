@@ -141,7 +141,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="first-name">
-                          First Name <span class="required">*</span><span class="required-text">Required</span>
+                          First Name <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="first-name"
@@ -171,7 +171,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="last-name">
-                          Last Name <span class="required">*</span><span class="required-text">Required</span>
+                          Last Name <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="last-name"
@@ -186,7 +186,7 @@
                       </div>
                       <div class="form-group">
                         <label for="birthdate">
-                          Birthdate <span class="required">*</span><span class="required-text">Required</span>
+                          Birthdate <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="birthdate"
@@ -204,7 +204,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="age">
-                          Age <span class="required">*</span><span class="required-text">Required</span>
+                          Age <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="age"
@@ -221,7 +221,7 @@
                       </div>
                       <div class="form-group">
                         <label for="gender">
-                          Sex <span class="required">*</span><span class="required-text">Required</span>
+                          Sex <span class="required-text">Required</span>
                         </label>
                         <el-select
                           v-model="gender"
@@ -238,7 +238,7 @@
 
                     <div class="form-group">
                       <label for="address">
-                        Address <span class="required">*</span><span class="required-text">Required</span>
+                        Address <span class="required-text">Required</span>
                       </label>
                       <v-text-field
                         id="address"
@@ -255,7 +255,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="email">
-                          Email <span class="required">*</span><span class="required-text">Required</span>
+                          Email <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="email"
@@ -287,7 +287,7 @@
                       </div>
                       <div class="form-group">
                         <label for="phone">
-                          Phone Number <span class="required">*</span><span class="required-text">Required</span>
+                          Phone Number <span class="required-text">Required</span>
                         </label>
                         <el-input
                         v-model="phoneNumber"
@@ -305,7 +305,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="relationship">
-                          Relationship to Deceased <span class="required">*</span><span class="required-text">Required</span>
+                          Relationship to Deceased <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="relationship"
@@ -320,7 +320,7 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-name">
-                          Deceased Name <span class="required">*</span><span class="required-text">Required</span>
+                          Deceased Name <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="deceased-name"
@@ -338,7 +338,7 @@
                     <div class="form-row form-row-3">
                       <div class="form-group">
                         <label for="deceased-birthdate">
-                          Deceased Birth Date <span class="required">*</span><span class="required-text">Required</span>
+                          Deceased Birth Date <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="deceased-birthdate"
@@ -353,7 +353,7 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-age">
-                          Deceased Age <span class="required">*</span><span class="required-text">Required</span>
+                          Deceased Age <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="deceased-age"
@@ -370,7 +370,7 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-deathdate">
-                          Date of Death <span class="required">*</span><span class="required-text">Required</span>
+                          Date of Death <span class="required-text">Required</span>
                         </label>
                         <v-text-field
                           id="deceased-deathdate"

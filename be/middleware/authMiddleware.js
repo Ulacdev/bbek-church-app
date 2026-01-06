@@ -42,6 +42,7 @@ const publicRoutes = [
   '/api/announcements/getActiveAnnouncementsForUser',
   '/api/announcements/markAsViewed',
   '/api/church-records/events/getSermonEvents',
+  '/api/church-records/events/getCompletedSermonEvents',
   // Form routes (public for submission)
   '/api/forms/createForm',
   // Add more public routes as needed
