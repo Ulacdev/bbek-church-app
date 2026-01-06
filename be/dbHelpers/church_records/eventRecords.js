@@ -905,11 +905,55 @@ async function getEventsByMemberId(memberId, options = {}) {
   }
 }
 
+/**
+ * Auto-update event statuses based on date
+ * Pending events become Ongoing when start_date <= NOW() AND end_date >= NOW()
+ * Ongoing events become Completed when end_date < NOW()
+ */
+async function autoUpdateEventStatuses() {
+  try {
+    // Update pending events to ongoing if date range is current
+    const pendingToOngoingSql = `
+      UPDATE tbl_events
+      SET status = 'ongoing'
+      WHERE status = 'pending'
+        AND start_date <= NOW()
+        AND end_date >= NOW()
+    `;
+    const [pendingResult] = await query(pendingToOngoingSql);
+    
+    // Update ongoing events to completed if end_date has passed
+    const ongoingToCompletedSql = `
+      UPDATE tbl_events
+      SET status = 'completed'
+      WHERE status = 'ongoing'
+        AND end_date < NOW()
+    `;
+    const [completedResult] = await query(ongoingToCompletedSql);
+
+    if (pendingResult.affectedRows > 0 || completedResult.affectedRows > 0) {
+      console.log(`Auto-updated event statuses: ${pendingResult.affectedRows} pending→ongoing, ${completedResult.affectedRows} ongoing→completed`);
+    }
+
+    return {
+      pendingToOngoing: pendingResult.affectedRows,
+      ongoingToCompleted: completedResult.affectedRows
+    };
+  } catch (error) {
+    console.error('Error auto-updating event statuses:', error);
+    // Don't throw - let the main query continue even if auto-update fails
+    return { pendingToOngoing: 0, ongoingToCompleted: 0 };
+  }
+}
+
 async function getSermonEvents() {
   try {
+    // Auto-update event statuses based on dates
+    await autoUpdateEventStatuses();
+
     const sql = `
       SELECT * FROM tbl_events
-      WHERE status = ?
+      WHERE status IN ('ongoing', 'pending')
         AND link IS NOT NULL
         AND link != ''
         AND start_date <= NOW()
@@ -917,9 +961,7 @@ async function getSermonEvents() {
       ORDER BY start_date DESC
     `;
 
-    const params = ['ongoing'];
-
-    const [rows] = await query(sql, params);
+    const [rows] = await query(sql);
 
     const processedRows = rows.map(event => {
       const processedEvent = { ...event };
@@ -962,6 +1004,69 @@ async function getSermonEvents() {
   }
 }
 
+/**
+ * Get completed sermon events (status = 'completed') with links for archive
+ * These are past events that have been recorded and can be watched
+ */
+async function getCompletedSermonEvents() {
+  try {
+    // Auto-update event statuses based on dates
+    await autoUpdateEventStatuses();
+
+    const sql = `
+      SELECT * FROM tbl_events
+      WHERE status = ?
+        AND link IS NOT NULL
+        AND link != ''
+        AND end_date < NOW()
+      ORDER BY end_date DESC
+    `;
+
+    const params = ['completed'];
+
+    const [rows] = await query(sql, params);
+
+    const processedRows = rows.map(event => {
+      const processedEvent = { ...event };
+      let imageUrl = null;
+      if (event.image && Buffer.isBuffer(event.image)) {
+        const base64String = convertBlobToBase64(event.image);
+        if (base64String) {
+          imageUrl = `data:image/jpeg;base64,${base64String}`;
+        }
+      }
+      processedEvent.imageUrl = imageUrl;
+      if (event.image && Buffer.isBuffer(event.image)) {
+        processedEvent.image = convertBlobToBase64(event.image);
+      } else {
+        processedEvent.image = null;
+      }
+
+      if (event.joined_members) {
+        try {
+          processedEvent.joined_members = JSON.parse(event.joined_members);
+        } catch (e) {
+          processedEvent.joined_members = [];
+        }
+      } else {
+        processedEvent.joined_members = [];
+      }
+
+      return processedEvent;
+    });
+
+    return {
+      success: true,
+      message: 'Completed sermon events retrieved successfully',
+      data: processedRows,
+      count: processedRows.length
+    };
+  } catch (error) {
+    console.error('Error fetching completed sermon events:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createEvent,
   getAllEvents,
@@ -970,5 +1075,7 @@ module.exports = {
   deleteEvent,
   exportEventsToExcel,
   getEventsByMemberId,
-  getSermonEvents
+  getSermonEvents,
+  getCompletedSermonEvents,
+  autoUpdateEventStatuses
 };

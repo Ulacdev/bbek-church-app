@@ -205,13 +205,12 @@ const eventsRecordsStore = useEventsRecordsStore()
 // Computed properties from store
 const events = computed(() => eventsRecordsStore.events)
 
-// Sort events with Pending status first, followed by other statuses in specified order
+// Sort events with Pending status first, followed by ongoing and completed
 const sortedEvents = computed(() => {
   const statusOrder = {
     'pending': 1,
-    'approved': 2,
-    'completed': 3,
-    'cancelled': 4
+    'ongoing': 2,
+    'completed': 3
   }
   
   return [...events.value].sort((a, b) => {
@@ -293,7 +292,7 @@ const typeOptions = [
   'other'
 ]
 
-const statusOptions = ['All Statuses', 'Pending', 'Approved', 'Completed', 'Cancelled']
+const statusOptions = ['All Statuses', 'Pending', 'Ongoing', 'Completed']
 
 // Dialog state
 const eventRecordsDialog = ref(false)
@@ -446,21 +445,17 @@ const formatType = (type) => {
 const formatStatus = (status) => {
   const statusMap = {
     'pending': 'Pending',
-    'approved': 'Approved',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'ongoing': 'Ongoing'
+    'ongoing': 'Ongoing',
+    'completed': 'Completed'
   }
   return statusMap[status] || status
 }
 
 const getStatusColor = (status) => {
   const colors = {
-    'approved': 'info',
     'pending': 'warning',
-    'ongoing': 'warning',
-    'completed': 'success',
-    'cancelled': 'error'
+    'ongoing': 'info',
+    'completed': 'success'
   }
   return colors[status] || 'default'
 }

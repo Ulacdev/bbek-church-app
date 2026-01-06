@@ -231,31 +231,29 @@
               </div>
             </div>
             <div
-              v-else
+              v-else-if="!ongoingEvent || !ongoingEvent.link"
               class="aspect-video bg-grey-darken-4 d-flex align-center justify-center"
             >
               <div class="text-center text-white">
-                <v-icon size="80" color="red-lighten-2" class="mb-6"
-                  >mdi-play-circle</v-icon
+                <v-icon size="80" color="grey-lighten-1" class="mb-6"
+                  >mdi-video-off</v-icon
                 >
                 <h4 class="text-h5 font-weight-bold mb-3">
-                  Live Stream Active
+                  No Live Stream
                 </h4>
                 <p
                   class="text-body-1 text-grey-lighten-1 mb-8 max-width-md mx-auto"
                 >
-                  Our service is currently live. Click below to watch on
-                  Facebook or join us in person.
+                  There is no live stream at the moment. Please check back during our service times.
                 </p>
                 <v-btn
-                  color="blue"
+                  color="teal"
                   size="large"
-                  prepend-icon="mdi-facebook"
+                  prepend-icon="mdi-calendar"
                   class="text-white"
-                  href="https://www.facebook.com/biblebaptist.ekklesiaofkawit"
-                  target="_blank"
+                  @click="$router.push('/services')"
                 >
-                  Watch on Facebook
+                  View Service Times
                 </v-btn>
               </div>
             </div>
@@ -647,15 +645,26 @@ const fetchSermonEvents = async () => {
         // Convert link to embed URL
         embedUrl.value = convertToEmbedUrl(events[0].link);
       }
-
-      // Set sermons (all events from the API, excluding the first one if it's the ongoing event)
-      // The API already filters for ongoing events with links, so we just take up to 6
-      sermons.value = events.slice(0, 6);
     }
   } catch (error) {
     console.error("Error fetching sermon events:", error);
   } finally {
     loading.value = false;
+  }
+};
+
+// Fetch completed sermon events for archive
+const fetchCompletedSermonEvents = async () => {
+  try {
+    const response = await axios.get("/church-records/events/getCompletedSermonEvents");
+
+    if (response.data.success && response.data.data) {
+      // Add completed events to the sermons list (up to 6 total)
+      const completedEvents = response.data.data.slice(0, 6);
+      sermons.value = completedEvents;
+    }
+  } catch (error) {
+    console.error("Error fetching completed sermon events:", error);
   }
 };
 
@@ -697,6 +706,7 @@ watch(ongoingEvent, (newEvent) => {
 onMounted(async () => {
   await fetchSermonsData();
   await fetchSermonEvents();
+  await fetchCompletedSermonEvents();
 });
 </script>
 

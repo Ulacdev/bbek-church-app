@@ -9,7 +9,8 @@ const {
   deleteEvent,
   exportEventsToExcel,
   getEventsByMemberId,
-  getSermonEvents
+  getSermonEvents,
+  getCompletedSermonEvents
 } = require('../../dbHelpers/church_records/eventRecords');
 
 const router = express.Router();
@@ -446,6 +447,38 @@ router.get('/getSermonEvents', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch sermon events'
+    });
+  }
+});
+
+/**
+ * READ ALL COMPLETED SERMON EVENTS - Get all completed sermon events with links
+ * GET /api/church-records/events/getCompletedSermonEvents
+ * Returns completed sermon events (status = 'completed') that have links, sorted by latest date
+ */
+router.get('/getCompletedSermonEvents', async (req, res) => {
+  try {
+    const result = await getCompletedSermonEvents();
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        count: result.count
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching completed sermon events:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch completed sermon events'
     });
   }
 });

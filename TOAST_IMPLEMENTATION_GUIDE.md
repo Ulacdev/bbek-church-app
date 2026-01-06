@@ -4,33 +4,33 @@
 
 ```javascript
 // IMPORT at top of component
-import { ElMessage } from 'element-plus'
+import { ElMessage } from "element-plus";
 
 // SUCCESS - Basic
-ElMessage.success('Action completed successfully')
+ElMessage.success("Action completed successfully");
 
 // SUCCESS - With details
 ElMessage.success({
-  message: 'Password reset link sent',
-  duration: 3000,  // Optional: auto-close after 3 seconds
-  showClose: true
-})
+  message: "Password reset link sent",
+  duration: 3000, // Optional: auto-close after 3 seconds
+  showClose: true,
+});
 
 // ERROR - Basic
-ElMessage.error('Operation failed')
+ElMessage.error("Operation failed");
 
 // ERROR - With details
 ElMessage.error({
-  message: 'Failed to save data. Please try again.',
+  message: "Failed to save data. Please try again.",
   duration: 4000,
-  showClose: true
-})
+  showClose: true,
+});
 
 // WARNING
-ElMessage.warning('Please confirm this action')
+ElMessage.warning("Please confirm this action");
 
 // INFO
-ElMessage.info('Processing your request...')
+ElMessage.info("Processing your request...");
 ```
 
 ---
@@ -42,7 +42,7 @@ ElMessage.info('Processing your request...')
 ```javascript
 // WaterBaptism.vue, BurialService.vue, etc.
 const handlePrint = () => {
-  const printWindow = window.open('', '', 'height=600,width=800')
+  const printWindow = window.open("", "", "height=600,width=800");
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -53,28 +53,28 @@ const handlePrint = () => {
       <!-- table data -->
     </body>
     </html>
-  `)
-  printWindow.document.close()
-  printWindow.print()
+  `);
+  printWindow.document.close();
+  printWindow.print();
   // ❌ NO FEEDBACK - User doesn't know if print succeeded
-}
+};
 ```
 
 ### ✅ FIXED CODE (With Toast)
 
 ```javascript
-import { ElMessage } from 'element-plus'
+import { ElMessage } from "element-plus";
 
 const handlePrint = () => {
   try {
-    const printWindow = window.open('', '', 'height=600,width=800')
-    
+    const printWindow = window.open("", "", "height=600,width=800");
+
     if (!printWindow) {
       // Popup blocked
-      ElMessage.error('Please allow popups to print documents')
-      return
+      ElMessage.error("Please allow popups to print documents");
+      return;
     }
-    
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
@@ -85,22 +85,24 @@ const handlePrint = () => {
         <!-- table data -->
       </body>
       </html>
-    `)
-    printWindow.document.close()
-    printWindow.print()
-    
+    `);
+    printWindow.document.close();
+    printWindow.print();
+
     // ✓ ADD SUCCESS TOAST
-    ElMessage.success('Print dialog opened. Use your printer to complete printing.')
-    
+    ElMessage.success(
+      "Print dialog opened. Use your printer to complete printing."
+    );
   } catch (error) {
-    console.error('Print error:', error)
+    console.error("Print error:", error);
     // ✓ ADD ERROR TOAST
-    ElMessage.error('Failed to open print dialog. Please try again.')
+    ElMessage.error("Failed to open print dialog. Please try again.");
   }
-}
+};
 ```
 
 ### 📍 Files Requiring This Fix
+
 - `WaterBaptism.vue` (Line 455)
 - `BurialService.vue` (Line 490)
 - `ChildDedication.vue` (Line 499)
@@ -118,51 +120,50 @@ const handlePrint = () => {
 // LoginDialog.vue
 const handleLogin = async () => {
   try {
-    await accountsStore.login(loginForm.email, loginForm.password)
-    
+    await accountsStore.login(loginForm.email, loginForm.password);
+
     // ❌ NO SUCCESS TOAST - Just closes silently
-    loginDialog.value = false
-    
+    loginDialog.value = false;
   } catch (error) {
-    console.error('Login error:', error)
+    console.error("Login error:", error);
     // Only shows error, no success feedback
   }
-}
+};
 ```
 
 ### ✅ FIXED CODE (With Toast)
 
 ```javascript
-import { ElMessage } from 'element-plus'
+import { ElMessage } from "element-plus";
 
 const handleLogin = async () => {
   try {
     const response = await accountsStore.login(
-      loginForm.email, 
+      loginForm.email,
       loginForm.password
-    )
-    
+    );
+
     if (response.success || response) {
       // ✓ ADD SUCCESS TOAST
       ElMessage.success({
-        message: `Welcome back, ${response.user?.firstname || 'User'}!`,
-        duration: 2000
-      })
-      
+        message: `Welcome back, ${response.user?.firstname || "User"}!`,
+        duration: 2000,
+      });
+
       // Small delay so user sees toast before closing
       setTimeout(() => {
-        loginDialog.value = false
-      }, 500)
+        loginDialog.value = false;
+      }, 500);
     }
-    
   } catch (error) {
-    console.error('Login error:', error)
+    console.error("Login error:", error);
     // Error toast already shown by axios interceptor
   }
-}
+};
 ```
 
 ### 📍 File
+
 - `LoginDialog.vue` (Line 191)
 
 ---
@@ -175,59 +176,58 @@ const handleLogin = async () => {
 // Navigation.vue
 const handleLogout = async () => {
   try {
-    await accountsStore.logout()
-    
+    await accountsStore.logout();
+
     // ❌ NO CONFIRMATION, NO TOAST
     // User logs out silently
-    
   } catch (error) {
-    console.error('Logout error:', error)
-    ElMessage.error('Failed to logout')
+    console.error("Logout error:", error);
+    ElMessage.error("Failed to logout");
   }
-}
+};
 ```
 
 ### ✅ FIXED CODE (With Confirmation & Toast)
 
 ```javascript
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const handleLogout = async () => {
   try {
     // ✓ ADD CONFIRMATION DIALOG
     await ElMessageBox.confirm(
-      'Are you sure you want to logout?',
-      'Confirm Logout',
+      "Are you sure you want to logout?",
+      "Confirm Logout",
       {
-        confirmButtonText: 'Yes, Logout',
-        cancelButtonText: 'Cancel',
-        type: 'warning'
+        confirmButtonText: "Yes, Logout",
+        cancelButtonText: "Cancel",
+        type: "warning",
       }
-    )
-    
+    );
+
     // User confirmed, proceed with logout
-    await accountsStore.logout()
-    
+    await accountsStore.logout();
+
     // ✓ ADD SUCCESS TOAST
-    ElMessage.success('You have been logged out successfully')
-    
+    ElMessage.success("You have been logged out successfully");
+
     // Navigate to login
-    router.push('/login')
-    
+    router.push("/login");
   } catch (error) {
-    if (error === 'cancel') {
+    if (error === "cancel") {
       // User clicked Cancel - no message needed
-      return
+      return;
     }
-    
-    console.error('Logout error:', error)
+
+    console.error("Logout error:", error);
     // ✓ ADD ERROR TOAST
-    ElMessage.error('Failed to logout. Please try again.')
+    ElMessage.error("Failed to logout. Please try again.");
   }
-}
+};
 ```
 
 ### 📍 Files Requiring This Fix
+
 - `Navigation.vue` (Line 527)
 - AdminDashboard.vue already has this implemented correctly (Line 330)
 
@@ -243,83 +243,80 @@ const handleDelete = async (announcement) => {
   try {
     await ElMessageBox.confirm(
       `Delete announcement "${announcement.title}"?`,
-      'Confirm Delete',
-      { type: 'warning' }
-    )
-    
+      "Confirm Delete",
+      { type: "warning" }
+    );
+
     const response = await axios.delete(
       `/announcements/deleteAnnouncement/${announcement.announcement_id}`
-    )
-    
+    );
+
     if (response.data.success) {
       // ❌ NO SUCCESS TOAST - Silent deletion
-      fetchAnnouncements()
-      
+      fetchAnnouncements();
     } else {
       // ✓ HAS ERROR TOAST (Inconsistent)
-      ElMessage.error(response.data.message || 'Failed to delete')
+      ElMessage.error(response.data.message || "Failed to delete");
     }
-    
   } catch (error) {
     // ✓ HAS ERROR TOAST
-    ElMessage.error('Error deleting announcement')
+    ElMessage.error("Error deleting announcement");
   }
-}
+};
 ```
 
 ### ✅ FIXED CODE (Symmetric Feedback)
 
 ```javascript
-import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
+import { ElMessage, ElMessageBox } from "element-plus";
+import axios from "axios";
 
 const handleDelete = async (announcement) => {
   try {
     await ElMessageBox.confirm(
       `Delete announcement "${announcement.title}"?`,
-      'Confirm Delete',
+      "Confirm Delete",
       {
-        confirmButtonText: 'Delete',
-        cancelButtonText: 'Cancel',
-        type: 'warning'
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+        type: "warning",
       }
-    )
-    
+    );
+
     const response = await axios.delete(
       `/announcements/deleteAnnouncement/${announcement.announcement_id}`
-    )
-    
+    );
+
     if (response.data.success) {
       // ✓ ADD SUCCESS TOAST
       ElMessage.success({
-        message: 'Announcement deleted successfully',
-        duration: 2000
-      })
-      
+        message: "Announcement deleted successfully",
+        duration: 2000,
+      });
+
       // Small delay so user sees toast before refresh
       setTimeout(() => {
-        fetchAnnouncements()
-      }, 500)
-      
+        fetchAnnouncements();
+      }, 500);
     } else {
       // ✓ ERROR TOAST (already present)
-      ElMessage.error(response.data.message || 'Failed to delete')
+      ElMessage.error(response.data.message || "Failed to delete");
     }
-    
   } catch (error) {
-    if (error === 'cancel') {
+    if (error === "cancel") {
       // User clicked Cancel - no message needed
-      return
+      return;
     }
-    
-    console.error('Delete error:', error)
+
+    console.error("Delete error:", error);
     // ✓ ERROR TOAST (already present)
-    ElMessage.error('Error deleting announcement')
+    ElMessage.error("Error deleting announcement");
   }
-}
+};
 ```
 
 ### 📍 Files Requiring This Fix (Same Pattern)
+
 - `Settings.vue` - handleDelete (Line 479)
 - `Home.vue` - handleDeleteVideo (Line 828)
 
@@ -343,28 +340,28 @@ const handleDelete = async (announcement) => {
 // Script
 const alertMessage = ref({
   show: false,
-  type: 'success',
-  title: '',
-  description: ''
-})
+  type: "success",
+  title: "",
+  description: "",
+});
 
 const handleSubmit = async () => {
   // ... validation ...
-  
-  await formsStore.createForm(payload)
-  
+
+  await formsStore.createForm(payload);
+
   // ⚠️ NON-STANDARD - Using v-alert instead of ElMessage
   alertMessage.value = {
     show: true,
-    type: 'success',
-    title: 'Success!',
-    description: 'Message sent successfully!'
-  }
-  
+    type: "success",
+    title: "Success!",
+    description: "Message sent successfully!",
+  };
+
   setTimeout(() => {
-    alertMessage.value.show = false
-  }, 5000)
-}
+    alertMessage.value.show = false;
+  }, 5000);
+};
 </script>
 ```
 
@@ -375,43 +372,45 @@ const handleSubmit = async () => {
 <!-- No longer needed -->
 
 <script setup>
-import { ElMessage } from 'element-plus'
-import { useFormsStore } from '@/stores/formsStore'
+import { ElMessage } from "element-plus";
+import { useFormsStore } from "@/stores/formsStore";
 
-const formsStore = useFormsStore()
+const formsStore = useFormsStore();
 
 const handleSubmit = async () => {
   try {
     // ... validation ...
-    
-    const result = await formsStore.createForm(payload)
-    
+
+    const result = await formsStore.createForm(payload);
+
     if (result.success) {
       // ✓ STANDARD TOAST
       ElMessage.success({
-        message: 'Message sent successfully! We will get back to you soon.',
-        duration: 3000
-      })
-      
+        message: "Message sent successfully! We will get back to you soon.",
+        duration: 3000,
+      });
+
       // Reset form after brief delay
       setTimeout(() => {
-        formData.value = { /* reset */ }
-      }, 500)
+        formData.value = {
+          /* reset */
+        };
+      }, 500);
     } else {
       // ✓ ERROR TOAST
-      ElMessage.error(result.error || 'Failed to send message')
+      ElMessage.error(result.error || "Failed to send message");
     }
-    
   } catch (error) {
-    console.error('Submission error:', error)
+    console.error("Submission error:", error);
     // ✓ ERROR TOAST
-    ElMessage.error('An error occurred. Please try again.')
+    ElMessage.error("An error occurred. Please try again.");
   }
-}
+};
 </script>
 ```
 
 ### 📍 Files Requiring This Refactor
+
 - `PlanYourVisit.vue` (Line 353-377)
 - `ScheduleChange.vue` (Line 501-564)
 - `SendPrayer.vue` (Line 184-241)
@@ -428,21 +427,20 @@ const loadWaterBaptismServices = async () => {
   try {
     const response = await axios.get(
       `/services/water-baptism/getWaterBaptismServicesByMemberId/${memberId.value}`
-    )
-    
+    );
+
     if (response.data.success) {
       // ❌ NO TOAST - Silent success
-      waterBaptismServices.value = response.data.data || []
+      waterBaptismServices.value = response.data.data || [];
     } else {
       // ✓ Has error handling
-      waterBaptismServices.value = []
+      waterBaptismServices.value = [];
     }
-    
   } catch (error) {
-    console.error('Error fetching water baptism services:', error)
-    waterBaptismServices.value = []
+    console.error("Error fetching water baptism services:", error);
+    waterBaptismServices.value = [];
   }
-}
+};
 
 // Same pattern for marriage, burial, child dedication services...
 ```
@@ -450,55 +448,54 @@ const loadWaterBaptismServices = async () => {
 ### ✅ FIXED CODE (With Optional Toast)
 
 ```javascript
-import { ElMessage } from 'element-plus'
+import { ElMessage } from "element-plus";
 
 // For initial load - silent is okay
 const loadWaterBaptismServices = async () => {
   try {
     const response = await axios.get(
       `/services/water-baptism/getWaterBaptismServicesByMemberId/${memberId.value}`
-    )
-    
+    );
+
     if (response.data.success) {
-      waterBaptismServices.value = response.data.data || []
+      waterBaptismServices.value = response.data.data || [];
       // For initial load: no toast (data loads with page)
     } else {
-      waterBaptismServices.value = []
+      waterBaptismServices.value = [];
     }
-    
   } catch (error) {
-    console.error('Error fetching water baptism services:', error)
-    waterBaptismServices.value = []
+    console.error("Error fetching water baptism services:", error);
+    waterBaptismServices.value = [];
     // Only show error for failures
-    ElMessage.error('Failed to load water baptism services')
+    ElMessage.error("Failed to load water baptism services");
   }
-}
+};
 
 // For manual refresh - show success
 const refreshWaterBaptismServices = async () => {
   try {
     const response = await axios.get(
       `/services/water-baptism/getWaterBaptismServicesByMemberId/${memberId.value}`
-    )
-    
+    );
+
     if (response.data.success) {
-      waterBaptismServices.value = response.data.data || []
+      waterBaptismServices.value = response.data.data || [];
       // ✓ Show success for manual refresh
-      ElMessage.success('Services loaded successfully')
+      ElMessage.success("Services loaded successfully");
     } else {
-      waterBaptismServices.value = []
+      waterBaptismServices.value = [];
     }
-    
   } catch (error) {
-    console.error('Error fetching water baptism services:', error)
-    waterBaptismServices.value = []
+    console.error("Error fetching water baptism services:", error);
+    waterBaptismServices.value = [];
     // ✓ Show error
-    ElMessage.error('Failed to load services')
+    ElMessage.error("Failed to load services");
   }
-}
+};
 ```
 
 ### 📍 File
+
 - `Transaction.vue` (Multiple locations)
 
 ---
@@ -511,66 +508,66 @@ const refreshWaterBaptismServices = async () => {
 // Line 390
 const requestNewLink = () => {
   // TODO: Navigate to forgot password request page or show dialog
-}
+};
 ```
 
 ### ✅ FIXED CODE (Complete Implementation)
 
 ```javascript
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { ElMessage } from "element-plus";
+import { useRouter } from "vue-router";
 
-const router = useRouter()
+const router = useRouter();
 
 const requestNewLink = async () => {
   try {
     // Show confirmation dialog
     const { value: email } = await ElMessageBox.prompt(
-      'Please enter your email address to receive a new password reset link:',
-      'Request New Password Link',
+      "Please enter your email address to receive a new password reset link:",
+      "Request New Password Link",
       {
-        confirmButtonText: 'Send Link',
-        cancelButtonText: 'Cancel',
-        inputType: 'email',
-        inputPlaceholder: 'your.email@example.com'
+        confirmButtonText: "Send Link",
+        cancelButtonText: "Cancel",
+        inputType: "email",
+        inputPlaceholder: "your.email@example.com",
       }
-    )
-    
-    if (!email) return
-    
+    );
+
+    if (!email) return;
+
     // Send request
-    const result = await accountsStore.forgotPassword(email)
-    
+    const result = await accountsStore.forgotPassword(email);
+
     if (result.success) {
       // ✓ SUCCESS TOAST
       ElMessage.success({
-        message: 'Password reset link has been sent to your email',
-        duration: 3000
-      })
-      
+        message: "Password reset link has been sent to your email",
+        duration: 3000,
+      });
+
       // Close the password management component/navigate
       setTimeout(() => {
-        router.push('/login')
-      }, 1500)
+        router.push("/login");
+      }, 1500);
     } else {
       // ✓ ERROR TOAST
-      ElMessage.error(result.error || 'Failed to send reset link')
+      ElMessage.error(result.error || "Failed to send reset link");
     }
-    
   } catch (error) {
-    if (error === 'cancel') {
+    if (error === "cancel") {
       // User clicked Cancel - no message
-      return
+      return;
     }
-    
-    console.error('Request new link error:', error)
+
+    console.error("Request new link error:", error);
     // ✓ ERROR TOAST
-    ElMessage.error('An error occurred. Please try again.')
+    ElMessage.error("An error occurred. Please try again.");
   }
-}
+};
 ```
 
 ### 📍 File
+
 - `PasswordManagement.vue` (Line 390)
 
 ---
@@ -578,6 +575,7 @@ const requestNewLink = async () => {
 ## Best Practices Summary
 
 ### ✅ DO
+
 1. Show success toast for user-initiated actions
 2. Show error toast with descriptive message
 3. Import ElMessage at component top
@@ -587,6 +585,7 @@ const requestNewLink = async () => {
 7. Handle edge cases (popup blocked, network errors)
 
 ### ❌ DON'T
+
 1. Log to console instead of showing toast
 2. Use v-alert for action feedback
 3. Show silent failures
@@ -596,6 +595,7 @@ const requestNewLink = async () => {
 7. Show success/error on same operation
 
 ### Toast Duration Guidelines
+
 - Success: 2-3 seconds (short, positive action)
 - Error: 3-4 seconds (user needs to read error)
 - Warning: 3-4 seconds (needs attention)
@@ -649,7 +649,7 @@ async handleSubmit() {
 ---
 
 ## Related Elements Library Docs
+
 - **ElMessage:** https://element-plus.org/en-US/component/message.html
 - **ElMessageBox:** https://element-plus.org/en-US/component/message-box.html
 - **ElNotification:** https://element-plus.org/en-US/component/notification.html (alternative)
-
