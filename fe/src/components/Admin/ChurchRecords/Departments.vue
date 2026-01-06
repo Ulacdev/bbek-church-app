@@ -245,7 +245,8 @@
     <DepartmentDialog
       v-model="departmentDialog"
       :department-data="departmentData"
-      :member-options="memberOptions"
+      :department-lead-options="departmentLeadOptions"
+      :joined-member-options="joinedMemberOptions"
       @update:model-value="departmentDialog = $event"
       @submit="handleSubmit"
     />
@@ -263,6 +264,26 @@ const departmentsStore = useDepartmentsStore()
 
 // Options for dropdowns
 const memberOptions = computed(() => departmentsStore.memberOptions)
+
+// Position constants for filtering
+const PRESIDENT_POSITION = 'President'
+const JOINED_MEMBER_POSITIONS = ['VP', 'Secretary', 'Assistant Secretary', 'Treasurer', 'Auditor', 'Coordinator', 'PIO', 'Social Media Coordinator']
+
+// Filtered options for Department Lead (only President position)
+const departmentLeadOptions = computed(() => {
+  return memberOptions.value.filter(member => {
+    const position = member.position?.toLowerCase() || ''
+    return position.toLowerCase() === PRESIDENT_POSITION.toLowerCase()
+  })
+})
+
+// Filtered options for Joined Members (VP, Secretary, Assistant Secretary, Treasurer, Auditor, Coordinator, PIO, Social Media Coordinator)
+const joinedMemberOptions = computed(() => {
+  return memberOptions.value.filter(member => {
+    const position = member.position?.toLowerCase() || ''
+    return JOINED_MEMBER_POSITIONS.some(pos => position.includes(pos.toLowerCase()))
+  })
+})
 
 // Component state
 const departmentDialog = ref(false)

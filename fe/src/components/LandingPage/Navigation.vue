@@ -454,40 +454,7 @@ onMounted(async() => {
   // Fetch header data from CMS API
   await fetchHeaderData()
   
-  // Fetch public ministries for the Ministry menu
-  await ministriesStore.fetchPublicMinistries()
-  
-  // Merge ministry data into menus (update existing menus from CMS or default)
-  headerData.value.menus = headerData.value.menus.map(menu => {
-    if (menu.value === 'ministry' || menu.value === 'ministries') {
-      // Safety check: ensure publicMinistries is an array before calling map
-      const publicMinistries = Array.isArray(ministriesStore.publicMinistries) 
-        ? ministriesStore.publicMinistries 
-        : []
-      
-      const ministryChildren = publicMinistries.map(ministry => ({
-        label: ministry.ministry_name,
-        value: ministry.ministry_id || ministry.id,
-        data: ministry,
-        isMinistry: true,
-        to: `/ministries/ministry-data?ministryData=${encodeURIComponent(JSON.stringify(ministry))}`
-      }))
-      // Removed "My Ministry" from menu - joined ministries will reflect in "My Services"
-      
-      return {
-        ...menu,
-        children: ministryChildren.length > 0 ? ministryChildren : (menu.children || [])
-      }
-    }
-    // Ensure other menus with children have proper structure
-    if (menu.children && !Array.isArray(menu.children)) {
-      menu.children = []
-    }
-    return menu
-  })
-  
-  console.log('Final header data with ministries:', headerData.value)
-  console.log('Menus with children:', headerData.value.menus.filter(m => m.children && m.children.length > 0))
+  console.log('Header data loaded:', headerData.value)
 })
 const redirectToChildrenPage = (child) => {
   console.log('Redirecting to child page:', child)

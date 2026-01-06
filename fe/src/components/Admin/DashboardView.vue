@@ -188,7 +188,7 @@
                 <v-icon icon="mdi-water" size="32" color="blue" class="mr-3"></v-icon>
                 <h3 class="text-h6 font-weight-bold">Water Baptism</h3>
               </div>
-              <p class="text-body-2 mb-4">0 scheduled this month</p>
+              <p class="text-body-2 mb-4">{{ waterBaptismCount }} scheduled this month</p>
               <v-btn variant="outlined" @click="$router.push('/admin/water-baptism')" color="blue" block>Manage</v-btn>
             </v-card>
           </v-col>
@@ -198,7 +198,7 @@
                 <v-icon icon="mdi-file-document-outline" size="32" color="green" class="mr-3"></v-icon>
                 <h3 class="text-h6 font-weight-bold">Child Dedication</h3>
               </div>
-              <p class="text-body-2 mb-4">3 scheduled this month</p>
+              <p class="text-body-2 mb-4">{{ childDedicationCount }} scheduled this month</p>
               <v-btn variant="outlined" color="green" block @click="$router.push('/admin/child-dedication-admin')">Manage</v-btn>
             </v-card>
           </v-col>
@@ -208,7 +208,7 @@
                 <v-icon icon="mdi-coffin" size="32" color="purple" class="mr-3"></v-icon>
                 <h3 class="text-h6 font-weight-bold">Burial Service</h3>
               </div>
-              <p class="text-body-2 mb-4">0 scheduled this month</p>
+              <p class="text-body-2 mb-4">{{ burialServiceCount }} scheduled this month</p>
               <v-btn variant="outlined" color="purple" block @click="$router.push('/admin/burial-service')">Manage</v-btn>
             </v-card>
           </v-col>
@@ -250,6 +250,9 @@ const monthlyDonations = ref('₱0')
 const donationChange = ref('+0% from last month')
 const totalMessages = ref(0)
 const unreadMessages = ref(0)
+const waterBaptismCount = ref(0)
+const childDedicationCount = ref(0)
+const burialServiceCount = ref(0)
 const loadingStats = ref(false)
 
 /**
@@ -436,6 +439,11 @@ const fetchDashboardStats = async () => {
       // Set messages stats
       totalMessages.value = stats.messages?.total || 0
       unreadMessages.value = stats.messages?.unread || 0
+      
+      // Set church services stats
+      waterBaptismCount.value = stats.churchServices?.waterBaptism || 0
+      childDedicationCount.value = stats.churchServices?.childDedication || 0
+      burialServiceCount.value = stats.churchServices?.burialService || 0
     }
   } catch (error) {
     console.error('Error fetching dashboard stats:', error)
@@ -450,6 +458,9 @@ const fetchDashboardStats = async () => {
     donationChange.value = 'No data available'
     totalMessages.value = 0
     unreadMessages.value = 0
+    waterBaptismCount.value = 0
+    childDedicationCount.value = 0
+    burialServiceCount.value = 0
   } finally {
     loadingStats.value = false
   }

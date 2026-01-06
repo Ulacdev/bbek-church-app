@@ -9,9 +9,10 @@ const {
   deleteWaterBaptism,
   exportWaterBaptismsToExcel
 } = require('../../dbHelpers/services/waterBaptismRecords');
-const { getMemberById } = require('../../dbHelpers/church_records/memberRecords');
-const { getAccountByEmail } = require('../../dbHelpers/church_records/accountRecords');
+const { getMemberById, createMember } = require('../../dbHelpers/church_records/memberRecords');
+const { getAccountByEmail, createAccount } = require('../../dbHelpers/church_records/accountRecords');
 const { sendAccountDetails } = require('../../dbHelpers/emailHelperSendGrid');
+const { query } = require('../../database/db');
 
 const router = express.Router();
 
@@ -245,43 +246,124 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
     const result = await updateWaterBaptism(id, req.body);
     
     if (result.success) {
-      // If status changed to "completed", send account setup email
+      // If status changed to "completed" and this is a non-member, create member record
       if (isStatusChangingToCompleted) {
-        try {
-          // Get member details
-          const memberResult = await getMemberById(result.data.member_id);
-          if (memberResult.success && memberResult.data) {
-            const member = memberResult.data;
+        const baptism = currentBaptism.data;
+        
+        if (baptism.is_member === 0 || baptism.member_id === null) {
+          // This is a non-member - create member record
+          try {
+            console.log(`Creating member record for non-member baptism: ${id}`);
             
-            // Get account by email
-            const accountResult = await getAccountByEmail(member.email);
-            if (accountResult.success && accountResult.data) {
-              const account = accountResult.data;
-              
-              // Send account setup email
-              const name = `${member.firstname} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname}`.trim();
-              await sendAccountDetails({
-                acc_id: account.acc_id,
-                email: member.email,
-                name: name,
-                type: 'new_account',
-                temporaryPassword: 'TestPassword123!'
-              });
-              
-              console.log(`Account setup email sent to ${member.email} for completed baptism ID: ${id}`);
-            } else {
-              console.warn(`No account found for member ${member.email} - email not sent`);
+            // Format birthdate to YYYY-MM-DD
+            let formattedBirthdate = null;
+            if (baptism.birthdate) {
+              try {
+                formattedBirthdate = moment(baptism.birthdate).format('YYYY-MM-DD');
+              } catch (e) {
+                console.error('Error formatting birthdate:', e);
+                formattedBirthdate = null;
+              }
             }
+            
+            // Truncate address if too long (VARCHAR(45))
+            let formattedAddress = baptism.address || '';
+            if (formattedAddress.length > 44) {
+              formattedAddress = formattedAddress.substring(0, 44);
+            }
+            
+            // Create member from baptism data
+            const memberData = {
+              firstname: baptism.firstname || '',
+              lastname: baptism.lastname || '',
+              middle_name: baptism.middle_name || null,
+              birthdate: formattedBirthdate,
+              age: baptism.age || '',
+              gender: baptism.gender || '',
+              address: formattedAddress,
+              email: baptism.email || '',
+              phone_number: baptism.phone_number || '',
+              civil_status: baptism.civil_status || null,
+              guardian_name: baptism.guardian_name || null,
+              guardian_contact: baptism.guardian_contact || null,
+              guardian_relationship: baptism.guardian_relationship || null,
+              position: 'Member'
+            };
+            
+            console.log('Creating member with data:', JSON.stringify(memberData, null, 2));
+            
+            const memberResult = await createMember(memberData);
+            
+            if (memberResult.success && memberResult.data) {
+              const newMemberId = memberResult.data.member_id;
+              console.log(`Member created with ID: ${newMemberId}`);
+              
+              // Update water baptism record with new member_id
+              await updateWaterBaptism(id, { member_id: newMemberId, is_member: true });
+              
+              // Create account for the new member
+              const tempPassword = Math.random().toString(36).slice(-12);
+              const accountData = {
+                email: baptism.email,
+                password: tempPassword,
+                position: 'Member',
+                acc_name: `${baptism.firstname} ${baptism.lastname}`
+              };
+              
+              const accountResult = await createAccount(accountData);
+              
+              if (accountResult.success && accountResult.data) {
+                const account = accountResult.data;
+                
+                // Send welcome email with account details
+                const name = `${baptism.firstname} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname}`.trim();
+                await sendAccountDetails({
+                  acc_id: account.acc_id,
+                  email: baptism.email,
+                  name: name,
+                  type: 'new_account',
+                  temporaryPassword: tempPassword
+                });
+                
+                console.log(`Account created and welcome email sent to ${baptism.email}`);
+              }
+            }
+          } catch (memberErr) {
+            console.error('Error creating member from completed baptism:', memberErr);
+            // Don't fail the update, but log the error
           }
-        } catch (emailErr) {
-          console.error('Error sending account setup email for completed baptism:', emailErr);
-          // Don't fail the update if email fails
+        } else {
+          // Existing member - just send account setup email
+          try {
+            const memberResult = await getMemberById(result.data.member_id);
+            if (memberResult.success && memberResult.data) {
+              const member = memberResult.data;
+              
+              const accountResult = await getAccountByEmail(member.email);
+              if (accountResult.success && accountResult.data) {
+                const account = accountResult.data;
+                
+                const name = `${member.firstname} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname}`.trim();
+                await sendAccountDetails({
+                  acc_id: account.acc_id,
+                  email: member.email,
+                  name: name,
+                  type: 'new_account',
+                  temporaryPassword: 'TestPassword123!'
+                });
+                
+                console.log(`Account setup email sent to ${member.email} for completed baptism ID: ${id}`);
+              }
+            }
+          } catch (emailErr) {
+            console.error('Error sending account setup email for completed baptism:', emailErr);
+          }
         }
       }
 
       res.status(200).json({
         success: true,
-        message: result.message + (isStatusChangingToCompleted ? ' Account setup email sent to member.' : ''),
+        message: result.message + (isStatusChangingToCompleted ? ' Member record created and welcome email sent.' : ''),
         data: result.data
       });
     } else {

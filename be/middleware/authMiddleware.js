@@ -38,6 +38,8 @@ const publicRoutes = [
   '/api/church-records/ministries/getAllMinistries',
   '/api/member-registration/register/water-baptism',
   '/api/member-registration/register/burial-service',
+  // Water baptism non-member registration (public - no auth required)
+  '/api/services/water-baptisms/register-non-member',
   // Announcement routes (public for viewing)
   '/api/announcements/getActiveAnnouncementsForUser',
   '/api/announcements/markAsViewed',

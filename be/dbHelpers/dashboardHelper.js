@@ -107,6 +107,33 @@ async function getDashboardStats() {
     );
     const unreadMessages = unreadMessagesResult[0]?.total || 0;
     
+    // Get water baptisms scheduled this month (approved or ongoing status, with baptism_date this month)
+    const [waterBaptismThisMonthResult] = await query(
+      `SELECT COUNT(*) as total FROM tbl_waterbaptism 
+       WHERE status IN ('approved', 'ongoing') 
+       AND DATE_FORMAT(baptism_date, "%Y-%m") = ?`,
+      [`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`]
+    );
+    const waterBaptismThisMonth = waterBaptismThisMonthResult[0]?.total || 0;
+    
+    // Get child dedications scheduled this month (approved or ongoing status, with preferred_dedication_date this month)
+    const [childDedicationThisMonthResult] = await query(
+      `SELECT COUNT(*) as total FROM tbl_childdedications 
+       WHERE status IN ('approved', 'ongoing') 
+       AND DATE_FORMAT(preferred_dedication_date, "%Y-%m") = ?`,
+      [`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`]
+    );
+    const childDedicationThisMonth = childDedicationThisMonthResult[0]?.total || 0;
+    
+    // Get burial services scheduled this month (approved or ongoing status, with service_date this month)
+    const [burialServiceThisMonthResult] = await query(
+      `SELECT COUNT(*) as total FROM tbl_burialservice 
+       WHERE status IN ('approved', 'ongoing') 
+       AND DATE_FORMAT(service_date, "%Y-%m") = ?`,
+      [`${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`]
+    );
+    const burialServiceThisMonth = burialServiceThisMonthResult[0]?.total || 0;
+    
     return {
       success: true,
       message: 'Dashboard statistics retrieved successfully',
@@ -130,6 +157,11 @@ async function getDashboardStats() {
         messages: {
           total: totalMessages,
           unread: unreadMessages
+        },
+        churchServices: {
+          waterBaptism: waterBaptismThisMonth,
+          childDedication: childDedicationThisMonth,
+          burialService: burialServiceThisMonth
         }
       }
     };

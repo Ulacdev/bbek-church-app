@@ -9,7 +9,8 @@ const {
   deleteChurchLeader,
   exportChurchLeadersToExcel
 } = require('../../dbHelpers/church_records/churchLeaderRecords');
-const { getAllMembersForSelect } = require('../../dbHelpers/church_records/memberRecords');
+
+const { getAllPastorsForSelect } = require('../../dbHelpers/church_records/memberRecords');
 
 const router = express.Router();
 
@@ -333,17 +334,17 @@ router.post('/exportExcel', async (req, res) => {
 
 /**
  * GET ALL MEMBERS FOR SELECT - Get all members for ministry leader dropdowns
- * This returns ALL members (not just church leaders) so any member can be selected as ministry leader
+ * This returns ONLY members with 'pastor' in their position
  * GET /api/church-records/church-leaders/getAllChurchLeadersForSelect
  */
 router.get('/getAllChurchLeadersForSelect', async (req, res) => {
   try {
-    const result = await getAllMembersForSelect();
+    const result = await getAllPastorsForSelect();
     
     if (result.success) {
       res.status(200).json({
         success: true,
-        message: 'All members retrieved successfully for leader selection',
+        message: 'Pastors retrieved successfully for leader selection',
         data: result.data
       });
     } else {
@@ -354,10 +355,10 @@ router.get('/getAllChurchLeadersForSelect', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error fetching members for leader selection:', error);
+    console.error('Error fetching pastors for leader selection:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to fetch members for leader selection'
+      error: error.message || 'Failed to fetch pastors for leader selection'
     });
   }
 });

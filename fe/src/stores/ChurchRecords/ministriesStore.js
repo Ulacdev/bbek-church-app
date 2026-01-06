@@ -335,7 +335,8 @@ export const useMinistriesStore = defineStore('ministries', {
 
     async fetchLeaderOptions() {
       try {
-        const response = await axios.get('/church-records/church-leaders/getAllChurchLeadersForSelect')
+        // Changed to getAllMembersWithoutPastorsForSelect to exclude pastors from ministry leader selection
+        const response = await axios.get('/church-records/members/getAllMembersWithoutPastorsForSelect')
         if (response.data.success && response.data.data) {
           this.leaderOptions = response.data.data
         }

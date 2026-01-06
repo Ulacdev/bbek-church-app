@@ -60,7 +60,7 @@
           filterable
         >
           <el-option
-            v-for="member in memberOptions"
+            v-for="member in departmentLeadOptions"
             :key="member.id"
             :label="member.name"
             :value="member.id"
@@ -80,7 +80,7 @@
           clearable
         >
           <el-option
-            v-for="member in memberOptions"
+            v-for="member in joinedMemberOptions"
             :key="member.id"
             :label="member.name"
             :value="member.id"
@@ -122,8 +122,13 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  // Members for member select: [{ id, name }]
-  memberOptions: {
+  // Members for department lead select: [{ id, name, position }] - only President position
+  departmentLeadOptions: {
+    type: Array,
+    default: () => []
+  },
+  // Members for joined members select: [{ id, name, position }] - only VP, Secretary, etc.
+  joinedMemberOptions: {
     type: Array,
     default: () => []
   }

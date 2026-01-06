@@ -62,13 +62,14 @@
             :active="$route.name === 'ChurchLeaders'"
             @click="closeDrawerOnMobile"
           ></v-list-item>
-          <v-list-item 
+          <!-- Department Officers menu item hidden - functionality integrated into Departments -->
+          <!-- <v-list-item 
             prepend-icon="mdi-account-multiple" 
             title="Department Officers"
             :to="{ name: 'DepartmentOfficers' }"
             :active="$route.name === 'DepartmentOfficers'"
             @click="closeDrawerOnMobile"
-          ></v-list-item>
+          ></v-list-item> -->
           <v-list-item 
             prepend-icon="mdi-calendar" 
             title="Events Records"

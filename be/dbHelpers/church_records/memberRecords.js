@@ -196,13 +196,38 @@ async function createMember(memberData) {
       date_created = new Date()
     } = memberData;
 
-    // Validate required fields (member_id is auto-generated, so don't validate it)
-    if (!firstname || !lastname || !birthdate || !age || !gender || !address || !email || !phone_number) {
-      throw new Error('Missing required fields: firstname, lastname, birthdate, age, gender, address, email, phone_number');
+    // Validate and provide defaults for required fields (member_id is auto-generated)
+    const finalFirstname = firstname || 'Unknown';
+    const finalLastname = lastname || 'Unknown';
+    const finalAge = age || '0';
+    const finalGender = gender || 'M';
+    const finalAddress = String(address || 'Not Provided').substring(0, 44);
+    const finalEmail = email || 'unknown@example.com';
+    const finalPhone = phone_number || '+639000000000';
+
+    // Format birthdate - try multiple formats
+    let formattedBirthdate = null;
+    if (birthdate) {
+      try {
+        if (typeof birthdate === 'string' && birthdate.includes('-')) {
+          formattedBirthdate = birthdate;
+        } else {
+          formattedBirthdate = moment(birthdate).format('YYYY-MM-DD');
+        }
+      } catch (e) {
+        console.error('Error parsing birthdate:', birthdate, e);
+        formattedBirthdate = null;
+      }
     }
 
     // Check for duplicate member before creating
-    const duplicateCheck = await checkDuplicateMember(memberData);
+    const duplicateCheck = await checkDuplicateMember({
+      ...memberData,
+      firstname: finalFirstname,
+      lastname: finalLastname,
+      email: finalEmail,
+      phone_number: finalPhone
+    });
     if (duplicateCheck.isDuplicate) {
       const duplicateMessages = [];
       
@@ -228,7 +253,7 @@ async function createMember(memberData) {
     const final_member_id = member_id || new_member_id;
 
     // Normalize phone number before insertion
-    const normalizedPhoneNumber = normalizePhoneNumber(phone_number);
+    const normalizedPhoneNumber = normalizePhoneNumber(finalPhone);
 
     const sql = `
       INSERT INTO tbl_members
@@ -238,14 +263,14 @@ async function createMember(memberData) {
 
     const params = [
       final_member_id,
-      firstname,
-      lastname,
+      finalFirstname,
+      finalLastname,
       middle_name,
-      birthdate,
-      age,
-      gender,
-      address,
-      email,
+      formattedBirthdate,
+      finalAge,
+      finalGender,
+      finalAddress,
+      finalEmail,
       normalizedPhoneNumber,
       memberData.civil_status || null,
       position,
@@ -256,21 +281,20 @@ async function createMember(memberData) {
     ];
 
     const [result] = await query(sql, params);
-    console.log('Result:', result);
     
     return {
       success: true,
       message: 'Member created successfully',
       data: {
         member_id: final_member_id,
-        firstname,
-        lastname,
+        firstname: finalFirstname,
+        lastname: finalLastname,
         middle_name,
-        birthdate,
-        age,
-        gender,
-        address,
-        email,
+        birthdate: formattedBirthdate,
+        age: finalAge,
+        gender: finalGender,
+        address: finalAddress,
+        email: finalEmail,
         phone_number: normalizedPhoneNumber,
         position,
         date_created
@@ -1061,13 +1085,14 @@ async function getAllMembersWithoutPastorsForSelect() {
  */
 async function getAllMembersForSelect() {
   try {
-    // Build query to get all members with fullname
+    // Build query to get all members with fullname and position
     const sql = `SELECT 
       member_id,
       firstname,
       lastname,
       middle_name,
       email,
+      position,
       CONCAT(
         firstname,
         IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(' ', middle_name), ''),
@@ -1080,11 +1105,12 @@ async function getAllMembersForSelect() {
 
     const [rows] = await query(sql);
 
-    // Format data for select elements: [{ id, name }]
+    // Format data for select elements: [{ id, name, position }]
     const memberOptions = rows.map(member => ({
       id: member.member_id,
       name: member.fullname || `${member.firstname} ${member.lastname}`.trim(),
-      email: member.email
+      email: member.email,
+      position: member.position
     }));
 
     return {

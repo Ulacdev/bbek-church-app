@@ -780,23 +780,23 @@ const handleSubmit = async () => {
       }
     )
 
-    // Prepare payload
+    // Prepare payload - use snake_case to match database columns
     const payload = {
       firstname: formData.firstname.trim(),
-      middleName: formData.middleName.trim() || null,
+      middle_name: formData.middleName.trim() || null,
       lastname: formData.lastname.trim(),
       birthdate: formData.birthdate,
       age: formData.age,
       gender: formData.gender,
       address: formData.address.trim(),
       email: formData.email.trim(),
-      phoneNumber: formatPhoneNumber(formData.phoneNumber),
+      phone_number: formatPhoneNumber(formData.phoneNumber),
       testimony: formData.testimony.trim() || null,
-      preferredDate: formData.preferredDate || null,
-      civilStatus: formData.civilStatus,
-      guardianName: formData.guardianName.trim() || null,
-      guardianContact: formData.guardianContact ? formatPhoneNumber(formData.guardianContact) : null,
-      guardianRelationship: formData.guardianRelationship || null
+      preferred_date: formData.preferredDate || null,
+      civil_status: formData.civilStatus,
+      guardian_name: formData.guardianName.trim() || null,
+      guardian_contact: formData.guardianContact ? formatPhoneNumber(formData.guardianContact) : null,
+      guardian_relationship: formData.guardianRelationship || null
     }
     console.log(payload ,'register water baptism')
     const result = await memberRegistrationStore.registerNonMemberWaterBaptism(payload)

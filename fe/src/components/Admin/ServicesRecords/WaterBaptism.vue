@@ -349,7 +349,18 @@ const editBaptism = (baptism) => {
     status: baptism.status,
     guardian_name: baptism.guardian_name,
     guardian_contact: baptism.guardian_contact,
-    guardian_relationship: baptism.guardian_relationship
+    guardian_relationship: baptism.guardian_relationship,
+    // Personal info fields (for both member and non-member)
+    firstname: baptism.firstname || '',
+    middle_name: baptism.middle_name || '',
+    lastname: baptism.lastname || '',
+    birthdate: baptism.birthdate || '',
+    age: baptism.age || '',
+    gender: baptism.gender || '',
+    civil_status: baptism.civil_status || '',
+    address: baptism.address || '',
+    email: baptism.email || '',
+    phone_number: baptism.phone_number || ''
   }
   baptismDialog.value = true
 }

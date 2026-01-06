@@ -19,35 +19,16 @@
       :label-width="labelWidth"
       :label-position="labelPosition"
     >
-
-      <!-- Member -->
-      <el-form-item label="Member" prop="member_id">
-        <el-select
-          v-model="formData.member_id"
-          placeholder="Select member"
-          size="large"
-          style="width: 100%"
-          clearable
-          :disabled="loading"
-          @change="onMemberChange"
-        >
-            <el-option
-            v-for="option in waterBaptismStore.memberOptions"
-            :key="option.id"
-            :label="option.name"
-            :value="option.id"
-          />
-        </el-select>
-      </el-form-item>
+      <!-- Personal Information Section -->
+      <el-divider content-position="left">Personal Information</el-divider>
 
       <!-- First Name -->
-      <el-form-item label="First Name">
+      <el-form-item label="First Name" prop="firstname">
         <el-input
           v-model="formData.firstname"
           placeholder="First Name"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
@@ -59,31 +40,31 @@
           placeholder="Middle Name"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
 
       <!-- Last Name -->
-      <el-form-item label="Last Name">
+      <el-form-item label="Last Name" prop="lastname">
         <el-input
           v-model="formData.lastname"
           placeholder="Last Name"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
 
       <!-- Birthdate -->
-      <el-form-item label="Birthdate">
-        <el-input
+      <el-form-item label="Birthdate" prop="birthdate">
+        <el-date-picker
           v-model="formData.birthdate"
-          placeholder="Birthdate"
+          type="date"
+          placeholder="Select birthdate"
           size="large"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
@@ -91,59 +72,66 @@
       <!-- Age -->
       <el-form-item label="Age">
         <el-input
-          v-model="formData.age"
+          v-model.number="formData.age"
+          type="number"
           placeholder="Age"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
 
       <!-- Gender -->
-      <el-form-item label="Gender">
-        <el-input
+      <el-form-item label="Gender" prop="gender">
+        <el-select
           v-model="formData.gender"
-          placeholder="Gender"
+          placeholder="Select gender"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
-        />
+        >
+          <el-option label="Male" value="M" />
+          <el-option label="Female" value="F" />
+        </el-select>
       </el-form-item>
 
       <!-- Civil Status -->
       <el-form-item label="Civil Status">
-        <el-input
+        <el-select
           v-model="formData.civil_status"
-          placeholder="Civil Status"
+          placeholder="Select civil status"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
-        />
+        >
+          <el-option label="Single" value="single" />
+          <el-option label="Married" value="married" />
+          <el-option label="Widowed" value="widowed" />
+          <el-option label="Divorced" value="divorced" />
+          <el-option label="Separated" value="separated" />
+        </el-select>
       </el-form-item>
 
       <!-- Address -->
-      <el-form-item label="Address">
+      <el-form-item label="Address" prop="address">
         <el-input
           v-model="formData.address"
+          type="textarea"
+          :rows="2"
           placeholder="Address"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
 
       <!-- Email -->
-      <el-form-item label="Email">
+      <el-form-item label="Email" prop="email">
         <el-input
           v-model="formData.email"
           placeholder="Email"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
@@ -155,22 +143,12 @@
           placeholder="Phone Number"
           size="large"
           style="width: 100%"
-          readonly
           :disabled="loading"
         />
       </el-form-item>
 
-      <!-- Position -->
-      <el-form-item label="Position">
-        <el-input
-          v-model="formData.position"
-          placeholder="Position"
-          size="large"
-          style="width: 100%"
-          readonly
-          :disabled="loading"
-        />
-      </el-form-item>
+      <!-- Baptism Details Section -->
+      <el-divider content-position="left">Baptism Details</el-divider>
 
       <!-- Baptism Date -->
       <el-form-item label="Baptism Date" prop="baptism_date">
@@ -343,19 +321,14 @@ const labelPosition = computed(() => {
   return window.innerWidth <= 600 ? 'top' : 'left'
 })
 
-// Member options - will be fetched from API
-const memberOptions = computed(() => waterBaptismStore.memberOptions || [])
-
 // Pastor options - will be fetched from API
 const pastorOptions = computed(() => waterBaptismStore.pastorOptions || [])
 
-// Fetch member options and pastor options when component mounts
+// Fetch pastor options when component mounts
 onMounted(async () => {
-  await Promise.all([
-    waterBaptismStore.fetchMemberOptions(),
-    waterBaptismStore.fetchPastorOptions()
-  ])
+  await waterBaptismStore.fetchPastorOptions()
 })
+
 // Check if in edit mode
 const isEditMode = computed(() => !!props.baptismData)
 
@@ -370,12 +343,12 @@ const statusOptions = [
 
 // Form data
 const formData = reactive({
-  member_id: "",
+  baptism_id: '',
   baptism_date: null,
   location: '',
   pastor_name: '',
   status: 'pending', // Default status
-  // Member details (auto-populated from member table)
+  // Personal info (for both member and non-member)
   firstname: '',
   middle_name: '',
   lastname: '',
@@ -386,7 +359,6 @@ const formData = reactive({
   address: '',
   email: '',
   phone_number: '',
-  position: '',
   guardian_name: '',
   guardian_contact: '',
   guardian_relationship: ''
@@ -394,8 +366,24 @@ const formData = reactive({
 
 // Validation rules
 const rules = {
-  member_id: [
-    { required: true, message: 'Member is required', trigger: 'change' }
+  firstname: [
+    { required: true, message: 'First name is required', trigger: 'blur' }
+  ],
+  lastname: [
+    { required: true, message: 'Last name is required', trigger: 'blur' }
+  ],
+  birthdate: [
+    { required: true, message: 'Birthdate is required', trigger: 'change' }
+  ],
+  gender: [
+    { required: true, message: 'Gender is required', trigger: 'change' }
+  ],
+  email: [
+    { required: true, message: 'Email is required', trigger: 'blur' },
+    { type: 'email', message: 'Please enter a valid email', trigger: 'blur' }
+  ],
+  address: [
+    { required: true, message: 'Address is required', trigger: 'blur' }
   ],
   baptism_date: [
     { required: true, message: 'Baptism date is required', trigger: 'change' },
@@ -407,8 +395,6 @@ const rules = {
         }
         const selectedDate = new Date(value)
         const today = new Date()
-        // Allow future dates for scheduled baptisms
-        // But not too far in the past (more than 100 years)
         const minDate = new Date()
         minDate.setFullYear(today.getFullYear() - 100)
         if (selectedDate < minDate) {
@@ -430,7 +416,6 @@ const rules = {
     { required: true, message: 'Status is required', trigger: 'change' },
     {
       validator: (rule, value, callback) => {
-        // Atomic validation: approved/completed requires baptism_date
         if ((value === 'approved' || value === 'completed') && (!formData.baptism_date || !formData.baptism_date.trim())) {
           callback(new Error('Baptism date is required for approved/completed status'))
           return
@@ -471,7 +456,7 @@ const updateStatusFromBaptismDate = () => {
 // Watch for baptismData changes to populate form in edit mode
 watch(() => props.baptismData, async (newData) => {
   if (newData && props.modelValue) {
-    formData.member_id = newData.member_id || ''
+    formData.baptism_id = newData.baptism_id || ''
     formData.baptism_date = newData.baptism_date || null
     formData.location = newData.location || ''
     formData.pastor_name = newData.pastor_name || ''
@@ -480,22 +465,17 @@ watch(() => props.baptismData, async (newData) => {
     formData.guardian_contact = newData.guardian_contact || ''
     formData.guardian_relationship = newData.guardian_relationship || ''
 
-    // Populate member details from the joined data
+    // Populate personal info from the joined data (works for both member and non-member)
     formData.firstname = newData.firstname || ''
     formData.middle_name = newData.middle_name || ''
     formData.lastname = newData.lastname || ''
-    formData.birthdate = newData.birthdate ? new Date(newData.birthdate).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }) : ''
+    formData.birthdate = newData.birthdate || ''
     formData.age = newData.age || ''
-    formData.gender = newData.gender === 'M' ? 'Male' : newData.gender === 'F' ? 'Female' : newData.gender === 'O' ? 'Other' : newData.gender || ''
+    formData.gender = newData.gender || ''
     formData.civil_status = newData.civil_status || ''
     formData.address = newData.address || ''
     formData.email = newData.email || ''
     formData.phone_number = newData.phone_number || ''
-    formData.position = newData.position || ''
 
     // Update status based on baptism date if not explicitly set
     if (!newData.status && formData.baptism_date) {
@@ -513,7 +493,7 @@ watch(() => props.modelValue, async (isOpen) => {
   } else if (props.baptismData) {
     // Populate form when dialog opens in edit mode
     const data = props.baptismData
-    formData.member_id = data.member_id || ''
+    formData.baptism_id = data.baptism_id || ''
     formData.baptism_date = data.baptism_date || null
     formData.location = data.location || ''
     formData.pastor_name = data.pastor_name || ''
@@ -522,22 +502,17 @@ watch(() => props.modelValue, async (isOpen) => {
     formData.guardian_contact = data.guardian_contact || ''
     formData.guardian_relationship = data.guardian_relationship || ''
 
-    // Populate member details from the joined data
+    // Populate personal info from the joined data (works for both member and non-member)
     formData.firstname = data.firstname || ''
     formData.middle_name = data.middle_name || ''
     formData.lastname = data.lastname || ''
-    formData.birthdate = data.birthdate ? new Date(data.birthdate).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }) : ''
+    formData.birthdate = data.birthdate || ''
     formData.age = data.age || ''
-    formData.gender = data.gender === 'M' ? 'Male' : data.gender === 'F' ? 'Female' : data.gender === 'O' ? 'Other' : data.gender || ''
+    formData.gender = data.gender || ''
     formData.civil_status = data.civil_status || ''
     formData.address = data.address || ''
     formData.email = data.email || ''
     formData.phone_number = data.phone_number || ''
-    formData.position = data.position || ''
 
     // Update status based on baptism date if not explicitly set
     if (!data.status && formData.baptism_date) {
@@ -549,57 +524,14 @@ watch(() => props.modelValue, async (isOpen) => {
   }
 })
 
-// Handle member selection change
-const onMemberChange = async (memberId) => {
-  if (!memberId) {
-    // Clear fields if no member selected
-    formData.firstname = ''
-    formData.middle_name = ''
-    formData.lastname = ''
-    formData.birthdate = ''
-    formData.age = ''
-    formData.gender = ''
-    formData.civil_status = ''
-    formData.address = ''
-    formData.email = ''
-    formData.phone_number = ''
-    formData.position = ''
-    return
-  }
-
-  try {
-    const memberDetails = await waterBaptismStore.fetchMemberDetails(memberId)
-    if (memberDetails) {
-      formData.firstname = memberDetails.firstname || ''
-      formData.middle_name = memberDetails.middle_name || ''
-      formData.lastname = memberDetails.lastname || ''
-      formData.birthdate = memberDetails.birthdate ? new Date(memberDetails.birthdate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }) : ''
-      formData.age = memberDetails.age || ''
-      formData.gender = memberDetails.gender === 'M' ? 'Male' : memberDetails.gender === 'F' ? 'Female' : memberDetails.gender === 'O' ? 'Other' : memberDetails.gender || ''
-      formData.civil_status = memberDetails.civil_status || ''
-      formData.address = memberDetails.address || ''
-      formData.email = memberDetails.email || ''
-      formData.phone_number = memberDetails.phone_number || ''
-      formData.position = memberDetails.position || ''
-    }
-  } catch (error) {
-    console.error('Error fetching member details:', error)
-    ElMessage.error('Failed to load member details')
-  }
-}
-
 // Reset form
 const resetForm = () => {
-  formData.member_id = ''
+  formData.baptism_id = ''
   formData.baptism_date = null
   formData.location = ''
   formData.pastor_name = ''
   formData.status = 'pending' // Reset to default
-  // Member details
+  // Personal info
   formData.firstname = ''
   formData.middle_name = ''
   formData.lastname = ''
@@ -610,7 +542,6 @@ const resetForm = () => {
   formData.address = ''
   formData.email = ''
   formData.phone_number = ''
-  formData.position = ''
   formData.guardian_name = ''
   formData.guardian_contact = ''
   formData.guardian_relationship = ''
@@ -655,24 +586,32 @@ const handleSubmit = async () => {
     })
     
     // Prepare data for submission
-    // Backend expects: { member_id, baptism_date, location, pastor_name, status?, guardian_name?, guardian_contact?, guardian_relationship? }
-    // baptism_date is required and will be formatted by backend as DATETIME
     const submitData = {
-      member_id: String(formData.member_id).trim(),
-      baptism_date: formData.baptism_date, // Required - backend will format as DATETIME
+      baptism_id: formData.baptism_id || null,
+      baptism_date: formData.baptism_date, // Required
       location: formData.location?.trim() || null,
       pastor_name: formData.pastor_name || null,
       status: formData.status || 'pending',
       guardian_name: formData.guardian_name?.trim() || null,
       guardian_contact: formData.guardian_contact?.trim() || null,
-      guardian_relationship: formData.guardian_relationship || null
+      guardian_relationship: formData.guardian_relationship || null,
+      // Personal info fields
+      firstname: formData.firstname?.trim() || null,
+      middle_name: formData.middle_name?.trim() || null,
+      lastname: formData.lastname?.trim() || null,
+      birthdate: formData.birthdate || null,
+      age: formData.age || null,
+      gender: formData.gender || null,
+      civil_status: formData.civil_status || null,
+      address: formData.address?.trim() || null,
+      email: formData.email?.trim() || null,
+      phone_number: formData.phone_number?.trim() || null
     }
 
     // Emit submit event with data
     emit('submit', submitData)
     
     // Safety timeout: reset loading after 30 seconds if still loading
-    // This prevents loading state from getting stuck if parent component fails silently
     setTimeout(() => {
       if (loading.value) {
         resetLoading()
