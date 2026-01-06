@@ -2,9 +2,10 @@
 const { createMember, deleteMember, checkDuplicateMember, getSpecificMemberByEmailAndStatus, getMemberById } = require('./church_records/memberRecords');
 const {
   createAccount,
-  checkDuplicateAccount
+  checkDuplicateAccount,
+  getAccountByEmail
 } = require('./church_records/accountRecords');
-const { sendAccountDetails, sendBurialServiceRequestNotification, sendWaterBaptismDetails } = require('./emailHelperSendGrid');
+const { sendBurialServiceRequestNotification, sendWaterBaptismDetails } = require('./emailHelperSendGrid');
 const moment = require('moment');
 const {
   createWaterBaptism,
@@ -515,52 +516,11 @@ async function registerMemberFromWaterBaptism(payload = {}) {
       };
     }
 
-    // Step 6: Send account setup email
-    let accountEmailError = null;
-    try {
-    const emailResult = await sendAccountDetails({
-      acc_id: accountResult.data.acc_id,
-      email: memberData.email,
-      name: `${memberData.firstname} ${memberData.lastname}`.trim(),
-      type: 'new_account',
-      temporaryPassword: tempPassword
-    });
-      
-      // Check if email sending failed
-      if (emailResult && !emailResult.success) {
-        accountEmailError = emailResult.message || emailResult.error || 'Failed to send account setup email';
-      }
-    } catch (emailErr) {
-      accountEmailError = emailErr.message || 'Failed to send account setup email';
-      console.error('Error sending account setup email:', emailErr);
-    }
-
-    // Collect all email errors
-    const emailErrors = [];
-    if (waterBaptismEmailError) {
-      emailErrors.push(waterBaptismEmailError);
-    }
-    if (accountEmailError) {
-      emailErrors.push(accountEmailError);
-    }
-
-    // If any email failed, return error but don't rollback the records
-    if (emailErrors.length > 0) {
-      return {
-        success: false,
-        message: 'Member, water baptism, and account created, but failed to send notification email(s)',
-        errors: emailErrors,
-        data: {
-          member: memberResult.data,
-          waterBaptism: baptismResult.data,
-          account: accountResult.data
-        }
-      };
-    }
-
+    // Step 6: Account setup email will be sent when baptism status is changed to "completed" by admin
+    // Return success - account is created but email not sent yet
     return {
       success: true,
-      message: 'Member, water baptism, and account created successfully',
+      message: 'Member, water baptism, and account created successfully. Account setup email will be sent once baptism is completed.',
       data: {
         member: memberResult.data,
         waterBaptism: baptismResult.data,

@@ -6,7 +6,6 @@ const jwt = require('jsonwebtoken');
 const { archiveBeforeDelete } = require('../archiveHelper');
 const  {getSpecificWaterBaptismDataByMemberIdIfBaptized} = require('../services/waterBaptismRecords');
 const { getSpecificMemberByEmailAndStatus } = require('../church_records/memberRecords');
-const { sendAccountDetails } = require('../emailHelperSendGrid');
 
 /**
  * Account Records CRUD Operations
@@ -232,38 +231,8 @@ async function createAccount(accountData) {
     // Fetch the created account (without password)
     const createdAccount = await getAccountById(result.insertId);
 
-    // Send email notification to set password (best-effort; do not fail creation)
-    try {
-      // Try to get member information for personalized email
-      let recipientName = 'User';
-      try {
-        const member = await getSpecificMemberByEmailAndStatus(email.trim().toLowerCase());
-        if (member && member.firstname) {
-          recipientName = member.firstname;
-          if (member.lastname) {
-            recipientName = `${member.firstname} ${member.lastname}`;
-          }
-        }
-      } catch (error) {
-        // If member lookup fails, continue with default name
-        console.log('Could not retrieve member name for email:', error.message);
-      }
-
-      // Prepare account details for email
-      const accountDetails = {
-        acc_id: result.insertId,
-        email: email.trim().toLowerCase(),
-        name: recipientName,
-        type: 'new_account',
-        temporaryPassword: password !== DEFAULT_PASSWORD ? password : undefined // Include temporary password if custom one was provided
-      };
-
-      // Send account creation email with password setup link
-      await sendAccountDetails(accountDetails);
-    } catch (emailError) {
-      // Log but don't block account creation if email fails
-      console.error('Error sending account creation email:', emailError);
-    }
+    // NOTE: Account setup email will be sent when water baptism status is changed to "completed"
+    // This is handled in waterBaptismRoutes.js updateWaterBaptism endpoint
 
     return {
       success: true,

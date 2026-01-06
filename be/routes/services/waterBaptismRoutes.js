@@ -9,6 +9,9 @@ const {
   deleteWaterBaptism,
   exportWaterBaptismsToExcel
 } = require('../../dbHelpers/services/waterBaptismRecords');
+const { getMemberById } = require('../../dbHelpers/church_records/memberRecords');
+const { getAccountByEmail } = require('../../dbHelpers/church_records/accountRecords');
+const { sendAccountDetails } = require('../../dbHelpers/emailHelperSendGrid');
 
 const router = express.Router();
 
@@ -195,6 +198,7 @@ router.get('/getWaterBaptismByMemberId/:memberId', async (req, res) => {
  * UPDATE - Update an existing water baptism record
  * PUT /api/services/water-baptisms/updateWaterBaptism/:id
  * Body: { member_id?, baptism_date?, status?, date_created? }
+ * When status is changed to "completed", sends account setup email to the member
  */
 router.put('/updateWaterBaptism/:id', async (req, res) => {
   try {
@@ -207,12 +211,55 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
       });
     }
 
+    // Get current baptism record to check if status is changing to "completed"
+    const currentBaptism = await getWaterBaptismById(id);
+    const isStatusChangingToCompleted = 
+      req.body.status && 
+      req.body.status === 'completed' && 
+      currentBaptism.success && 
+      currentBaptism.data && 
+      currentBaptism.data.status !== 'completed';
+
     const result = await updateWaterBaptism(id, req.body);
     
     if (result.success) {
+      // If status changed to "completed", send account setup email
+      if (isStatusChangingToCompleted) {
+        try {
+          // Get member details
+          const memberResult = await getMemberById(result.data.member_id);
+          if (memberResult.success && memberResult.data) {
+            const member = memberResult.data;
+            
+            // Get account by email
+            const accountResult = await getAccountByEmail(member.email);
+            if (accountResult.success && accountResult.data) {
+              const account = accountResult.data;
+              
+              // Send account setup email
+              const name = `${member.firstname} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname}`.trim();
+              await sendAccountDetails({
+                acc_id: account.acc_id,
+                email: member.email,
+                name: name,
+                type: 'new_account',
+                temporaryPassword: 'TestPassword123!'
+              });
+              
+              console.log(`Account setup email sent to ${member.email} for completed baptism ID: ${id}`);
+            } else {
+              console.warn(`No account found for member ${member.email} - email not sent`);
+            }
+          }
+        } catch (emailErr) {
+          console.error('Error sending account setup email for completed baptism:', emailErr);
+          // Don't fail the update if email fails
+        }
+      }
+
       res.status(200).json({
         success: true,
-        message: result.message,
+        message: result.message + (isStatusChangingToCompleted ? ' Account setup email sent to member.' : ''),
         data: result.data
       });
     } else {
