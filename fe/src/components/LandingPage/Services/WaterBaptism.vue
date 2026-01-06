@@ -113,70 +113,22 @@
                   </div>
                 </template>
                 <template v-else-if="memberBaptismData">
-                  <h2 class="section-title fade-in" style="animation-delay: 700ms;">
-                    Your Water Baptism Certificate
-                  </h2>
-                  <v-card class="certificate-card">
-                    <div class="certificate-header">
-                      <div class="certificate-icon">
-                        <v-icon icon="mdi-heart" size="40" color="white"></v-icon>
+                  <v-card class="welcome-card fade-in-up" style="animation-delay: 700ms;">
+                    <div class="welcome-content">
+                      <div class="welcome-icon">
+                        <v-icon icon="mdi-hand-heart" size="60" color="white"></v-icon>
                       </div>
-                      <h3 class="certificate-title">Certificate of Water Baptism</h3>
-                      <p class="certificate-church">Bethel Baptist Church</p>
-                    </div>
-
-                    <div class="certificate-body">
-                      <div class="certificate-text">
-                        <p class="certificate-italic">This certifies that</p>
-                        <h4 class="certificate-name">
-                          {{ memberBaptismData.firstname }} {{ memberBaptismData.middlename || '' }} {{ memberBaptismData.lastname }}
-                        </h4>
-                        <p class="certificate-description">has been baptized in water</p>
-                      </div>
-
-                      <div class="certificate-details">
-                        <div class="certificate-detail">
-                          <p class="detail-label">Date of Baptism</p>
-                          <p class="detail-value">
-                            {{ formatDate(memberBaptismData.baptism_date) }}
-                          </p>
-                        </div>
-                        <div class="certificate-detail">
-                          <p class="detail-label">Baptized By</p>
-                          <p class="detail-value">
-                            {{ pastors ? pastors[pastors.length-1].name : 'Church Pastor' }}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div class="certificate-verse">
-                        <p class="verse-text">
-                          "Therefore we are buried with him by baptism into death: that like as Christ was raised up from the dead by the glory of the Father, even so we also should walk in newness of life."
-                        </p>
-                        <p class="verse-reference">Romans 6:4</p>
-                      </div>
-                    </div>
-
-                    <div class="certificate-footer">
-                      <div class="signature-lines">
-                        <div class="signature-line">
-                          <p>{{ pastors?pastors[pastors.length-1].name : 'Church Pastor' }}</p>
-                          <div class="line"></div>
-                          <p>Pastor</p>
-                        </div>
-                        <div class="signature-line">
-                          <p>{{ churchLeaders?churchLeaders[churchLeaders.length-1].fullname : 'Church Official' }}</p>
-                          <div class="line"></div>
-                          <p>Church Official</p>
-                        </div>
-                      </div>
-                      <p class="issued-date">Issued on {{ formatDate(new Date()) }}</p>
-                    </div>
-
-                    <div class="certificate-actions">
-                      <v-btn color="teal" @click="openCertificatePreview" class="action-btn">
-                        <v-icon start>mdi-file-document</v-icon>
-                        View Certificate
+                      <h2 class="welcome-title">Thank You and Welcome to BBek!</h2>
+                      <p class="welcome-message">
+                        {{ memberBaptismData.firstname }}, we are grateful that you have taken the step
+                        of water baptism. You are now part of our church family.
+                      </p>
+                      <p class="welcome-submessage">
+                        May God bless you as you continue your journey with Him.
+                      </p>
+                      <v-btn color="teal" @click="$router.push('/services')" class="welcome-btn">
+                        <v-icon start>mdi-church</v-icon>
+                        Explore Our Services
                       </v-btn>
                     </div>
                   </v-card>
@@ -1378,8 +1330,65 @@ const resetForm = () => {
   margin-top: 24px;
 }
 
-.action-btn {
-  flex: 1;
+/* Welcome Card */
+.welcome-card {
+  background: linear-gradient(to bottom right, #eff6ff, #f0fdfa);
+  padding: 48px 32px;
+  border-radius: 12px;
+  border: 2px solid #5eead4;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.welcome-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.welcome-icon {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+  background: #0d9488;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-title {
+  font-size: 1.75rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 16px;
+  font-family: 'Georgia', serif;
+}
+
+.welcome-message {
+  font-size: 1rem;
+  color: #4b5563;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.welcome-submessage {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.welcome-btn {
+  width: 100%;
+  margin-top: 24px;
+  background-color: #14b8a6;
+  border-color: #14b8a6;
+}
+
+.welcome-btn:hover {
+  background-color: #0d9488;
+  border-color: #0d9488;
 }
 
 /* Member Card */
