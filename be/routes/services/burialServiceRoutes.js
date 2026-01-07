@@ -14,6 +14,101 @@ const {
 const router = express.Router();
 
 /**
+ * CHECK DUPLICATE - Check if burial service already exists
+ * GET /api/church-records/burial-services/check-duplicate
+ * Query params: member_id, deceased_name, deceased_birthdate, exclude_burial_id (optional)
+ */
+router.get('/check-duplicate', async (req, res) => {
+  try {
+    const { member_id, deceased_name, deceased_birthdate, exclude_burial_id } = req.query;
+    
+    if (!member_id || !deceased_name || !deceased_birthdate) {
+      return res.status(400).json({
+        success: false,
+        message: 'member_id, deceased_name, and deceased_birthdate are required'
+      });
+    }
+    
+    const db = require('../../database/db');
+    const query = `
+      SELECT burial_id, member_id, deceased_name, deceased_birthdate, date_death, requestor, status
+      FROM burial_services
+      WHERE member_id = ? 
+        AND deceased_name = ? 
+        AND deceased_birthdate = ?
+        AND status != 'Deleted'
+        AND is_archived = FALSE
+        ${exclude_burial_id ? 'AND burial_id != ?' : ''}
+    `;
+    
+    const params = exclude_burial_id 
+      ? [member_id, deceased_name, deceased_birthdate, exclude_burial_id]
+      : [member_id, deceased_name, deceased_birthdate];
+    
+    const [rows] = await db.query(query, params);
+    
+    if (rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'A burial service request for this deceased person with the same name and birthdate already exists from this member',
+        data: { exists: true, burial: rows[0] }
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'No duplicate found',
+      data: { exists: false }
+    });
+  } catch (error) {
+    console.error('Error checking duplicate burial service:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check duplicate'
+    });
+  }
+});
+
+/**
+ * CHECK MEMBER HAS BURIAL - Check if member already has a burial service request
+ * GET /api/church-records/burial-services/check-member-burial/:memberId
+ */
+router.get('/check-member-burial/:memberId', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required'
+      });
+    }
+    
+    const result = await getBurialServicesByMemberId(memberId);
+    
+    if (result.success && result.data && result.data.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Member already has burial service requests',
+        data: { hasBurial: true, burials: result.data }
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Member has no existing burial service requests',
+      data: { hasBurial: false }
+    });
+  } catch (error) {
+    console.error('Error checking member burial:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check member burial'
+    });
+  }
+});
+
+/**
  * CREATE - Insert a new burial service record
  * POST /api/church-records/burial-services/createBurialService
  * Body: { burial_id?, member_id, requestor, relationship, location, pastor_id, service_date, status?, date_created? }

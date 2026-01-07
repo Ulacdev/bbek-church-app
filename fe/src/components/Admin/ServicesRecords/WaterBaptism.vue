@@ -395,11 +395,16 @@ const handleSubmit = async (data) => {
   try {
     let result
     if (baptismData.value && baptismData.value.baptism_id) {
-      // Update
+      // Update existing record
       result = await waterBaptismStore.updateBaptism(baptismData.value.baptism_id, data)
     } else {
-      // Create
-      result = await waterBaptismStore.createBaptism(data)
+      // Create new record for non-member
+      const nonMemberData = {
+        ...data,
+        is_member: false,
+        member_id: null
+      }
+      result = await waterBaptismStore.createBaptism(nonMemberData)
     }
 
     if (result.success) {

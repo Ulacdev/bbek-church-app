@@ -526,5 +526,47 @@ router.post('/register-non-member', async (req, res) => {
   }
 });
 
+/**
+ * CHECK EMAIL EXISTS - Check if an email already exists in accounts table
+ * GET /api/services/water-baptisms/check-email-exists?email=xxx
+ * This prevents creating duplicate accounts
+ */
+router.get('/check-email-exists', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+    
+    // Direct query to avoid circular dependency
+    const sql = 'SELECT acc_id, email FROM tbl_accounts WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))';
+    const [rows] = await query(sql, [email]);
+    
+    if (rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this email already exists',
+        data: { exists: true, account: rows[0] }
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Email is available',
+      data: { exists: false }
+    });
+  } catch (error) {
+    console.error('Error checking email:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check email'
+    });
+  }
+});
+
 module.exports = router;
 

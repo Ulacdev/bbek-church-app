@@ -147,7 +147,7 @@
        </el-select>
      </el-form-item>
 
-     <!-- Service Date & Time -->
+     <!-- Service Date & Time (Admin/Staff Only - Required) -->
      <el-form-item label="Service Date & Time" prop="service_date" v-if="userInfo.account.position === 'admin' || userInfo.account.position === 'staff'">
        <template #label>
          <span>Service Date & Time <span class="required">*</span></span>
@@ -185,31 +185,48 @@
          />
        </el-select>
      </el-form-item>
-    </el-form>
+   </el-form>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleClose" size="large" :disabled="loading">Cancel</el-button>
-        <el-button
-          type="primary"
-          @click="handleSubmit"
-          size="large"
-          :loading="loading"
-          :disabled="loading"
-        >
-          {{ isEditMode ? 'Update' : userInfo.account.position === 'admin' || userInfo.account.position === 'staff' ? 'Add' : 'Send' }} Record
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+   <template #footer>
+     <div class="dialog-footer">
+       <el-button @click="handleClose" size="large" :disabled="loading">Cancel</el-button>
+       <el-button
+         type="primary"
+         @click="handleSubmit"
+         size="large"
+         :loading="loading"
+         :disabled="loading"
+       >
+         {{ isEditMode ? 'Update' : userInfo.account.position === 'admin' || userInfo.account.position === 'staff' ? 'Add' : 'Send' }} Record
+       </el-button>
+     </div>
+   </template>
+ </el-dialog>
 </template>
 
 <script setup>
 import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useBurialServiceStore } from '@/stores/ServicesRecords/burialServiceStore'
+import axios from '@/api/axios'
+
 const burialServiceStore = useBurialServiceStore()
-const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
+
+// Function to get user from localStorage safely
+const getUserFromStorage = () => {
+  try {
+    const userInfoStr = localStorage.getItem('userInfo')
+    if (userInfoStr && userInfoStr !== '{}') {
+      return JSON.parse(userInfoStr)
+    }
+    return null
+  } catch (e) {
+    console.error('Error parsing userInfo:', e)
+    return null
+  }
+}
+
+const userInfo = ref(getUserFromStorage())
 // Props
 const props = defineProps({
   modelValue: {
@@ -446,6 +463,33 @@ const handleSubmit = async () => {
   if (!formRef.value) return
 
   try {
+    // Check for duplicate burial service before validation
+    // Check based on: member_id + deceased_name + deceased_birthdate
+    if (formData.member_id && formData.deceased_name && formData.deceased_birthdate) {
+      try {
+        const checkResponse = await axios.get('/church-records/burial-services/check-duplicate', {
+          params: {
+            member_id: String(formData.member_id),
+            deceased_name: formData.deceased_name.trim(),
+            deceased_birthdate: formData.deceased_birthdate
+          }
+        })
+        
+        if (checkResponse.data.success && checkResponse.data.data && checkResponse.data.data.exists) {
+          ElMessage.error(`A burial service request for "${formData.deceased_name}" (Birthdate: ${formData.deceased_birthdate}) already exists from this member. Please check existing records or update the existing request instead.`)
+          return
+        }
+      } catch (checkError) {
+        // If the error indicates duplicate exists, show the error message
+        if (checkError.response?.data?.message && checkError.response.data.message.includes('already exists')) {
+          ElMessage.error(checkError.response.data.message)
+          return
+        }
+        // For other errors, log but continue with form validation
+        console.error('Error checking for duplicates:', checkError)
+      }
+    }
+
     await formRef.value.validate()
 
     const actionText = isEditMode.value ? 'update' : 'create'

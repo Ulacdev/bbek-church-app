@@ -19,6 +19,73 @@ const { sendWaterBaptismDetails } = require('../emailHelperSendGrid');
  */
 
 /**
+ * Check if an email already exists in accounts table
+ * @param {String} email - Email to check
+ * @returns {Promise<Object>} Object with isDuplicate flag
+ */
+async function checkDuplicateEmail(email) {
+  try {
+    const sql = 'SELECT acc_id, email FROM tbl_accounts WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))';
+    const [rows] = await query(sql, [email]);
+    
+    return {
+      isDuplicate: rows.length > 0,
+      account: rows.length > 0 ? rows[0] : null
+    };
+  } catch (error) {
+    console.error('Error checking for duplicate email:', error);
+    throw error;
+  }
+}
+
+/**
+ * Utility function to convert buffer data to string
+ * MySQL sometimes returns string fields as Buffer objects, especially with utf8mb4 encoding
+ * @param {*} value - The value to convert
+ * @returns {string|null} - The string value or null if invalid
+ */
+function convertBufferToString(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (Buffer.isBuffer(value)) {
+    return value.toString('utf8');
+  }
+  if (value instanceof Uint8Array) {
+    return Buffer.from(value).toString('utf8');
+  }
+  return String(value);
+}
+
+/**
+ * Process baptism record to convert any buffer data to strings
+ * @param {Object} record - The baptism record from database
+ * @returns {Object} - Processed record with string values
+ */
+function processBaptismRecord(record) {
+  const fieldsToConvert = [
+    'address', 'firstname', 'lastname', 'middle_name', 'email', 'phone_number',
+    'civil_status', 'location', 'pastor_name', 'status', 'guardian_name',
+    'guardian_contact', 'guardian_relationship', 'member_address', 'member_email',
+    'member_phone_number', 'member_firstname', 'member_lastname', 'member_middle_name',
+    'member_guardian_name', 'member_guardian_contact', 'member_guardian_relationship'
+  ];
+  
+  const processed = { ...record };
+  
+  for (const field of fieldsToConvert) {
+    if (processed[field] !== undefined) {
+      processed[field] = convertBufferToString(processed[field]);
+    }
+  }
+  
+  return processed;
+}
+
+/**
  * Get the next baptism_id (incremental)
  * @returns {Promise<String>} Next baptism_id as zero-padded string
  */
@@ -103,6 +170,15 @@ async function createWaterBaptism(baptismData) {
     
     if (!is_member && (!firstname || !lastname || !email)) {
       throw new Error('Missing required fields: firstname, lastname, and email are required for non-member registration');
+    }
+
+    // Check if email already exists in accounts table (for non-members)
+    // This prevents creating duplicate accounts when baptism status changes to "completed"
+    if (!is_member && email) {
+      const emailCheck = await checkDuplicateEmail(email);
+      if (emailCheck.isDuplicate) {
+        throw new Error('An account with this email already exists. Please use a different email address.');
+      }
     }
 
     // Ensure baptism_id is set and convert to string
@@ -460,6 +536,9 @@ async function getAllWaterBaptisms(options = {}) {
 
     // Execute query to get paginated results
     const [rows] = await query(sql, params);
+    
+    // Process all records to convert any buffer data to strings
+    const processedRows = rows.map(processBaptismRecord);
 
     // Calculate pagination metadata
     const currentPage = page !== undefined ? parseInt(page) : (finalOffset !== null ? Math.floor(finalOffset / finalLimit) + 1 : 1);
@@ -469,8 +548,8 @@ async function getAllWaterBaptisms(options = {}) {
     return {
       success: true,
       message: 'Water baptisms retrieved successfully',
-      data: rows,
-      count: rows.length,
+      data: processedRows,
+      count: processedRows.length,
       totalCount: totalCount,
       summaryStats: summaryStats,
       thisYearCount: thisYearCount,
@@ -537,10 +616,14 @@ async function getWaterBaptismByMemberId(memberId) {
         data: []
       };
     }
+    
+    // Process all records to convert any buffer data to strings
+    const processedRows = rows.map(processBaptismRecord);
+    
     return {
       success: true,
       message: 'Water baptism records retrieved successfully',
-      data: rows
+      data: processedRows
     };
   } catch (error) {
     console.error('Error fetching water baptism by member ID:', error);
@@ -569,10 +652,13 @@ async function getWaterBaptismById(baptismId) {
       };
     }
 
+    // Process the record to convert any buffer data to strings
+    const processedData = processBaptismRecord(rows[0]);
+
     return {
       success: true,
       message: 'Water baptism retrieved successfully',
-      data: rows[0]
+      data: processedData
     };
   } catch (error) {
     console.error('Error fetching water baptism:', error);
@@ -971,14 +1057,15 @@ async function getSpecificWaterBaptismDataByMemberIdIfBaptized(memberId) {
     if(rows.length === 0) {
       return null;
     }else{
-      return rows[0];
+      // Process the record to convert any buffer data to strings
+      return processBaptismRecord(rows[0]);
     }
   } catch (error) {
     console.error('Error getting specific water baptism data by member ID:', error);
     throw error;
   }
 }
- 
+  
 module.exports = {
   createWaterBaptism,
   getAllWaterBaptisms,
@@ -989,4 +1076,3 @@ module.exports = {
   exportWaterBaptismsToExcel,
   getSpecificWaterBaptismDataByMemberIdIfBaptized
 };
-

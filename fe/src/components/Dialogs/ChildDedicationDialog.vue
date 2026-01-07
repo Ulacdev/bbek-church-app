@@ -500,14 +500,14 @@
         />
       </el-form-item>
 
-      <!-- Status -->
-      <el-form-item label="Status" prop="status">
+      <!-- Status (Admin/Staff only) -->
+      <el-form-item v-if="!isMemberUser" label="Status" prop="status">
         <el-select
           v-model="formData.status"
           placeholder="Select status"
           size="large"
           style="width: 100%"
-          :disabled="loading || isMemberUser"
+          :disabled="loading"
         >
           <el-option
             v-for="opt in statusOptions"
@@ -542,7 +542,21 @@ import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
 import axios from '@/api/axios'
 
-const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
+const userInfo = ref(null)
+
+// Function to get user from localStorage safely
+const getUserFromStorage = () => {
+  try {
+    const userInfoStr = localStorage.getItem('userInfo')
+    if (userInfoStr && userInfoStr !== '{}') {
+      return JSON.parse(userInfoStr)
+    }
+    return null
+  } catch (e) {
+    console.error('Error parsing userInfo:', e)
+    return null
+  }
+}
 
 // Props
 const props = defineProps({
@@ -598,9 +612,12 @@ const memberOptions = ref([])
 // Pastor options - will be fetched from API
 const pastorOptions = ref([])
 
-// Check if user is a member
+// Check if user is a member (has member object and is not admin/staff)
 const isMemberUser = computed(() => {
-  return userInfo.value?.account?.position === 'member'
+  // Member user has a member object and is not admin or staff
+  return userInfo.value?.member?.member_id && 
+         userInfo.value?.account?.position !== 'admin' && 
+         userInfo.value?.account?.position !== 'staff'
 })
 
 // Requester display name for member users
@@ -758,10 +775,10 @@ const rules = {
     { required: true, message: 'Gender is required', trigger: 'change' }
   ],
   preferred_dedication_date: [
-    { required: true, message: 'Preferred dedication date is required', trigger: 'change' },
     {
       validator: (rule, value, callback) => {
-        if (!value) {
+        // Required for all users
+        if (!value || !value.trim()) {
           callback(new Error('Preferred dedication date is required'))
           return
         }
@@ -775,7 +792,7 @@ const rules = {
         }
         callback()
       },
-      trigger: 'change'
+      trigger: ['change', 'blur']
     }
   ],
   contact_phone_number: [
@@ -850,7 +867,17 @@ const rules = {
     }
   ],
   status: [
-    { required: true, message: 'Status is required', trigger: 'change' }
+    {
+      validator: (rule, value, callback) => {
+        // Only require status for admin/staff users
+        if (!isMemberUser.value && (!value || !value.trim())) {
+          callback(new Error('Status is required'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
   ]
 }
 
@@ -902,9 +929,10 @@ watch(() => props.modelValue, async (isOpen) => {
     resetForm()
     resetLoading()
   } else {
-    // Refresh userInfo from localStorage
-    const freshUserInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-    userInfo.value = freshUserInfo
+    // Refresh userInfo from localStorage using the helper function
+    userInfo.value = getUserFromStorage()
+    console.log('ChildDedicationDialog - User info:', userInfo.value)
+    console.log('ChildDedicationDialog - User position:', userInfo.value?.account?.position)
 
     // Fetch member options and pastor options when dialog opens
     await fetchMemberOptions()
@@ -973,6 +1001,9 @@ watch(() => props.modelValue, async (isOpen) => {
 
 // Fetch member and pastor options when component mounts
 onMounted(async () => {
+  // Initialize userInfo from localStorage
+  userInfo.value = getUserFromStorage()
+  
   await fetchMemberOptions()
   await fetchPastorOptions()
 })
@@ -1023,6 +1054,34 @@ const handleSubmit = async () => {
   if (!formRef.value) return
 
   try {
+    // Check for duplicate child dedication before validation
+    if (formData.requested_by && formData.child_firstname && formData.child_lastname && formData.date_of_birth) {
+      try {
+        const checkResponse = await axios.get('/church-records/child-dedications/check-duplicate', {
+          params: {
+            requested_by: formData.requested_by,
+            child_firstname: formData.child_firstname.trim(),
+            child_lastname: formData.child_lastname.trim(),
+            date_of_birth: formData.date_of_birth
+          }
+        })
+        
+        if (checkResponse.data.success && checkResponse.data.data && checkResponse.data.data.exists) {
+          const existingDedication = checkResponse.data.data.dedication
+          ElMessage.error(`A child dedication request for "${formData.child_firstname} ${formData.child_lastname}" (DOB: ${formData.date_of_birth}) already exists from this member. Please check existing records or update the existing request instead.`)
+          return
+        }
+      } catch (checkError) {
+        // If the error indicates duplicate exists, show the error message
+        if (checkError.response?.data?.message && checkError.response.data.message.includes('already exists')) {
+          ElMessage.error(checkError.response.data.message)
+          return
+        }
+        // For other errors, log but continue with form validation
+        console.error('Error checking for duplicates:', checkError)
+      }
+    }
+
     // Validate form
     await formRef.value.validate()
 

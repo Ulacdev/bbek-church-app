@@ -7,10 +7,96 @@ const {
   getChildDedicationsByRequester,
   updateChildDedication,
   deleteChildDedication,
-  exportChildDedicationsToExcel
+  exportChildDedicationsToExcel,
+  checkDuplicateChildDedication
 } = require('../../dbHelpers/services/childDedicationRecords');
 
 const router = express.Router();
+
+/**
+ * CHECK DUPLICATE - Check if child dedication already exists
+ * GET /api/church-records/child-dedications/check-duplicate
+ * Query params: requested_by, child_firstname, child_lastname, date_of_birth, exclude_child_id (optional)
+ */
+router.get('/check-duplicate', async (req, res) => {
+  try {
+    const { requested_by, child_firstname, child_lastname, date_of_birth, exclude_child_id } = req.query;
+    
+    if (!requested_by || !child_firstname || !child_lastname || !date_of_birth) {
+      return res.status(400).json({
+        success: false,
+        message: 'requested_by, child_firstname, child_lastname, and date_of_birth are required'
+      });
+    }
+    
+    const result = await checkDuplicateChildDedication(
+      requested_by,
+      child_firstname,
+      child_lastname,
+      date_of_birth,
+      exclude_child_id || null
+    );
+    
+    if (result.isDuplicate) {
+      return res.status(400).json({
+        success: false,
+        message: 'A child dedication request for this child already exists from this member',
+        data: { exists: true, dedication: result.dedication }
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'No duplicate found',
+      data: { exists: false }
+    });
+  } catch (error) {
+    console.error('Error checking duplicate child dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check duplicate'
+    });
+  }
+});
+
+/**
+ * CHECK MEMBER HAS DEDICATION - Check if member already has a child dedication request
+ * GET /api/church-records/child-dedications/check-member-dedication/:memberId
+ */
+router.get('/check-member-dedication/:memberId', async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Member ID is required'
+      });
+    }
+    
+    const result = await getChildDedicationsByRequester(memberId);
+    
+    if (result.success && result.data && result.data.length > 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'Member already has child dedication requests',
+        data: { hasDedication: true, dedications: result.data }
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Member has no existing child dedication requests',
+      data: { hasDedication: false }
+    });
+  } catch (error) {
+    console.error('Error checking member dedication:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to check member dedication'
+    });
+  }
+});
 
 /**
  * CREATE - Insert a new child dedication record

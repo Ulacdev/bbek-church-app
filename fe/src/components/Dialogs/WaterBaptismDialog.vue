@@ -273,6 +273,7 @@
 import { ref, reactive, watch, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useWaterBaptismStore } from '@/stores/ServicesRecords/waterBaptismStore'
+import axios from '@/api/axios'
 
 const waterBaptismStore = useWaterBaptismStore()
 
@@ -380,7 +381,30 @@ const rules = {
   ],
   email: [
     { required: true, message: 'Email is required', trigger: 'blur' },
-    { type: 'email', message: 'Please enter a valid email', trigger: 'blur' }
+    { type: 'email', message: 'Please enter a valid email', trigger: 'blur' },
+    {
+      validator: async (rule, value, callback) => {
+        if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          callback(new Error('Please enter a valid email'))
+          return
+        }
+        
+        // Check if email already exists in accounts
+        try {
+          const response = await axios.get(`/services/water-baptisms/check-email-exists?email=${encodeURIComponent(value)}`)
+          if (!response.data.success && response.data.data?.exists) {
+            callback(new Error('An account with this email already exists. Please use a different email.'))
+          } else {
+            callback()
+          }
+        } catch (error) {
+          // If the check fails, allow the submission (backend will do final validation)
+          console.error('Email check failed:', error)
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
   ],
   address: [
     { required: true, message: 'Address is required', trigger: 'blur' }
@@ -452,6 +476,32 @@ const updateStatusFromBaptismDate = () => {
     formData.status = 'completed'  // Past date = completed
   }
 }
+
+// Calculate age based on birthdate
+const calculateAge = () => {
+  if (!formData.birthdate) {
+    formData.age = ''
+    return
+  }
+
+  const birthDate = new Date(formData.birthdate)
+  const today = new Date()
+  
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  
+  // Adjust if birthday hasn't occurred yet this year
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  
+  formData.age = age >= 0 ? age : ''
+}
+
+// Watch for birthdate changes to auto-calculate age
+watch(() => formData.birthdate, () => {
+  calculateAge()
+})
 
 // Watch for baptismData changes to populate form in edit mode
 watch(() => props.baptismData, async (newData) => {

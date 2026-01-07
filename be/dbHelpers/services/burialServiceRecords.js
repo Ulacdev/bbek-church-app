@@ -89,26 +89,30 @@ async function createBurialService(burialData) {
     if (!location) {
       throw new Error('Missing required field: location');
     }
+    // service_date is now optional
+    // if (!service_date) {
+    //   throw new Error('Missing required field: service_date');
+    // }
    
 
-    // Check for possible duplicate: same member + same deceased name + same death date (if provided)
+    // Check for possible duplicate: same member + same deceased name + same birthdate (if provided)
     const duplicateCheckSql = `
       SELECT burial_id 
       FROM tbl_burialservice
       WHERE member_id = ?
         AND (${deceased_name ? 'deceased_name = ?' : '1=1'})
-        AND (${date_death ? 'date_death = ?' : '1=1'})
+        AND (${deceased_birthdate ? 'deceased_birthdate = ?' : '1=1'})
       LIMIT 1
     `;
     const duplicateParams = [String(member_id).trim()];
     if (deceased_name) duplicateParams.push(deceased_name.trim());
-    if (date_death) duplicateParams.push(moment(date_death).format('YYYY-MM-DD HH:mm:ss'));
+    if (deceased_birthdate) duplicateParams.push(moment(deceased_birthdate).format('YYYY-MM-DD'));
 
     const [duplicateRows] = await query(duplicateCheckSql, duplicateParams);
     if (duplicateRows && duplicateRows.length > 0) {
       return {
         success: false,
-        message: 'A burial service record already exists for this member with the same deceased information.'
+        message: 'A burial service record already exists for this member with the same deceased name and birthdate.'
       };
     }
 

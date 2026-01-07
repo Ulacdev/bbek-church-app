@@ -395,11 +395,11 @@ async function createChildDedication(dedicationData) {
       createdDedication = await getChildDedicationById(final_child_id);
       if (!createdDedication.success) {
         console.warn('Warning: Created dedication not found after creation');
-        // Continue with email sending even if fetch fails
+        createdDedication = { data: null };
       }
     } catch (fetchError) {
       console.error('Error fetching created dedication:', fetchError);
-      // Continue with email sending even if fetch fails
+      createdDedication = { data: null };
     }
 
     // Send email notifications to all relevant recipients (best-effort; do not fail creation)
@@ -412,9 +412,11 @@ async function createChildDedication(dedicationData) {
       );
 
       const childName = `${child_firstname} ${child_middle_name ? child_middle_name + ' ' : ''}${child_lastname}`.trim();
-      const dedicationDate = createdDedication.data.preferred_dedication_date
+      const dedicationDate = createdDedication.data?.preferred_dedication_date
         ? moment(createdDedication.data.preferred_dedication_date).format('YYYY-MM-DD')
         : 'To be determined';
+
+      const dedicationStatus = createdDedication.data?.status || 'pending';
 
       // Collect unique email addresses to send to (to avoid duplicates)
       const emailRecipients = new Set();
@@ -428,7 +430,7 @@ async function createChildDedication(dedicationData) {
         // Send email to requester
         await sendChildDedicationDetails({
           email: member.email,
-          status: createdDedication.data.status,
+          status: dedicationStatus,
           recipientName: recipientName,
           childName: childName,
           parentName: recipientName,
@@ -444,7 +446,7 @@ async function createChildDedication(dedicationData) {
           emailRecipients.add(contactEmailLower);
           await sendChildDedicationDetails({
             email: contact_email.trim(),
-            status: createdDedication.data.status,
+            status: dedicationStatus,
             recipientName: 'Valued Member',
             childName: childName,
             parentName: 'Valued Member',
@@ -464,7 +466,7 @@ async function createChildDedication(dedicationData) {
             : 'Valued Member';
           await sendChildDedicationDetails({
             email: father_email.trim(),
-            status: createdDedication.data.status,
+            status: dedicationStatus,
             recipientName: fatherName,
             childName: childName,
             parentName: fatherName,
@@ -484,7 +486,7 @@ async function createChildDedication(dedicationData) {
             : 'Valued Member';
           await sendChildDedicationDetails({
             email: mother_email.trim(),
-            status: createdDedication.data.status,
+            status: dedicationStatus,
             recipientName: motherName,
             childName: childName,
             parentName: motherName,
@@ -501,7 +503,36 @@ async function createChildDedication(dedicationData) {
     return {
       success: true,
       message: 'Child dedication request created successfully',
-      data: createdDedication.data
+      data: createdDedication.data || {
+        child_id: final_child_id,
+        child_firstname,
+        child_lastname,
+        child_middle_name,
+        date_of_birth: formattedDateOfBirth,
+        place_of_birth,
+        gender: normalizedGender,
+        preferred_dedication_date: formattedPreferredDate,
+        contact_phone_number,
+        contact_email,
+        contact_address,
+        father_firstname,
+        father_lastname,
+        father_middle_name,
+        father_phone_number,
+        father_email,
+        father_address,
+        mother_firstname,
+        mother_lastname,
+        mother_middle_name,
+        mother_phone_number,
+        mother_email,
+        mother_address,
+        sponsors: sponsorsJson,
+        pastor,
+        location,
+        status,
+        date_created: formattedDateCreated
+      }
     };
   } catch (error) {
     console.error('Error creating child dedication:', error);
@@ -519,7 +550,7 @@ async function getAllChildDedications(options = {}) {
     // Extract and normalize parameters from options
     const search = options.search || options.q || null;
     const limit = options.limit !== undefined ? parseInt(options.limit) : undefined;
-    const offset = options.offset !== undefined ? parseInt(offset) : undefined;
+    const offset = options.offset !== undefined ? parseInt(options.offset) : undefined;
     const page = options.page !== undefined ? parseInt(options.page) : undefined;
     const pageSize = options.pageSize !== undefined ? parseInt(options.pageSize) : undefined;
     const status = options.status || null;
@@ -1280,16 +1311,19 @@ async function updateChildDedication(childId, dedicationData) {
       updatedDedication = await getChildDedicationById(childId);
       if (!updatedDedication.success) {
         console.warn('Warning: Updated dedication not found after update');
-        // Continue with email sending even if fetch fails
+        updatedDedication = { data: null };
       }
     } catch (fetchError) {
       console.error('Error fetching updated dedication:', fetchError);
-      // Continue with email sending even if fetch fails
+      updatedDedication = { data: null };
     }
 
     // Send email notifications to all relevant recipients (best-effort; do not fail update)
     try {
-      const requesterId = requested_by !== undefined ? requested_by : updatedDedication.data.requested_by;
+      const requesterId = requested_by !== undefined ? requested_by : (updatedDedication.data?.requested_by || null);
+      if (!requesterId) {
+        throw new Error('Requester ID is required for email notifications');
+      }
       const [memberRows] = await query(
         `SELECT firstname, lastname, middle_name, email, phone_number
          FROM tbl_members
@@ -1297,21 +1331,23 @@ async function updateChildDedication(childId, dedicationData) {
         [requesterId]
       );
 
-      const childName = updatedDedication.data.child_fullname || `${updatedDedication.data.child_firstname} ${updatedDedication.data.child_middle_name ? updatedDedication.data.child_middle_name + ' ' : ''}${updatedDedication.data.child_lastname}`.trim();
-      const dedicationDate = updatedDedication.data.preferred_dedication_date
+      const childName = updatedDedication.data?.child_fullname || `${updatedDedication.data?.child_firstname || ''} ${updatedDedication.data?.child_middle_name ? updatedDedication.data.child_middle_name + ' ' : ''}${updatedDedication.data?.child_lastname || ''}`.trim();
+      const dedicationDate = updatedDedication.data?.preferred_dedication_date
         ? moment(updatedDedication.data.preferred_dedication_date).format('YYYY-MM-DD')
         : 'To be determined';
 
+      const dedicationStatus = updatedDedication.data?.status || 'pending';
+
       // Get the latest data (including father/mother emails from updated record)
-      const contactEmail = contact_email !== undefined ? contact_email : updatedDedication.data.contact_email;
-      const fatherEmail = father_email !== undefined ? father_email : updatedDedication.data.father_email;
-      const motherEmail = mother_email !== undefined ? mother_email : updatedDedication.data.mother_email;
-      const fatherFirstname = father_firstname !== undefined ? father_firstname : updatedDedication.data.father_firstname;
-      const fatherLastname = father_lastname !== undefined ? father_lastname : updatedDedication.data.father_lastname;
-      const fatherMiddlename = father_middle_name !== undefined ? father_middle_name : updatedDedication.data.father_middle_name;
-      const motherFirstname = mother_firstname !== undefined ? mother_firstname : updatedDedication.data.mother_firstname;
-      const motherLastname = mother_lastname !== undefined ? mother_lastname : updatedDedication.data.mother_lastname;
-      const motherMiddlename = mother_middle_name !== undefined ? mother_middle_name : updatedDedication.data.mother_middle_name;
+      const contactEmail = contact_email !== undefined ? contact_email : updatedDedication.data?.contact_email;
+      const fatherEmail = father_email !== undefined ? father_email : updatedDedication.data?.father_email;
+      const motherEmail = mother_email !== undefined ? mother_email : updatedDedication.data?.mother_email;
+      const fatherFirstname = father_firstname !== undefined ? father_firstname : updatedDedication.data?.father_firstname;
+      const fatherLastname = father_lastname !== undefined ? father_lastname : updatedDedication.data?.father_lastname;
+      const fatherMiddlename = father_middle_name !== undefined ? father_middle_name : updatedDedication.data?.father_middle_name;
+      const motherFirstname = mother_firstname !== undefined ? mother_firstname : updatedDedication.data?.mother_firstname;
+      const motherLastname = mother_lastname !== undefined ? mother_lastname : updatedDedication.data?.mother_lastname;
+      const motherMiddlename = mother_middle_name !== undefined ? mother_middle_name : updatedDedication.data?.mother_middle_name;
 
       // Collect unique email addresses to send to
       const emailRecipients = new Set();
@@ -1325,7 +1361,7 @@ async function updateChildDedication(childId, dedicationData) {
         // Send email to requester
         await sendChildDedicationDetails({
           email: member.email,
-          status: updatedDedication.data.status,
+          status: dedicationStatus,
           recipientName: recipientName,
           childName: childName,
           parentName: recipientName,
@@ -1341,7 +1377,7 @@ async function updateChildDedication(childId, dedicationData) {
           emailRecipients.add(contactEmail.trim().toLowerCase());
           await sendChildDedicationDetails({
             email: contactEmail.trim(),
-            status: updatedDedication.data.status,
+            status: dedicationStatus,
             recipientName: 'Valued Member',
             childName: childName,
             parentName: 'Valued Member',
@@ -1360,7 +1396,7 @@ async function updateChildDedication(childId, dedicationData) {
             : 'Valued Member';
           await sendChildDedicationDetails({
             email: fatherEmail.trim(),
-            status: updatedDedication.data.status,
+            status: dedicationStatus,
             recipientName: fatherName,
             childName: childName,
             parentName: fatherName,
@@ -1379,7 +1415,7 @@ async function updateChildDedication(childId, dedicationData) {
             : 'Valued Member';
           await sendChildDedicationDetails({
             email: motherEmail.trim(),
-            status: updatedDedication.data.status,
+            status: dedicationStatus,
             recipientName: motherName,
             childName: childName,
             parentName: motherName,
@@ -1396,7 +1432,7 @@ async function updateChildDedication(childId, dedicationData) {
     return {
       success: true,
       message: 'Child dedication updated successfully',
-      data: updatedDedication.data
+      data: updatedDedication.data || dedicationCheck.data
     };
   } catch (error) {
     console.error('Error updating child dedication:', error);

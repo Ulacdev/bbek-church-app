@@ -169,7 +169,7 @@
             <th class="text-left font-weight-bold">Date of Death</th>
             <th class="text-left font-weight-bold">Relationship</th>
             <th class="text-left font-weight-bold">Location</th>
-            <th class="text-left font-weight-bold">Pastor ID</th>
+            <th class="text-left font-weight-bold">Pastor Name</th>
             <th class="text-left font-weight-bold">Service Date</th>
             <th class="text-left font-weight-bold">Status</th>
             <th class="text-left font-weight-bold">Date Created</th>
@@ -516,7 +516,7 @@ const handlePrint = () => {
     : userInfo?.account?.email || 'Admin'
   
   ElMessage.success('Print preview opened. Please check your browser tabs.')
-  const tableHeaders = ['Member', 'Deceased Name', 'Birthdate', 'Date of Death', 'Relationship', 'Location', 'Pastor ID', 'Service Date', 'Status', 'Date Created']
+  const tableHeaders = ['Member', 'Deceased Name', 'Birthdate', 'Date of Death', 'Relationship', 'Location', 'Pastor Name', 'Service Date', 'Status', 'Date Created']
   
   let tableRows = ''
   sortedServices.value.forEach((service) => {
