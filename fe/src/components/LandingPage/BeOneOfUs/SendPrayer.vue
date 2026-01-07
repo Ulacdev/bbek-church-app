@@ -130,11 +130,11 @@
                 </v-btn>
               </v-form>
 
-              <!-- Success Message Popup -->
+              <!-- Success/Error Message Dialog -->
               <v-dialog v-model="successDialog.show" max-width="500" persistent>
                 <v-card class="text-center pa-6">
-                  <v-avatar color="success" size="80" class="mb-4">
-                    <v-icon size="48" color="white">mdi-check</v-icon>
+                  <v-avatar :color="successDialog.isError ? 'error' : 'success'" size="80" class="mb-4">
+                    <v-icon size="48" color="white">{{ successDialog.isError ? 'mdi-close-circle' : 'mdi-check' }}</v-icon>
                   </v-avatar>
                   <v-card-title class="text-h5 font-weight-bold">
                     {{ successDialog.title }}
@@ -143,7 +143,7 @@
                     {{ successDialog.message }}
                   </v-card-text>
                   <v-card-actions class="justify-center">
-                    <v-btn color="teal" variant="flat" @click="closeSuccessDialog">
+                    <v-btn :color="successDialog.isError ? 'error' : 'teal'" variant="flat" @click="closeSuccessDialog">
                       OK
                     </v-btn>
                   </v-card-actions>
@@ -167,19 +167,21 @@ const userInfo = ref(JSON.parse(localStorage.getItem('userInfo')) || null)
 const submitting = ref(false)
 const formRef = ref(null)
 
-// Success dialog state
+// Success/Error dialog state
 const successDialog = ref({
   show: false,
   title: '',
-  message: ''
+  message: '',
+  isError: false
 })
 
-// Show success dialog
-const showSuccessDialog = (title, message) => {
+// Show success/error dialog
+const showSuccessDialog = (title, message, isError = false) => {
   successDialog.value = {
     show: true,
     title,
-    message
+    message,
+    isError
   }
 }
 
@@ -225,18 +227,18 @@ const handleSubmit = async () => {
 
   // Basic validation
   if (!formData.value.request || formData.value.request.trim() === '') {
-    showSuccessDialog('Validation Error', 'Please enter your prayer request')
+    showSuccessDialog('Validation Error', 'Please enter your prayer request', true)
     return
   }
 
   // For non-anonymous requests, validate name and email
   if (!formData.value.anonymous) {
     if (!formData.value.name || formData.value.name.trim() === '') {
-      showSuccessDialog('Validation Error', 'Please enter your name')
+      showSuccessDialog('Validation Error', 'Please enter your name', true)
       return
     }
     if (!formData.value.email || formData.value.email.trim() === '') {
-      showSuccessDialog('Validation Error', 'Please enter your email')
+      showSuccessDialog('Validation Error', 'Please enter your email', true)
       return
     }
   }
@@ -273,7 +275,7 @@ const handleSubmit = async () => {
     }
 
     const result = await formsStore.createForm(payload)
-    showSuccessDialog('Success!', result?.message || 'Prayer request submitted successfully! We will pray for you.')
+    showSuccessDialog('Success!', result?.message || 'Prayer request submitted successfully! We will pray for you.', false)
 
     // Reset form (but keep user info if not anonymous)
     if (formData.value.anonymous) {
@@ -307,7 +309,7 @@ const handleSubmit = async () => {
   } catch (error) {
     // Error message is already shown by the store/axios interceptor
     console.error('Error submitting prayer request:', error)
-    showSuccessDialog('Error', 'Failed to submit prayer request. Please try again.')
+    showSuccessDialog('Error', 'Failed to submit prayer request. Please try again.', true)
   } finally {
     submitting.value = false
   }
