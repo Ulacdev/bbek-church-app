@@ -135,7 +135,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['update:modelValue', false])
+const emit = defineEmits(['update:modelValue'])
 
 // Refs
 const formRef = ref(null)

@@ -26,7 +26,8 @@ export const ALL_CMS_PAGES = [
   'belief',
   'churchleader',
   'departmentofficer',
-  'ourstory'
+  'ourstory',
+  'departmentcategories'
 ]
 
 /**

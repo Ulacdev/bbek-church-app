@@ -412,8 +412,30 @@ onMounted(async () => {
   const isMember = sessionStorage.getItem('isMember') === 'true'
   isMemberLandPage.value = isMember
   
+  // Check for category query parameter
+  if (route.query.category) {
+    const category = route.query.category
+    // Validate it's a valid category
+    if (categories.some(c => c.value === category)) {
+      selectedCategory.value = category
+    }
+  }
+  
   fetchDepartmentList()
   getAllMinistryList()
+})
+
+// Watch for route query changes to handle category selection
+watch(() => route.query.category, (newCategory) => {
+  if (newCategory && categories.some(c => c.value === newCategory)) {
+    selectedCategory.value = newCategory
+    pageNumber.value = 1
+    refresh.value = true
+  } else if (!newCategory) {
+    selectedCategory.value = 'all'
+    pageNumber.value = 1
+    refresh.value = true
+  }
 })
 </script>
 

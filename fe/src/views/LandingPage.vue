@@ -23,6 +23,7 @@
       <BeliefsSection />
       <ServicesSection />
       <VisionSection />
+      <DepartmentCategories />
       <EventsSection />
       <PastEventsSection />
     </v-main>
@@ -36,6 +37,7 @@ import HeroSection from '../components/LandingPage/HeroSection.vue'
 import BeliefsSection from '../components/LandingPage/BeliefsSection.vue'
 import ServicesSection from '../components/LandingPage/ServicesSection.vue'
 import VisionSection from '../components/LandingPage/VisionSection.vue'
+import DepartmentCategories from '../components/LandingPage/DepartmentCategories.vue'
 import EventsSection from '../components/LandingPage/EventsSection.vue'
 import PastEventsSection from '../components/LandingPage/PastEventsSection.vue'
 import Footer from '../components/LandingPage/Footer.vue'
