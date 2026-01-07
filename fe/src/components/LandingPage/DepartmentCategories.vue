@@ -34,7 +34,7 @@
           >
             <div
               class="department-background"
-              :style="{ backgroundImage: adultBgImage || 'url(/img/n.jpg)' }"
+              :style="{ backgroundImage: adultBgImage || 'url(/img/events.jpg)' }"
             ></div>
             <div class="department-overlay"></div>
             <div class="department-content">
@@ -60,7 +60,7 @@
           >
             <div
               class="department-background"
-              :style="{ backgroundImage: ladiesBgImage || 'url(/img/n.jpg)' }"
+              :style="{ backgroundImage: ladiesBgImage || 'url(/img/beliefs.jpg)' }"
             ></div>
             <div class="department-overlay"></div>
             <div class="department-content">
@@ -86,7 +86,7 @@
           >
             <div
               class="department-background"
-              :style="{ backgroundImage: youthBgImage || 'url(/img/n.jpg)' }"
+              :style="{ backgroundImage: youthBgImage || 'url(/img/CHILDREN%20MINISTRY/480913749_2154533405062033_2452182531715777334_n.jpg)' }"
             ></div>
             <div class="department-overlay"></div>
             <div class="department-content">

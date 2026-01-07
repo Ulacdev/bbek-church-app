@@ -44,6 +44,7 @@
    <Sermons v-if="activeSection === 'sermons'" :activeSection="activeSection" />
    <PlanVisit v-if="activeSection === 'planVisit'" :activeSection="activeSection" />
    <Ministries v-if="activeSection === 'ministries'" :activeSection="activeSection" />
+   <DepartmentCategories v-if="activeSection === 'departmentcategories'" :activeSection="activeSection" />
    <LearnMoreEvents v-if="activeSection === 'learnMoreEvents'" :activeSection="activeSection" />
    <LearnMoreMinistry v-if="activeSection === 'learnMoreMinistry'" :activeSection="activeSection" />
    <AcceptJesus v-if="activeSection === 'acceptJesus'" :activeSection="activeSection" />
@@ -78,6 +79,7 @@ import LearnMoreEvents from './ListItems/LearnMoreEvents.vue'
 import LearnMoreMinistry from './ListItems/LearnMoreMinistry.vue'
 import AcceptJesus from './ListItems/AcceptJesus.vue'
 import Ministries from './ListItems/Ministries.vue'
+import DepartmentCategories from './ListItems/DepartmentCategories.vue'
 const activeSection = ref('header')
 
 // Content sections array with action field
@@ -234,6 +236,13 @@ const contentSections = ref([
     label: 'Plan Your Visit',
     action: () => {
       activeSection.value = 'planVisit'
+    }
+  },
+  {
+    id: 'departmentcategories',
+    label: 'Our Departments',
+    action: () => {
+      activeSection.value = 'departmentcategories'
     }
   },
   {
