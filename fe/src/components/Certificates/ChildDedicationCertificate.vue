@@ -1031,22 +1031,86 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .certificate-container {
+    padding: 10px !important;
+    min-height: auto !important;
+  }
+
+  .certificate-wrapper {
+    max-width: 100% !important;
+  }
+
   .church-header {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
   }
+
   .church-info { text-align: center; }
+
+  .main-title { font-size: 20px !important; letter-spacing: 2px !important; }
+  .subtitle { font-size: 14px !important; letter-spacing: 2px !important; }
+
+  .title-content { padding: 0 10px !important; }
+  .title-decoration { width: 30px !important; }
+
   .child-row, .parent-row, .contact-row, .admin-row {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
+
+  .child-row .field-group { flex: none; }
+  .child-row { gap: 8px; margin-bottom: 10px; }
+
   .parents-container {
     flex-direction: column;
     gap: 15px;
   }
+
   .parents-container .parent-section {
     width: 100%;
   }
-  .sponsors-grid { flex-direction: column; gap: 15px; }
+
+  .parent-section {
+    margin-bottom: 0;
+  }
+
+  .parent-row .field-group { flex: none; }
+  .parent-row { gap: 8px; margin-bottom: 8px; }
+
+  .sponsors-grid { 
+    flex-direction: column; 
+    gap: 10px; 
+  }
+
+  .contact-section { margin-bottom: 15px; }
+  .contact-row .field-group { flex: none; }
+
+  .minister-section {
+    margin-top: 15px;
+    padding-top: 10px;
+  }
+
+  .minister-name { font-size: 14px !important; }
+  .signature-line { width: 150px !important; }
+
+  .footer-section {
+    margin-top: 15px;
+    padding-top: 10px;
+  }
+
+  .inner-border {
+    padding: 15px 12px !important;
+  }
+
+  .watermark-logo {
+    width: 90% !important;
+    height: 90% !important;
+  }
+
+  .corner-design {
+    display: none !important;
+  }
 }
 </style>
