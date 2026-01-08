@@ -16,6 +16,7 @@ const { sendChildDedicationDetails } = require('../emailHelperSendGrid');
  * - place_of_birth (VARCHAR(255), NN)
  * - gender (VARCHAR(1), NN) - 'M' or 'F'
  * - preferred_dedication_date (DATE, NN)
+ * - date_completed (DATE, NULL) - Actual date when dedication was completed
  * - contact_phone_number (VARCHAR(45), NN)
  * - contact_email (VARCHAR(255), NULL)
  * - contact_address (VARCHAR(500), NN)
@@ -191,6 +192,7 @@ async function createChildDedication(dedicationData) {
       place_of_birth,
       gender,
       preferred_dedication_date,
+      date_completed = null,
       contact_phone_number,
       contact_email = null,
       contact_address,
@@ -317,6 +319,7 @@ async function createChildDedication(dedicationData) {
     // Format dates
     const formattedDateOfBirth = moment(date_of_birth).format('YYYY-MM-DD');
     const formattedPreferredDate = moment(preferred_dedication_date).format('YYYY-MM-DD');
+    const formattedDateCompleted = date_completed ? moment(date_completed).format('YYYY-MM-DD') : null;
     const formattedDateCreated = moment(date_created).format('YYYY-MM-DD HH:mm:ss');
 
     // Check for preferred dedication date conflicts
@@ -341,12 +344,12 @@ async function createChildDedication(dedicationData) {
     const sql = `
       INSERT INTO tbl_childdedications
         (child_id, requested_by, child_firstname, child_lastname, child_middle_name,
-         date_of_birth, place_of_birth, gender, preferred_dedication_date,
+         date_of_birth, place_of_birth, gender, preferred_dedication_date, date_completed,
          contact_phone_number, contact_email, contact_address,
          father_firstname, father_lastname, father_middle_name, father_phone_number, father_email, father_address,
          mother_firstname, mother_lastname, mother_middle_name, mother_phone_number, mother_email, mother_address,
          sponsors, pastor, location, status, date_created)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -359,6 +362,7 @@ async function createChildDedication(dedicationData) {
       place_of_birth.trim(),
       normalizedGender,
       formattedPreferredDate,
+      formattedDateCompleted,
       contact_phone_number.trim(),
       contact_email ? contact_email.trim() : null,
       contact_address.trim(),
@@ -512,6 +516,7 @@ async function createChildDedication(dedicationData) {
         place_of_birth,
         gender: normalizedGender,
         preferred_dedication_date: formattedPreferredDate,
+        date_completed: formattedDateCompleted,
         contact_phone_number,
         contact_email,
         contact_address,
@@ -960,6 +965,7 @@ async function updateChildDedication(childId, dedicationData) {
       place_of_birth,
       gender,
       preferred_dedication_date,
+      date_completed,
       contact_phone_number,
       contact_email,
       contact_address,
@@ -1108,7 +1114,15 @@ async function updateChildDedication(childId, dedicationData) {
       const formattedPreferredDate = moment(preferred_dedication_date).format('YYYY-MM-DD');
       fields.push('preferred_dedication_date = ?');
       params.push(formattedPreferredDate);
-    } else if (requested_by !== undefined) {
+    }
+
+    if (date_completed !== undefined) {
+      const formattedDateCompleted = date_completed ? moment(date_completed).format('YYYY-MM-DD') : null;
+      fields.push('date_completed = ?');
+      params.push(formattedDateCompleted);
+    }
+
+    if (contact_phone_number !== undefined) {
       // If only requester is being updated, still check for conflicts with current preferred date
       const currentData = dedicationCheck.data;
       if (currentData.preferred_dedication_date) {

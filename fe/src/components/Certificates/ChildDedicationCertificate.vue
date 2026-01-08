@@ -115,79 +115,82 @@
                 <span class="field-value">{{ formattedGender }}</span>
               </div>
               <div class="field-group">
-                <span class="field-label">Preferred Dedication Date:</span>
+                <span class="field-label">Date of Dedication:</span>
                 <span class="field-value">{{ formattedDedicationDate }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Father's Information -->
-          <div class="parent-section" v-if="fatherFirstName || fatherLastName">
-            <div class="section-title">Father's Information</div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">First Name:</span>
-                <span class="field-value">{{ fatherFirstName || '_________________' }}</span>
+          <!-- Parents Section - Father Left, Mother Right -->
+          <div class="parents-container">
+            <!-- Father's Information -->
+            <div class="parent-section" v-if="fatherFirstName || fatherLastName">
+              <div class="section-title">Father's Information</div>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">First Name:</span>
+                  <span class="field-value">{{ fatherFirstName || '_________________' }}</span>
+                </div>
+                <div class="field-group">
+                  <span class="field-label">Last Name:</span>
+                  <span class="field-value">{{ fatherLastName || '_________________' }}</span>
+                </div>
               </div>
-              <div class="field-group">
-                <span class="field-label">Last Name:</span>
-                <span class="field-value">{{ fatherLastName || '_________________' }}</span>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">Middle Name:</span>
+                  <span class="field-value">{{ fatherMiddleName || '_________________' }}</span>
+                </div>
+                <div class="field-group">
+                  <span class="field-label">Phone:</span>
+                  <span class="field-value">{{ fatherPhoneNumber || '_________________' }}</span>
+                </div>
+              </div>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">Email:</span>
+                  <span class="field-value">{{ fatherEmail || '_________________' }}</span>
+                </div>
+              </div>
+              <div class="parent-row full">
+                <span class="field-label">Address:</span>
+                <span class="field-value">{{ fatherAddress || '_________________' }}</span>
               </div>
             </div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">Middle Name:</span>
-                <span class="field-value">{{ fatherMiddleName || '_________________' }}</span>
-              </div>
-              <div class="field-group">
-                <span class="field-label">Phone:</span>
-                <span class="field-value">{{ fatherPhoneNumber || '_________________' }}</span>
-              </div>
-            </div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">Email:</span>
-                <span class="field-value">{{ fatherEmail || '_________________' }}</span>
-              </div>
-            </div>
-            <div class="parent-row full">
-              <span class="field-label">Address:</span>
-              <span class="field-value">{{ fatherAddress || '_________________' }}</span>
-            </div>
-          </div>
 
-          <!-- Mother's Information -->
-          <div class="parent-section" v-if="motherFirstName || motherLastName">
-            <div class="section-title">Mother's Information</div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">First Name:</span>
-                <span class="field-value">{{ motherFirstName || '_________________' }}</span>
+            <!-- Mother's Information -->
+            <div class="parent-section" v-if="motherFirstName || motherLastName">
+              <div class="section-title">Mother's Information</div>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">First Name:</span>
+                  <span class="field-value">{{ motherFirstName || '_________________' }}</span>
+                </div>
+                <div class="field-group">
+                  <span class="field-label">Last Name:</span>
+                  <span class="field-value">{{ motherLastName || '_________________' }}</span>
+                </div>
               </div>
-              <div class="field-group">
-                <span class="field-label">Last Name:</span>
-                <span class="field-value">{{ motherLastName || '_________________' }}</span>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">Middle Name:</span>
+                  <span class="field-value">{{ motherMiddleName || '_________________' }}</span>
+                </div>
+                <div class="field-group">
+                  <span class="field-label">Phone:</span>
+                  <span class="field-value">{{ motherPhoneNumber || '_________________' }}</span>
+                </div>
               </div>
-            </div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">Middle Name:</span>
-                <span class="field-value">{{ motherMiddleName || '_________________' }}</span>
+              <div class="parent-row">
+                <div class="field-group">
+                  <span class="field-label">Email:</span>
+                  <span class="field-value">{{ motherEmail || '_________________' }}</span>
+                </div>
               </div>
-              <div class="field-group">
-                <span class="field-label">Phone:</span>
-                <span class="field-value">{{ motherPhoneNumber || '_________________' }}</span>
+              <div class="parent-row full">
+                <span class="field-label">Address:</span>
+                <span class="field-value">{{ motherAddress || '_________________' }}</span>
               </div>
-            </div>
-            <div class="parent-row">
-              <div class="field-group">
-                <span class="field-label">Email:</span>
-                <span class="field-value">{{ motherEmail || '_________________' }}</span>
-              </div>
-            </div>
-            <div class="parent-row full">
-              <span class="field-label">Address:</span>
-              <span class="field-value">{{ motherAddress || '_________________' }}</span>
             </div>
           </div>
 
@@ -208,45 +211,12 @@
             </div>
           </div>
 
-          <!-- Contact Details -->
-          <div class="contact-section">
-            <div class="section-title">Contact Details</div>
-            <div class="contact-row">
-              <div class="field-group">
-                <span class="field-label">Phone:</span>
-                <span class="field-value">{{ contactPhoneNumber || '_________________' }}</span>
-              </div>
-              <div class="field-group">
-                <span class="field-label">Email:</span>
-                <span class="field-value">{{ contactEmail || '_________________' }}</span>
-              </div>
-            </div>
-            <div class="contact-row full">
-              <span class="field-label">Address:</span>
-              <span class="field-value">{{ contactAddress || '_________________' }}</span>
-            </div>
-          </div>
-
-          <!-- Pastor and Location -->
-          <div class="admin-section">
-            <div class="admin-row">
-              <div class="field-group">
-                <span class="field-label">Pastor:</span>
-                <span class="field-value">{{ pastor || pastorName || '_________________' }}</span>
-              </div>
-              <div class="field-group">
-                <span class="field-label">Location:</span>
-                <span class="field-value">{{ location || dedicationLocation || '_________________' }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- Minister Signature -->
           <div class="minister-section">
             <div class="minister-info">
               <p class="minister-name">{{ pastor || pastorName || 'Rev. Fresco Q. Sulapas' }}</p>
               <div class="signature-line"></div>
-              <p class="signature-label">Church Pastor / Minister</p>
+              <p class="signature-label">With: Church Minister</p>
             </div>
           </div>
 
@@ -281,6 +251,7 @@ const props = defineProps({
   placeOfBirth: { type: String, default: '' },
   gender: { type: String, default: '' },
   preferredDedicationDate: { type: [String, Date], default: '' },
+  dateCompleted: { type: [String, Date], default: '' },
   contactPhoneNumber: { type: String, default: '' },
   contactEmail: { type: String, default: '' },
   contactAddress: { type: String, default: '' },
@@ -340,11 +311,13 @@ const formattedBirthDate = computed(() => {
   }
 })
 
-// Format dedication date for display
+// Format dedication/completion date for display
 const formattedDedicationDate = computed(() => {
-  if (!props.preferredDedicationDate) return '_________________'
+  // Use completed date if available, otherwise fall back to preferred date
+  const dateToUse = props.dateCompleted || props.preferredDedicationDate
+  if (!dateToUse) return '_________________'
   try {
-    const date = new Date(props.preferredDedicationDate)
+    const date = new Date(dateToUse)
     if (isNaN(date.getTime())) return '_________________'
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
   } catch {
@@ -432,7 +405,7 @@ onMounted(async () => {
 
 .certificate-wrapper {
   width: 100%;
-  max-width: 450px;
+  max-width: 750px;
 }
 
 .outer-border {
@@ -469,12 +442,16 @@ onMounted(async () => {
   opacity: 0.08;
   z-index: 0;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .watermark-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  display: block;
 }
 
 .corner-design {
@@ -718,11 +695,25 @@ onMounted(async () => {
 
 .child-row {
   display: flex;
-  gap: 20px;
+  gap: 40px;
   margin-bottom: 8px;
 }
 
 .child-row .field-group { flex: 1; }
+
+.parents-container {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 3;
+}
+
+.parents-container .parent-section {
+  flex: 1;
+  width: 50%;
+  margin-bottom: 0;
+}
 
 .parent-section {
   margin-bottom: 15px;
@@ -794,20 +785,6 @@ onMounted(async () => {
 .contact-row.full .field-label { min-width: auto; }
 .contact-row.full .field-value { width: 100%; }
 
-.admin-section {
-  margin-bottom: 15px;
-  position: relative;
-  z-index: 3;
-}
-
-.admin-row {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 6px;
-}
-
-.admin-row .field-group { flex: 1; }
-
 .minister-section {
   text-align: center;
   margin-top: 20px;
@@ -863,60 +840,82 @@ onMounted(async () => {
   font-family: 'Times New Roman', serif;
 }
 
-/* Print Styles - Compact for One Page */
+/* Print Styles - Fit on One Page */
 @media print {
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  @page {
+    size: landscape;
+    margin: 0;
   }
 
-  body {
-    margin: 0;
-    padding: 0;
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
   }
 
   .certificate-container {
-    width: 8.5in;
-    min-height: 11in;
-    padding: 0.15in;
+    width: 11in !important;
+    height: 8.5in !important;
+    min-height: 8.5in !important;
+    padding: 0.1in !important;
     background: #e8e0d0 !important;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    margin: 0 !important;
+    overflow: hidden !important;
   }
 
   .certificate-wrapper {
-    box-shadow: none;
-    margin: 0;
-    width: 100%;
-    flex: 1;
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 10.8in !important;
+    max-width: 10.8in !important;
+    height: 8.3in !important;
   }
 
   .outer-border {
     border: 3px solid #8b7355 !important;
     padding: 3px !important;
     background: #d4c4a8 !important;
-    height: calc(100% - 6px);
-    box-sizing: border-box;
+    width: calc(100% - 6px) !important;
+    height: calc(100% - 6px) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   .inner-border {
-    padding: 0.12in 0.2in !important;
+    padding: 0.12in 0.4in !important;
     background-color: #f3e6c4 !important;
     background-image: none !important;
     box-shadow: none !important;
     border: 2px solid #8b7355 !important;
-    height: calc(100% - 0.24in - 6px);
-    box-sizing: border-box;
+    width: calc(100% - 0.8in - 4px) !important;
+    height: calc(100% - 0.24in - 4px) !important;
+    min-height: auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
 
   .watermark-logo {
     opacity: 0.08 !important;
-    width: 70% !important;
-    height: 70% !important;
+    width: 80% !important;
+    height: 80% !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
   }
 
   .corner-design { opacity: 0.9 !important; }
@@ -948,10 +947,10 @@ onMounted(async () => {
   }
 
   .church-header {
-    margin-bottom: 0.1in !important;
+    margin-bottom: 0.08in !important;
     border-bottom-width: 2px !important;
-    padding-bottom: 0.06in !important;
-    gap: 0.04in !important;
+    padding-bottom: 0.04in !important;
+    gap: 0.03in !important;
   }
 
   .logo-emblem {
@@ -971,62 +970,63 @@ onMounted(async () => {
   .title-content { padding: 0 0.15in !important; }
 
   .dedication-statement {
-    font-size: 13px !important;
-    margin: 0.06in 0 0.1in 0 !important;
+    font-size: 12px !important;
+    margin: 0.04in 0 0.06in 0 !important;
   }
 
   .requested-section {
-    margin-bottom: 0.1in !important;
-    padding-bottom: 0.06in !important;
+    margin-bottom: 0.06in !important;
+    padding-bottom: 0.04in !important;
   }
 
   .requested-section .label { font-size: 11px !important; }
   .requested-section .value { font-size: 13px !important; }
 
-  .section-title { font-size: 11px !important; margin-bottom: 0.05in !important; padding-bottom: 3px !important; border-bottom-width: 1px !important; }
+  .section-title { font-size: 10px !important; margin-bottom: 0.03in !important; padding-bottom: 2px !important; border-bottom-width: 1px !important; }
 
-  .field-label { font-size: 10px !important; }
-  .field-value { font-size: 10px !important; min-width: 60px !important; border-bottom-width: 1px !important; padding-bottom: 1px !important; }
+  .field-label { font-size: 9px !important; }
+  .field-value { font-size: 9px !important; min-width: 50px !important; border-bottom-width: 1px !important; padding-bottom: 1px !important; }
 
-  .child-section { margin-bottom: 0.1in !important; }
-  .child-row { margin-bottom: 0.05in !important; gap: 0.15in !important; }
+  .child-section { margin-bottom: 0.06in !important; }
+  .child-row { margin-bottom: 0.03in !important; gap: 0.3in !important; }
 
-  .parent-section { margin-bottom: 0.1in !important; }
-  .parent-row { margin-bottom: 0.04in !important; gap: 0.15in !important; }
+  .parents-container { 
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    margin-bottom: 0.06in !important; 
+    gap: 0.3in !important; 
+  }
+  .parents-container .parent-section { 
+    margin-bottom: 0 !important; 
+    flex: 1 !important;
+    width: 50% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  .parent-row { margin-bottom: 0.02in !important; gap: 0.2in !important; }
 
-  .sponsors-section { margin-bottom: 0.1in !important; }
-  .sponsors-grid { gap: 0.8in !important; }
-  .sponsor-name { font-size: 11px !important; }
-
-  .contact-section { margin-bottom: 0.08in !important; }
-  .contact-row { margin-bottom: 0.04in !important; gap: 0.15in !important; }
-
-  .admin-section { margin-bottom: 0.08in !important; }
-  .admin-row { margin-bottom: 0.04in !important; gap: 0.15in !important; }
+  .sponsors-section { margin-bottom: 0.06in !important; }
+  .sponsors-grid { gap: 1in !important; }
+  .sponsor-name { font-size: 10px !important; }
 
   .minister-section {
-    margin-top: 0.15in !important;
-    padding-top: 0.1in !important;
+    margin-top: 0.1in !important;
+    padding-top: 0.06in !important;
     border-top-width: 1px !important;
   }
 
-  .minister-name { font-size: 14px !important; margin-bottom: 6px !important; }
-  .signature-line { width: 150px !important; margin-bottom: 4px !important; }
-  .signature-label { font-size: 10px !important; }
+  .minister-name { font-size: 12px !important; margin-bottom: 4px !important; }
+  .signature-line { width: 120px !important; margin-bottom: 3px !important; }
+  .signature-label { font-size: 9px !important; }
 
   .footer-section {
-    margin-top: 0.15in !important;
-    padding-top: 0.08in !important;
+    margin-top: 0.1in !important;
+    padding-top: 0.05in !important;
   }
 
   .cert-number, .issue-date { font-size: 9px !important; }
 
   .no-print, .certificate-actions { display: none !important; }
-
-  @page {
-    size: letter portrait;
-    margin: 0;
-  }
 }
 
 /* Responsive */
@@ -1039,6 +1039,13 @@ onMounted(async () => {
   .child-row, .parent-row, .contact-row, .admin-row {
     flex-direction: column;
     gap: 10px;
+  }
+  .parents-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  .parents-container .parent-section {
+    width: 100%;
   }
   .sponsors-grid { flex-direction: column; gap: 15px; }
 }
