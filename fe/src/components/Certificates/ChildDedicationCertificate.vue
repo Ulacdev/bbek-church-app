@@ -75,30 +75,13 @@
 
           <p class="dedication-statement">This day we dedicate to the Lord Jesus Christ</p>
 
-          <!-- Requested By -->
-          <div class="requested-section">
-            <span class="label">Requested By:</span>
-            <span class="value">{{ requesterFullname || requesterName || '_________________' }}</span>
+          <!-- Child Name -->
+          <div class="child-name-section">
+            <span class="child-fullname">{{ childFullname || childFirstName + ' ' + (childMiddleName ? childMiddleName + ' ' : '') + (childLastName || '') || '_________________' }}</span>
           </div>
 
           <!-- Child Information -->
           <div class="child-section">
-            <div class="child-row">
-              <div class="field-group">
-                <span class="field-label">Child's First Name:</span>
-                <span class="field-value">{{ childFirstName || '_________________' }}</span>
-              </div>
-              <div class="field-group">
-                <span class="field-label">Child's Last Name:</span>
-                <span class="field-value">{{ childLastName || '_________________' }}</span>
-              </div>
-            </div>
-            <div class="child-row">
-              <div class="field-group">
-                <span class="field-label">Child's Middle Name:</span>
-                <span class="field-value">{{ childMiddleName || '_________________' }}</span>
-              </div>
-            </div>
             <div class="child-row">
               <div class="field-group">
                 <span class="field-label">Date of Birth:</span>
@@ -439,12 +422,9 @@ onMounted(async () => {
   transform: translate(-50%, -50%);
   width: 85%;
   height: 85%;
-  opacity: 0.08;
+  opacity: 0.15;
   z-index: 0;
   pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .watermark-image {
@@ -622,6 +602,25 @@ onMounted(async () => {
   position: relative;
   z-index: 3;
   font-style: italic;
+}
+
+/* Child Name Section - Highlighted */
+.child-name-section {
+  text-align: center;
+  margin-bottom: 15px;
+  position: relative;
+  z-index: 3;
+}
+
+.child-fullname {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c1810;
+  font-family: 'Times New Roman', serif;
+  display: inline-block;
+  padding: 6px 30px;
+  border-bottom: 2px solid #8b7355;
+  background: linear-gradient(to bottom, rgba(139, 115, 85, 0.05), transparent);
 }
 
 .requested-section {
@@ -910,12 +909,9 @@ onMounted(async () => {
   }
 
   .watermark-logo {
-    opacity: 0.08 !important;
-    width: 80% !important;
-    height: 80% !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+    opacity: 0.15 !important;
+    width: 70% !important;
+    height: 70% !important;
   }
 
   .corner-design { opacity: 0.9 !important; }
@@ -974,13 +970,15 @@ onMounted(async () => {
     margin: 0.04in 0 0.06in 0 !important;
   }
 
-  .requested-section {
-    margin-bottom: 0.06in !important;
-    padding-bottom: 0.04in !important;
+  .child-name-section {
+    margin-bottom: 0.08in !important;
   }
 
-  .requested-section .label { font-size: 11px !important; }
-  .requested-section .value { font-size: 13px !important; }
+  .child-fullname {
+    font-size: 28px !important;
+    padding: 0.05in 0.4in !important;
+    border-bottom-width: 3px !important;
+  }
 
   .section-title { font-size: 10px !important; margin-bottom: 0.03in !important; padding-bottom: 2px !important; border-bottom-width: 1px !important; }
 

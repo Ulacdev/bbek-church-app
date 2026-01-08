@@ -46,9 +46,173 @@ const router = express.Router();
  */
 router.post('/createWaterBaptism', async (req, res) => {
   try {
+    // Check if creating a completed baptism for non-member
+    const isNonMemberCompleted = 
+      (req.body.is_member === false || req.body.is_member === 0 || req.body.is_member === 'false' || req.body.is_member === '0' || req.body.member_id === null) &&
+      req.body.status && 
+      req.body.status.toLowerCase() === 'completed';
+    
+    console.log(`=== CREATING WATER BAPTISM ===`);
+    console.log(`Is non-member completed: ${isNonMemberCompleted}`);
+    console.log(`Request body:`, JSON.stringify({
+      firstname: req.body.firstname,
+      lastname: req.body.lastname,
+      email: req.body.email,
+      is_member: req.body.is_member,
+      member_id: req.body.member_id,
+      status: req.body.status
+    }, null, 2));
+    
     const result = await createWaterBaptism(req.body);
     
     if (result.success) {
+      // If this is a non-member with completed status, create member and account
+      if (isNonMemberCompleted) {
+        const baptism = result.data;
+        console.log(`✅ Creating member and account for completed non-member baptism: ${baptism.baptism_id}`);
+        
+        try {
+          // Format birthdate to YYYY-MM-DD
+          let formattedBirthdate = null;
+          if (baptism.birthdate) {
+            try {
+              formattedBirthdate = moment(baptism.birthdate).format('YYYY-MM-DD');
+            } catch (e) {
+              console.error('Error formatting birthdate:', e);
+              formattedBirthdate = null;
+            }
+          }
+          
+          // Truncate address if too long (VARCHAR(45))
+          let formattedAddress = baptism.address || '';
+          if (formattedAddress.length > 44) {
+            formattedAddress = formattedAddress.substring(0, 44);
+          }
+          
+          // Create member from baptism data
+          const memberData = {
+            firstname: baptism.firstname || '',
+            lastname: baptism.lastname || '',
+            middle_name: baptism.middle_name || null,
+            birthdate: formattedBirthdate,
+            age: baptism.age || '',
+            gender: baptism.gender || '',
+            address: formattedAddress,
+            email: baptism.email || '',
+            phone_number: baptism.phone_number || '',
+            civil_status: baptism.civil_status || null,
+            guardian_name: baptism.guardian_name || null,
+            guardian_contact: baptism.guardian_contact || null,
+            guardian_relationship: baptism.guardian_relationship || null,
+            position: 'Member'
+          };
+          
+          console.log('Creating member record...');
+          const memberResult = await createMember(memberData);
+          
+          let existingMemberId = null;
+          
+          if (memberResult.success && memberResult.data) {
+            existingMemberId = memberResult.data.member_id;
+            console.log(`✅ Member created successfully with ID: ${existingMemberId}`);
+          } else if (memberResult.message && memberResult.message.includes('Duplicate member detected')) {
+            // Member already exists - try to find by email first
+            console.log(`⚠️ Member already exists (duplicate detected). Looking up by email...`);
+            let existingMember = await getSpecificMemberByEmailAndStatus(baptism.email);
+            
+            if (!existingMember) {
+              const sql = 'SELECT member_id FROM tbl_members WHERE phone_number = ?';
+              const [rows] = await query(sql, [baptism.phone_number]);
+              if (rows.length > 0) {
+                existingMember = { member_id: rows[0].member_id };
+                console.log(`✅ Found existing member by phone with ID: ${existingMember.member_id}`);
+              }
+            } else {
+              console.log(`✅ Found existing member by email with ID: ${existingMember.member_id}`);
+            }
+            
+            if (!existingMember && baptism.firstname && baptism.lastname && baptism.birthdate) {
+              const nameSql = 'SELECT member_id FROM tbl_members WHERE LOWER(TRIM(firstname)) = LOWER(TRIM(?)) AND LOWER(TRIM(lastname)) = LOWER(TRIM(?)) AND birthdate = ?';
+              const birthdateFormatted = moment(baptism.birthdate).format('YYYY-MM-DD');
+              const [nameRows] = await query(nameSql, [baptism.firstname, baptism.lastname, birthdateFormatted]);
+              if (nameRows.length > 0) {
+                existingMember = { member_id: nameRows[0].member_id };
+                console.log(`✅ Found existing member by name + birthdate with ID: ${existingMember.member_id}`);
+              }
+            }
+            
+            if (existingMember) {
+              existingMemberId = existingMember.member_id;
+            }
+          }
+          
+          if (existingMemberId) {
+            // Update water baptism record with member_id
+            console.log('Updating water baptism record with member_id...');
+            await updateWaterBaptism(baptism.baptism_id, { member_id: existingMemberId, is_member: true });
+            
+            // Create account for the member if not exists
+            const tempPassword = Math.random().toString(36).slice(-12);
+            console.log(`Generated temp password: ${tempPassword}`);
+            
+            let accountResult = await getAccountByEmail(baptism.email);
+            if (!accountResult.success || !accountResult.data) {
+              const accountData = {
+                email: baptism.email,
+                password: tempPassword,
+                position: 'Member',
+                acc_name: `${baptism.firstname} ${baptism.lastname}`
+              };
+              console.log('Creating account record...');
+              accountResult = await createAccount(accountData);
+            } else {
+              console.log(`Account already exists for ${baptism.email}, using existing account`);
+            }
+            
+            if (accountResult.success && accountResult.data) {
+              const account = accountResult.data;
+              console.log(`✅ Account ready with ID: ${account.acc_id}`);
+              
+              const name = `${baptism.firstname} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname}`.trim();
+              console.log(`Sending welcome email to ${baptism.email} for ${name}...`);
+              
+              const emailResult = await sendAccountDetails({
+                acc_id: account.acc_id,
+                email: baptism.email,
+                name: name,
+                type: 'new_account',
+                temporaryPassword: tempPassword
+              });
+              
+              if (emailResult.success) {
+                console.log(`✅ Welcome email sent successfully to ${baptism.email}`);
+                
+                console.log(`Sending water baptism completion confirmation email to ${baptism.email}...`);
+                const baptismEmailResult = await sendWaterBaptismDetails({
+                  email: baptism.email,
+                  status: 'completed',
+                  recipientName: name,
+                  memberName: name,
+                  baptismDate: baptism.baptism_date || moment().format('YYYY-MM-DD'),
+                  location: baptism.location || 'Bible Baptist Ekklesia of Kawit'
+                });
+                
+                if (baptismEmailResult.success) {
+                  console.log(`✅ Water baptism completion email sent to ${baptism.email}`);
+                } else {
+                  console.error(`❌ Failed to send water baptism completion email: ${baptismEmailResult.message}`);
+                }
+              } else {
+                console.error(`❌ Failed to send welcome email: ${emailResult.message}`, emailResult.error);
+              }
+            }
+          }
+          console.log(`=== Non-member baptism completion processing complete ===`);
+        } catch (memberErr) {
+          console.error('Error creating member from completed baptism:', memberErr);
+        }
+      }
+      
       res.status(201).json({
         success: true,
         message: result.message,

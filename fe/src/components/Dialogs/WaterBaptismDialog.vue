@@ -618,8 +618,14 @@ const handleSubmit = async () => {
     const actionText = isEditMode.value ? 'update' : 'create'
     const actionTitle = isEditMode.value ? 'Update' : 'Create'
 
+    // Build confirmation message
+    let confirmMessage = `Are you sure you want to ${actionText} this water baptism record?`
+    if (formData.status === 'completed' && !isEditMode.value) {
+      confirmMessage += '\n\nNote: Setting status to "Completed" will automatically create a member record and account for this person.'
+    }
+
     await ElMessageBox.confirm(
-      `Are you sure you want to ${actionText} this water baptism record?`,
+      confirmMessage,
       `Confirm ${actionTitle} Water Baptism`,
       {
         confirmButtonText: actionTitle,
