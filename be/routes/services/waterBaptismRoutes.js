@@ -9,9 +9,10 @@ const {
   deleteWaterBaptism,
   exportWaterBaptismsToExcel
 } = require('../../dbHelpers/services/waterBaptismRecords');
-const { getMemberById, createMember } = require('../../dbHelpers/church_records/memberRecords');
+const { getMemberById, createMember, getSpecificMemberByEmailAndStatus } = require('../../dbHelpers/church_records/memberRecords');
+const { checkDuplicateAccount } = require('../../dbHelpers/church_records/accountRecords');
 const { getAccountByEmail, createAccount } = require('../../dbHelpers/church_records/accountRecords');
-const { sendAccountDetails } = require('../../dbHelpers/emailHelperSendGrid');
+const { sendAccountDetails, sendWaterBaptismDetails } = require('../../dbHelpers/emailHelperSendGrid');
 const { query } = require('../../database/db');
 
 const router = express.Router();
@@ -236,12 +237,19 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
 
     // Get current baptism record to check if status is changing to "completed"
     const currentBaptism = await getWaterBaptismById(id);
+    console.log(`=== WATER BAPTISM STATUS UPDATE ===`);
+    console.log(`Baptism ID: ${id}`);
+    console.log(`Request body status: ${req.body.status}`);
+    console.log(`Current baptism status: ${currentBaptism.data?.status}`);
+    
     const isStatusChangingToCompleted = 
       req.body.status && 
-      req.body.status === 'completed' && 
+      req.body.status.toLowerCase() === 'completed' && 
       currentBaptism.success && 
       currentBaptism.data && 
-      currentBaptism.data.status !== 'completed';
+      currentBaptism.data.status?.toLowerCase() !== 'completed';
+      
+    console.log(`Is status changing to completed: ${isStatusChangingToCompleted}`);
 
     const result = await updateWaterBaptism(id, req.body);
     
@@ -250,10 +258,19 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
       if (isStatusChangingToCompleted) {
         const baptism = currentBaptism.data;
         
-        if (baptism.is_member === 0 || baptism.member_id === null) {
+        if (baptism.is_member === 0 || baptism.is_member === '0' || baptism.is_member === false || baptism.is_member === 'false' || baptism.member_id === null) {
+          console.log(`✅ Is non-member: is_member=${baptism.is_member} (${typeof baptism.is_member}), member_id=${baptism.member_id}`);
           // This is a non-member - create member record
           try {
-            console.log(`Creating member record for non-member baptism: ${id}`);
+            console.log(`=== Processing non-member baptism completion ===`);
+            console.log(`Baptism ID: ${id}`);
+            console.log(`Baptism data:`, JSON.stringify({
+              firstname: baptism.firstname,
+              lastname: baptism.lastname,
+              email: baptism.email,
+              is_member: baptism.is_member,
+              member_id: baptism.member_id
+            }, null, 2));
             
             // Format birthdate to YYYY-MM-DD
             let formattedBirthdate = null;
@@ -290,34 +307,91 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               position: 'Member'
             };
             
-            console.log('Creating member with data:', JSON.stringify(memberData, null, 2));
-            
+            console.log('Creating member record...');
             const memberResult = await createMember(memberData);
             
+            let existingMemberId = null;
+            
             if (memberResult.success && memberResult.data) {
-              const newMemberId = memberResult.data.member_id;
-              console.log(`Member created with ID: ${newMemberId}`);
+              // New member created successfully
+              existingMemberId = memberResult.data.member_id;
+              console.log(`✅ Member created successfully with ID: ${existingMemberId}`);
+            } else if (memberResult.message && memberResult.message.includes('Duplicate member detected')) {
+              // Member already exists - try to find by email first
+              console.log(`⚠️ Member already exists (duplicate detected). Looking up by email...`);
+              let existingMember = await getSpecificMemberByEmailAndStatus(baptism.email);
               
-              // Update water baptism record with new member_id
-              await updateWaterBaptism(id, { member_id: newMemberId, is_member: true });
+              if (!existingMember) {
+                // Try by phone number
+                console.log(`Email not found, trying phone number...`);
+                const sql = 'SELECT member_id FROM tbl_members WHERE phone_number = ?';
+                const [rows] = await query(sql, [baptism.phone_number]);
+                if (rows.length > 0) {
+                  existingMember = { member_id: rows[0].member_id };
+                  console.log(`✅ Found existing member by phone with ID: ${existingMember.member_id}`);
+                }
+              } else {
+                console.log(`✅ Found existing member by email with ID: ${existingMember.member_id}`);
+              }
               
-              // Create account for the new member
+              // If still not found, try by name + birthdate
+              if (!existingMember && baptism.firstname && baptism.lastname && baptism.birthdate) {
+                console.log(`Phone not found, trying name + birthdate...`);
+                const nameSql = 'SELECT member_id FROM tbl_members WHERE LOWER(TRIM(firstname)) = LOWER(TRIM(?)) AND LOWER(TRIM(lastname)) = LOWER(TRIM(?)) AND birthdate = ?';
+                const birthdateFormatted = moment(baptism.birthdate).format('YYYY-MM-DD');
+                const [nameRows] = await query(nameSql, [baptism.firstname, baptism.lastname, birthdateFormatted]);
+                if (nameRows.length > 0) {
+                  existingMember = { member_id: nameRows[0].member_id };
+                  console.log(`✅ Found existing member by name + birthdate with ID: ${existingMember.member_id}`);
+                }
+              }
+              
+              if (existingMember) {
+                existingMemberId = existingMember.member_id;
+              } else {
+                // Return user-friendly error instead of failing silently
+                console.error(`❌ Duplicate member detected but could not find existing record`);
+                return res.status(400).json({
+                  success: false,
+                  error: 'A member with the same name and birthdate already exists in our system. Please contact the church office to link your baptism record.'
+                });
+              }
+            }
+            
+            if (existingMemberId) {
+              // Update water baptism record with member_id
+              console.log('Updating water baptism record with member_id...');
+              await updateWaterBaptism(id, { member_id: existingMemberId, is_member: true });
+              
+              // Create account for the member if not exists
               const tempPassword = Math.random().toString(36).slice(-12);
-              const accountData = {
-                email: baptism.email,
-                password: tempPassword,
-                position: 'Member',
-                acc_name: `${baptism.firstname} ${baptism.lastname}`
-              };
+              console.log(`Generated temp password: ${tempPassword}`);
               
-              const accountResult = await createAccount(accountData);
+              // Check if account exists
+              let accountResult = await getAccountByEmail(baptism.email);
+              if (!accountResult.success || !accountResult.data) {
+                // Create account
+                const accountData = {
+                  email: baptism.email,
+                  password: tempPassword,
+                  position: 'Member',
+                  acc_name: `${baptism.firstname} ${baptism.lastname}`
+                };
+                console.log('Creating account record...');
+                accountResult = await createAccount(accountData);
+              } else {
+                console.log(`Account already exists for ${baptism.email}, using existing account`);
+              }
               
               if (accountResult.success && accountResult.data) {
                 const account = accountResult.data;
+                console.log(`✅ Account ready with ID: ${account.acc_id}`);
                 
                 // Send welcome email with account details
                 const name = `${baptism.firstname} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname}`.trim();
-                await sendAccountDetails({
+                console.log(`Sending welcome email to ${baptism.email} for ${name}...`);
+                
+                const emailResult = await sendAccountDetails({
                   acc_id: account.acc_id,
                   email: baptism.email,
                   name: name,
@@ -325,35 +399,102 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                   temporaryPassword: tempPassword
                 });
                 
-                console.log(`Account created and welcome email sent to ${baptism.email}`);
+                if (emailResult.success) {
+                  console.log(`✅ Welcome email sent successfully to ${baptism.email}`);
+                  
+                  // Also send water baptism completion confirmation email
+                  console.log(`Sending water baptism completion confirmation email to ${baptism.email}...`);
+                  const baptismEmailResult = await sendWaterBaptismDetails({
+                    email: baptism.email,
+                    status: 'completed',
+                    recipientName: name,
+                    memberName: name,
+                    baptismDate: baptism.baptism_date || moment().format('YYYY-MM-DD'),
+                    location: baptism.location || 'Bible Baptist Ekklesia of Kawit'
+                  });
+                  
+                  if (baptismEmailResult.success) {
+                    console.log(`✅ Water baptism completion email sent to ${baptism.email}`);
+                  } else {
+                    console.error(`❌ Failed to send water baptism completion email: ${baptismEmailResult.message}`);
+                  }
+                } else {
+                  console.error(`❌ Failed to send welcome email: ${emailResult.message}`, emailResult.error);
+                }
+              } else {
+                console.error(`❌ Failed to get/create account: ${accountResult.message}`);
               }
+            } else {
+              console.error(`❌ Failed to create or find member: ${memberResult.message}`);
+              // Return error response if member creation fails
+              return res.status(400).json({
+                success: false,
+                error: memberResult.message || 'Failed to create member record'
+              });
             }
+            console.log(`=== Non-member baptism completion processing complete ===`);
           } catch (memberErr) {
             console.error('Error creating member from completed baptism:', memberErr);
             // Don't fail the update, but log the error
           }
         } else {
-          // Existing member - just send account setup email
+          console.log(`❌ Not a non-member: is_member=${baptism.is_member} (${typeof baptism.is_member}), member_id=${baptism.member_id} (${typeof baptism.member_id}) - treating as existing member`);
+          // Existing member - generate temporary password and send account setup email
           try {
+            console.log(`Processing completed baptism for existing member. Baptism ID: ${id}`);
+            
             const memberResult = await getMemberById(result.data.member_id);
             if (memberResult.success && memberResult.data) {
               const member = memberResult.data;
+              console.log(`Found member: ${member.firstname} ${member.lastname}, Email: ${member.email}`);
               
-              const accountResult = await getAccountByEmail(member.email);
+              // Generate a random temporary password
+              const tempPassword = Math.random().toString(36).slice(-12);
+              console.log(`Generated temp password: ${tempPassword}`);
+              
+              // Check if account exists, if not create one
+              let accountResult = await getAccountByEmail(member.email);
+              if (!accountResult.success || !accountResult.data) {
+                console.log(`No account found for ${member.email}, creating new account...`);
+                // Create account if doesn't exist
+                const newAccountData = {
+                  email: member.email,
+                  password: tempPassword,
+                  position: 'Member',
+                  acc_name: `${member.firstname} ${member.lastname}`
+                };
+                accountResult = await createAccount(newAccountData);
+                if (accountResult.success) {
+                  console.log(`Account created successfully for ${member.email}`);
+                } else {
+                  console.error(`Failed to create account: ${accountResult.message}`);
+                }
+              } else {
+                console.log(`Account already exists for ${member.email}, acc_id: ${accountResult.data.acc_id}`);
+              }
+              
               if (accountResult.success && accountResult.data) {
                 const account = accountResult.data;
                 
                 const name = `${member.firstname} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname}`.trim();
-                await sendAccountDetails({
+                console.log(`Sending account setup email to ${member.email} for ${name}...`);
+                
+                const emailResult = await sendAccountDetails({
                   acc_id: account.acc_id,
                   email: member.email,
                   name: name,
                   type: 'new_account',
-                  temporaryPassword: 'TestPassword123!'
+                  temporaryPassword: tempPassword
                 });
                 
-                console.log(`Account setup email sent to ${member.email} for completed baptism ID: ${id}`);
+                if (emailResult.success) {
+                  console.log(`✅ Account setup email sent successfully to ${member.email}`);
+                } else {
+                  console.error(`❌ Failed to send email: ${emailResult.message}`, emailResult.error);
+                }
               }
+            } else {
+              console.error(`Member not found for member_id: ${result.data.member_id}`);
             }
           } catch (emailErr) {
             console.error('Error sending account setup email for completed baptism:', emailErr);
@@ -494,6 +635,25 @@ router.post('/register-non-member', async (req, res) => {
       });
     }
     
+    // Check if email already exists (in accounts or members)
+    const duplicateAccount = await checkDuplicateAccount(email);
+    if (duplicateAccount.isDuplicate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered',
+        error: 'An account with this email already exists. Please use a different email or contact support.'
+      });
+    }
+    
+    const existingMember = await getSpecificMemberByEmailAndStatus(email?.trim().toLowerCase());
+    if (existingMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already registered',
+        error: 'A member with this email already exists. Please use a different email or contact support.'
+      });
+    }
+    
     // Create water baptism record with is_member = 0
     const baptismData = {
       ...req.body,
@@ -505,6 +665,25 @@ router.post('/register-non-member', async (req, res) => {
     const result = await createWaterBaptism(baptismData);
     
     if (result.success) {
+      // Send confirmation email for pending registration
+      const recipientName = `${req.body.firstname} ${req.body.lastname}`;
+      console.log(`Sending pending registration confirmation email to ${req.body.email}...`);
+      
+      const emailResult = await sendWaterBaptismDetails({
+        email: req.body.email,
+        status: 'pending',
+        recipientName: recipientName,
+        memberName: recipientName,
+        baptismDate: req.body.baptism_date || 'To be scheduled',
+        location: req.body.location || 'Bible Baptist Ekklesia of Kawit'
+      });
+      
+      if (emailResult.success) {
+        console.log(`✅ Pending registration confirmation email sent to ${req.body.email}`);
+      } else {
+        console.error(`❌ Failed to send pending registration email: ${emailResult.message}`);
+      }
+      
       res.status(201).json({
         success: true,
         message: 'Water baptism registration submitted successfully! You will receive an email with further instructions.',

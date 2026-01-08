@@ -803,14 +803,48 @@ const handleSubmit = async () => {
     
     if (result.success) {
       submitMessage.value = 'Registration submitted successfully!'
+      ElMessage.success('Registration submitted successfully!')
       // Clear form
       resetForm()
     } else {
+      // Enhanced error trapping for common issues
+      const errorMsg = result.error || result.message || ''
+      const errors = result.errors || []
+      
+      // Check for duplicate email
+      if (errorMsg.toLowerCase().includes('email') && 
+          (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('duplicate') || 
+           errorMsg.toLowerCase().includes('registered'))) {
+        submitError.value = 'This email address is already registered. Please use a different email or contact support.'
+        ElMessage.error('This email address is already registered')
+      }
+      // Check for duplicate phone
+      else if (errorMsg.toLowerCase().includes('phone') && 
+               (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('duplicate'))) {
+        submitError.value = 'This phone number is already registered. Please use a different number or contact support.'
+        ElMessage.error('This phone number is already registered')
+      }
+      // Check for member already exists
+      else if (errorMsg.toLowerCase().includes('duplicate member') || 
+               errorMsg.toLowerCase().includes('member already')) {
+        submitError.value = 'A member with the same name and birthdate already exists in our system. Please contact the church office for assistance.'
+        ElMessage.error('Member already exists in our system')
+      }
+      // Check for account already exists
+      else if (errorMsg.toLowerCase().includes('account') && 
+               (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('exists'))) {
+        submitError.value = 'An account with this email already exists. Please use a different email or login to your existing account.'
+        ElMessage.error('An account with this email already exists')
+      }
       // Display all errors from the errors array if available
-      if (result.errors && Array.isArray(result.errors) && result.errors.length > 0) {
-        submitError.value = result.errors.join(', ')
-      } else {
+      else if (errors.length > 0) {
+        submitError.value = errors.join(', ')
+        ElMessage.error(errors[0])
+      }
+      // Default error message
+      else {
         submitError.value = result.error || 'An error occurred. Please try again.'
+        ElMessage.error(result.error || 'An error occurred. Please try again.')
       }
     }
   } catch (error) {

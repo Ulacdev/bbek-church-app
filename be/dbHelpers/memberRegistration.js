@@ -5,7 +5,7 @@ const {
   checkDuplicateAccount,
   getAccountByEmail
 } = require('./church_records/accountRecords');
-const { sendBurialServiceRequestNotification, sendWaterBaptismDetails } = require('./emailHelperSendGrid');
+const { sendBurialServiceRequestNotification, sendWaterBaptismDetails, sendAccountDetails } = require('./emailHelperSendGrid');
 const moment = require('moment');
 const {
   createWaterBaptism,
@@ -358,8 +358,18 @@ async function registerMemberFromWaterBaptism(payload = {}) {
   if (duplicateAccount.isDuplicate) {
     return {
       success: false,
-      message: 'An account with this email already exists',
-      errors: ['An account with this email already exists']
+      message: 'Email already registered',
+      errors: ['An account with this email already exists. Please use a different email or contact support.']
+    };
+  }
+
+  // Step 2.5: Check if member with same email already exists
+  const existingMember = await getSpecificMemberByEmailAndStatus(payload.email?.trim().toLowerCase());
+  if (existingMember) {
+    return {
+      success: false,
+      message: 'Email already registered',
+      errors: ['A member with this email already exists. Please use a different email or contact support.']
     };
   }
 
@@ -516,11 +526,35 @@ async function registerMemberFromWaterBaptism(payload = {}) {
       };
     }
 
-    // Step 6: Account setup email will be sent when baptism status is changed to "completed" by admin
-    // Return success - account is created but email not sent yet
+    // Step 6: Send account setup email immediately
+    let accountEmailError = null;
+    try {
+      const recipientName = `${memberData.firstname || ''} ${memberData.middle_name ? memberData.middle_name + ' ' : ''}${memberData.lastname || ''}`.trim() || 'Valued Member';
+      const emailResult = await sendAccountDetails({
+        acc_id: accountResult.data.acc_id,
+        email: memberData.email,
+        name: recipientName,
+        type: 'new_account',
+        temporaryPassword: tempPassword
+      });
+      
+      // Check if email sending failed
+      if (emailResult && !emailResult.success) {
+        accountEmailError = emailResult.message || emailResult.error || 'Failed to send account setup email';
+      } else {
+        console.log(`✅ Account setup email sent successfully to ${memberData.email}`);
+      }
+    } catch (emailErr) {
+      accountEmailError = emailErr.message || 'Failed to send account setup email';
+      console.error('Error sending account setup email:', emailErr);
+    }
+
+    // Return success - account is created and email sent
     return {
       success: true,
-      message: 'Member, water baptism, and account created successfully. Account setup email will be sent once baptism is completed.',
+      message: accountEmailError 
+        ? 'Member, water baptism, and account created successfully. Account setup email may have failed to send.'
+        : 'Member, water baptism, and account created successfully. Check your email for account setup instructions.',
       data: {
         member: memberResult.data,
         waterBaptism: baptismResult.data,

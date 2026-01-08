@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const sgMail = require('@sendgrid/mail');
 
 console.log('Testing SendGrid API Key...');
