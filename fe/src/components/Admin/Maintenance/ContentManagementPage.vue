@@ -17,37 +17,38 @@
             ]"
           >
             {{ section.label }}
-        </v-chip>
+          </v-chip>
         </div>
       </div>
     </div>
-   <Header v-if="activeSection === 'header'" :activeSection="activeSection" />
-   <Footer v-if="activeSection === 'footer'" :activeSection="activeSection" />
-   <Home v-if="activeSection === 'home'" :activeSection="activeSection" />
-   <ImNew v-if="activeSection === 'imNew'" :activeSection="activeSection" />
-   <About v-if="activeSection === 'about'" :activeSection="activeSection" />
-   <OurStory v-if="activeSection === 'ourStory'" :activeSection="activeSection" />
-   <ChurchLeader v-if="activeSection === 'churchLeaders'" :activeSection="activeSection" />
-   <DepartmentOfficer v-if="activeSection === 'departmentOfficer'" :activeSection="activeSection" />
-   <Belief v-if="activeSection === 'beliefs'" :activeSection="activeSection" />
-   <Give v-if="activeSection === 'give'" :activeSection="activeSection" />
-   <Events v-if="activeSection === 'events'" :activeSection="activeSection" />
-   <PastEvents v-if="activeSection === 'pastEvents'" :activeSection="activeSection" />
-   <AdultLadies v-if="activeSection === 'adultLadies'" :activeSection="activeSection" />
-   <AdultMen v-if="activeSection === 'adultMen'" :activeSection="activeSection" />
-   <YoungPeople v-if="activeSection === 'youngPeople'" :activeSection="activeSection" />
-   <Services v-if="activeSection === 'services'" :activeSection="activeSection" />
-   <WaterBaptism v-if="activeSection === 'waterBaptism'" :activeSection="activeSection" />
-   <BurialService v-if="activeSection === 'burialService'" :activeSection="activeSection" />
-   <MarriageService v-if="activeSection === 'marriageService'" :activeSection="activeSection" />
-   <ChildDedication v-if="activeSection === 'childDedication'" :activeSection="activeSection" />
-   <Sermons v-if="activeSection === 'sermons'" :activeSection="activeSection" />
-   <PlanVisit v-if="activeSection === 'planVisit'" :activeSection="activeSection" />
-   <Ministries v-if="activeSection === 'ministries'" :activeSection="activeSection" />
-   <DepartmentCategories v-if="activeSection === 'departmentcategories'" :activeSection="activeSection" />
-   <LearnMoreEvents v-if="activeSection === 'learnMoreEvents'" :activeSection="activeSection" />
-   <LearnMoreMinistry v-if="activeSection === 'learnMoreMinistry'" :activeSection="activeSection" />
-   <AcceptJesus v-if="activeSection === 'acceptJesus'" :activeSection="activeSection" />
+    <Header v-if="activeSection === 'header'" :activeSection="activeSection" />
+    <Footer v-if="activeSection === 'footer'" :activeSection="activeSection" />
+    <Home v-if="activeSection === 'home'" :activeSection="activeSection" />
+    <ImNew v-if="activeSection === 'imNew'" :activeSection="activeSection" />
+    <About v-if="activeSection === 'about'" :activeSection="activeSection" />
+    <OurStory v-if="activeSection === 'ourStory'" :activeSection="activeSection" />
+    <ChurchLeader v-if="activeSection === 'churchLeaders'" :activeSection="activeSection" />
+    <DepartmentOfficer v-if="activeSection === 'departmentOfficer'" :activeSection="activeSection" />
+    <Belief v-if="activeSection === 'beliefs'" :activeSection="activeSection" />
+    <Give v-if="activeSection === 'give'" :activeSection="activeSection" />
+    <Events v-if="activeSection === 'events'" :activeSection="activeSection" />
+    <PastEvents v-if="activeSection === 'pastEvents'" :activeSection="activeSection" />
+    <AdultLadies v-if="activeSection === 'adultLadies'" :activeSection="activeSection" />
+    <AdultMen v-if="activeSection === 'adultMen'" :activeSection="activeSection" />
+    <YoungPeople v-if="activeSection === 'youngPeople'" :activeSection="activeSection" />
+    <Services v-if="activeSection === 'services'" :activeSection="activeSection" />
+    <WaterBaptism v-if="activeSection === 'waterBaptism'" :activeSection="activeSection" />
+    <BurialService v-if="activeSection === 'burialService'" :activeSection="activeSection" />
+    <MarriageService v-if="activeSection === 'marriageService'" :activeSection="activeSection" />
+    <ChildDedication v-if="activeSection === 'childDedication'" :activeSection="activeSection" />
+    <Sermons v-if="activeSection === 'sermons'" :activeSection="activeSection" />
+    <PlanVisit v-if="activeSection === 'planVisit'" :activeSection="activeSection" />
+    <Ministries v-if="activeSection === 'ministries'" :activeSection="activeSection" />
+    <DepartmentCategories v-if="activeSection === 'departmentcategories'" :activeSection="activeSection" />
+    <LearnMoreEvents v-if="activeSection === 'learnMoreEvents'" :activeSection="activeSection" />
+    <LearnMoreMinistry v-if="activeSection === 'learnMoreMinistry'" :activeSection="activeSection" />
+    <AcceptJesus v-if="activeSection === 'acceptJesus'" :activeSection="activeSection" />
+    <Info v-if="activeSection === 'info'" :activeSection="activeSection" />
   </div>
 </template>
 
@@ -80,6 +81,7 @@ import LearnMoreMinistry from './ListItems/LearnMoreMinistry.vue'
 import AcceptJesus from './ListItems/AcceptJesus.vue'
 import Ministries from './ListItems/Ministries.vue'
 import DepartmentCategories from './ListItems/DepartmentCategories.vue'
+import Info from './ListItems/Info.vue'
 const activeSection = ref('header')
 
 // Content sections array with action field
@@ -265,6 +267,13 @@ const contentSections = ref([
     action: () => {
       activeSection.value = 'acceptJesus'
     }
+  },
+  {
+    id: 'info',
+    label: 'Info Section',
+    action: () => {
+      activeSection.value = 'info'
+    }
   }
 ])
 
@@ -399,5 +408,3 @@ td {
   border: 1px solid #e5e7eb;
 }
 </style>
-
-

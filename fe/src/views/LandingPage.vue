@@ -26,6 +26,7 @@
       <DepartmentCategories />
       <EventsSection />
       <PastEventsSection />
+      <InfoSection />
     </v-main>
   </div>
 </template>
@@ -40,6 +41,7 @@ import VisionSection from '../components/LandingPage/VisionSection.vue'
 import DepartmentCategories from '../components/LandingPage/DepartmentCategories.vue'
 import EventsSection from '../components/LandingPage/EventsSection.vue'
 import PastEventsSection from '../components/LandingPage/PastEventsSection.vue'
+import InfoSection from '../components/LandingPage/InfoSection.vue'
 import Footer from '../components/LandingPage/Footer.vue'
 import SocialMediaIcons from '../components/LandingPage/SocialMediaIcons.vue'
 import { fetchCmsPagesSequentially, CORE_CMS_PAGES } from '@/utils/cmsSequentialLoader'
