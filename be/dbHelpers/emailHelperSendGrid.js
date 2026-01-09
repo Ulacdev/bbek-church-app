@@ -9,14 +9,6 @@ const CHURCH_WEBSITE = 'https://bbek-church-app.vercel.app';
 const CHURCH_PHONE = '(046) 123-4567';
 const CHURCH_ADDRESS = 'Kawit, Cavite, Philippines';
 
-// Teal color scheme
-const COLORS = {
-  primary: '#008080',      // Teal
-  primaryDark: '#006666',  // Darker teal
-  primaryLight: '#20B2AA', // Light teal
-  background: '#f0f8f8',   // Light teal background
-};
-
 // Initialize SendGrid with API key
 if (process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -37,7 +29,7 @@ const buildErrorResult = (message, error) => {
   };
 };
 
-// Email header template with church branding
+// Simple email header - plain text based
 const getEmailHeader = (title) => `
   <!DOCTYPE html>
   <html>
@@ -45,101 +37,62 @@ const getEmailHeader = (title) => `
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${title}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-    </style>
   </head>
-  <body style="font-family: 'Poppins', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 650px; margin: 0 auto; padding: 0; background-color: ${COLORS.background};">
-    <div style="background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%); padding: 30px 20px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">${CHURCH_NAME}</h1>
-      <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 14px;">Serving with Love, Growing in Faith</p>
+  <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px;">
+      <h2 style="margin: 0; color: #333;">${CHURCH_NAME}</h2>
     </div>
-    <div style="background-color: #ffffff; padding: 30px; margin: 0; border-radius: 0 0 10px 10px; box-shadow: 0 4px 15px rgba(0,128,128,0.15);">
 `;
 
-// Email footer template
+// Simple email footer
 const getEmailFooter = () => `
-    </div>
-    <div style="background-color: ${COLORS.primaryDark}; padding: 25px 20px; text-align: center; border-radius: 10px; margin-top: 20px;">
-      <p style="color: #ffffff; margin: 0 0 10px 0; font-size: 16px; font-weight: 600;">${CHURCH_NAME}</p>
-      <p style="color: rgba(255,255,255,0.8); margin: 5px 0; font-size: 13px;">
-        📍 ${CHURCH_ADDRESS}
-      </p>
-      <p style="color: rgba(255,255,255,0.8); margin: 5px 0; font-size: 13px;">
-        📞 ${CHURCH_PHONE}
-      </p>
-      <p style="color: rgba(255,255,255,0.8); margin: 5px 0; font-size: 13px;">
-        ✉️ ${CHURCH_EMAIL}
-      </p>
-      <p style="color: rgba(255,255,255,0.8); margin: 15px 0 0 0; font-size: 12px;">
-        🌐 <a href="${CHURCH_WEBSITE}" style="color: ${COLORS.primaryLight}; text-decoration: none;">Visit our website</a>
-      </p>
-      <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.2); margin: 15px 0;">
-      <p style="color: rgba(255,255,255,0.6); margin: 0; font-size: 11px;">
-        This is an automated message from ${CHURCH_NAME}. Please do not reply directly to this email.
-      </p>
+    <div style="border-top: 1px solid #ccc; padding-top: 15px; margin-top: 30px; font-size: 12px; color: #666;">
+      <p style="margin: 5px 0;">${CHURCH_NAME}</p>
+      <p style="margin: 5px 0;">${CHURCH_ADDRESS} | ${CHURCH_PHONE}</p>
+      <p style="margin: 10px 0 0 0;">This is an automated message. Please do not reply.</p>
     </div>
   </body>
   </html>
 `;
 
-// Status badge template
+// Simple status badge
 const getStatusBadge = (status, statusColors, statusMessages) => {
-  const colors = {
-    pending: { bg: '#fff3cd', text: '#856404', border: '#ffc107' },
-    ongoing: { bg: '#e0f7fa', text: '#006064', border: COLORS.primary },
-    approved: { bg: '#d1ecf1', text: '#0c5460', border: COLORS.primary },
-    completed: { bg: '#d1ecf1', text: '#0c5460', border: COLORS.primary },
-    approved: { bg: '#d1ecf1', text: '#0c5460', border: COLORS.primary },
-    disapproved: { bg: '#f8d7da', text: '#721c24', border: '#dc3545' },
-    rejected: { bg: '#f8d7da', text: '#721c24', border: '#dc3545' },
-    cancelled: { bg: '#e2e3e5', text: '#383d41', border: '#6c757d' },
-  };
-  
-  const color = colors[status.toLowerCase()] || colors.pending;
   const message = statusMessages[status.toLowerCase()] || status;
-  
   return `
-    <div style="background-color: ${color.bg}; border-left: 4px solid ${color.border}; padding: 15px; border-radius: 5px; margin: 20px 0;">
-      <p style="margin: 0 0 5px 0; font-size: 14px; color: ${color.text};">
-        <strong>Status:</strong> ${status.toUpperCase()}
-      </p>
-      <p style="margin: 0; font-size: 13px; color: ${color.text};">${message}</p>
+    <div style="background-color: #f5f5f5; padding: 12px; border-left: 4px solid #333; margin: 15px 0;">
+      <strong>${status.toUpperCase()}:</strong> ${message}
     </div>
   `;
 };
 
-// CTA Button template
+// Simple CTA Button
 const getCTAButton = (text, url) => `
-  <div style="text-align: center; margin: 30px 0;">
-    <a href="${url}"
-       style="background: linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%); color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(0,128,128,0.3);">
-      ${text}
-    </a>
+  <div style="margin: 20px 0;">
+    <a href="${url}" style="background-color: #333; color: white; padding: 12px 25px; text-decoration: none; display: inline-block;">${text}</a>
   </div>
 `;
 
-// Info box template
+// Simple Info box
 const getInfoBox = (title, items) => `
-  <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${COLORS.primaryLight};">
-    <h3 style="color: ${COLORS.primary}; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid ${COLORS.primary}; padding-bottom: 10px;">${title}</h3>
+  <div style="background-color: #f9f9f9; padding: 15px; margin: 15px 0;">
+    <h3 style="margin: 0 0 10px 0; font-size: 16px;">${title}</h3>
     <table style="width: 100%; border-collapse: collapse;">
       ${items.map(item => `
         <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef; color: #555; font-size: 14px;"><strong>${item.label}:</strong></td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #e9ecef; color: #333; font-size: 14px; text-align: right;">${item.value}</td>
+          <td style="padding: 5px 0; border-bottom: 1px solid #eee;">${item.label}</td>
+          <td style="padding: 5px 0; border-bottom: 1px solid #eee; text-align: right;">${item.value}</td>
         </tr>
       `).join('')}
     </table>
   </div>
 `;
 
-// Next steps template
+// Simple Next steps
 const getNextSteps = (steps) => `
-  <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid ${COLORS.primary};">
-    <p style="margin: 0 0 15px 0; color: ${COLORS.primary}; font-weight: 600; font-size: 16px;">📋 Next Steps</p>
-    <ul style="margin: 0; padding-left: 20px; color: #555; font-size: 14px;">
-      ${steps.map(step => `<li style="margin: 8px 0;">${step}</li>`).join('')}
+  <div style="margin: 15px 0;">
+    <strong>Next Steps:</strong>
+    <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+      ${steps.map(step => `<li style="margin: 5px 0;">${step}</li>`).join('')}
     </ul>
   </div>
 `;
@@ -736,23 +689,29 @@ const sendFormSubmissionNotification = async (formDetails) => {
     
     const formTypeLabel = formTypeLabels[formType] || 'Form Submission';
     
+    // Custom message for prayer requests
+    let statusMsg = 'Request Status: Under Review';
+    if (formType === 'prayer_request') {
+      statusMsg = 'Your prayer request has been received. The admin will read and respond to your prayer request shortly.';
+    }
+    
     let formDetailsHtml = '';
     
     if (formType === 'prayer_request' && formDetails.formData) {
       formDetailsHtml = `
-        <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${COLORS.primaryLight};">
-          <h4 style="color: ${COLORS.primary}; margin: 0 0 15px 0; font-size: 18px;">Your Prayer Request</h4>
-          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #ffffff; border-radius: 5px;">${formDetails.formData.request || 'N/A'}</p>
-          <p style="color: #888; font-size: 12px; margin: 10px 0 0 0;">
-            Submitted as: ${formDetails.formData.anonymous ? 'Anonymous 🙏' : 'Named Request'}
+        <div style="background-color: #f9f9f9; padding: 15px; margin: 15px 0;">
+          <strong>Your Prayer Request:</strong>
+          <p style="margin: 10px 0 0 0;">${formDetails.formData.request || 'N/A'}</p>
+          <p style="margin: 10px 0 0 0; font-size: 12px; color: #666;">
+            Submitted as: ${formDetails.formData.anonymous ? 'Anonymous' : 'Named Request'}
           </p>
         </div>
       `;
     } else if (formType === 'message' && formDetails.formData) {
       formDetailsHtml = `
-        <div style="background-color: ${COLORS.background}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${COLORS.primaryLight};">
-          <h4 style="color: ${COLORS.primary}; margin: 0 0 15px 0; font-size: 18px;">${formDetails.formData.subject || 'Contact Message'}</h4>
-          <p style="color: #555; font-size: 15px; line-height: 1.8; margin: 0; padding: 15px; background-color: #ffffff; border-radius: 5px;">${formDetails.formData.message || 'N/A'}</p>
+        <div style="background-color: #f9f9f9; padding: 15px; margin: 15px 0;">
+          <strong>${formDetails.formData.subject || 'Contact Message'}</strong>
+          <p style="margin: 10px 0 0 0;">${formDetails.formData.message || 'N/A'}</p>
         </div>
       `;
     }
@@ -767,7 +726,7 @@ const sendFormSubmissionNotification = async (formDetails) => {
       html: getEmailHeader(`${formTypeLabel} Received`) + `
         <p style="font-size: 16px; color: #555;">Dear ${recipientName},</p>
         <p style="font-size: 15px; color: #555;">Thank you for reaching out to us! We have received your ${formTypeLabel.toLowerCase()}.</p>
-        ${getStatusBadge('pending', {}, { pending: 'Request Status: Under Review' })}
+        ${getStatusBadge('pending', {}, { pending: statusMsg })}
         ${formDetailsHtml}
         ${getNextSteps([
           'Our team will review your request within 24-48 hours',
@@ -775,7 +734,7 @@ const sendFormSubmissionNotification = async (formDetails) => {
           'We will get back to you as soon as possible'
         ])}
         <p style="font-size: 14px; color: #555; margin-top: 20px; text-align: center;">
-          🙏 We are honored to pray for you and support you in every way possible.
+          We are honored to pray for you and support you in every way possible.
         </p>
       ` + getEmailFooter(),
     };
@@ -811,6 +770,12 @@ const sendFormStatusUpdate = async (formDetails) => {
       rejected: 'We regret to inform you that your request was not approved.',
     };
     
+    // Custom message for prayer requests
+    if (formDetails.formType === 'prayer_request') {
+      statusMessages.approved = 'The admin has approved and read your prayer request. Wait patiently for the reply by admin.';
+      statusMessages.pending = 'Your prayer request has been received and is awaiting admin review. The admin will read and respond to your prayer request shortly.';
+    }
+    
     const recipientName = formDetails.recipientName || 'Brother/Sister';
     const formType = formDetails.formType || 'form';
     
@@ -834,9 +799,9 @@ const sendFormStatusUpdate = async (formDetails) => {
         <p style="font-size: 15px; color: #555;">${statusMessages[status] || 'Your request status has been updated.'}</p>
         ${getStatusBadge(status, {}, statusMessages)}
         ${formDetails.adminNotes ? `
-          <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196F3;">
-            <p style="margin: 0 0 5px 0; color: #1565c0; font-weight: 600;">📝 Admin Notes:</p>
-            <p style="margin: 0; color: #555;">${formDetails.adminNotes}</p>
+          <div style="background-color: #f9f9f9; padding: 12px; margin: 15px 0; border-left: 3px solid #333;">
+            <strong>Admin Notes:</strong>
+            <p style="margin: 5px 0 0 0;">${formDetails.adminNotes}</p>
           </div>
         ` : ''}
         ${status === 'approved' ? getNextSteps([
