@@ -193,6 +193,11 @@ async function createMember(memberData) {
       email,
       phone_number,
       position = 'member',
+      profession = null,
+      spouse_name = null,
+      marriage_date = null,
+      children = null,
+      desire_ministry = null,
       date_created = new Date()
     } = memberData;
 
@@ -277,6 +282,11 @@ async function createMember(memberData) {
       memberData.guardian_name || null,
       memberData.guardian_contact || null,
       memberData.guardian_relationship || null,
+      profession,
+      spouse_name,
+      marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null,
+      children ? JSON.stringify(children) : null,
+      desire_ministry,
       date_created
     ];
 
@@ -297,6 +307,11 @@ async function createMember(memberData) {
         email: finalEmail,
         phone_number: normalizedPhoneNumber,
         position,
+        profession,
+        spouse_name,
+        marriage_date: marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null,
+        children,
+        desire_ministry,
         date_created
       }
     };
@@ -328,6 +343,11 @@ async function createMemberWithConnection(memberData, connection) {
       email,
       phone_number,
       position = 'member',
+      profession = null,
+      spouse_name = null,
+      marriage_date = null,
+      children = null,
+      desire_ministry = null,
       date_created = new Date()
     } = memberData;
 
@@ -365,8 +385,8 @@ async function createMemberWithConnection(memberData, connection) {
 
     const sql = `
       INSERT INTO tbl_members
-        (member_id, firstname, lastname, middle_name, birthdate, age, gender, address, email, phone_number, civil_status, position, guardian_name, guardian_contact, guardian_relationship, date_created)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (member_id, firstname, lastname, middle_name, birthdate, age, gender, address, email, phone_number, civil_status, position, guardian_name, guardian_contact, guardian_relationship, profession, spouse_name, marriage_date, children, desire_ministry, date_created)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -385,6 +405,11 @@ async function createMemberWithConnection(memberData, connection) {
       memberData.guardian_name || null,
       memberData.guardian_contact || null,
       memberData.guardian_relationship || null,
+      profession,
+      spouse_name,
+      marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null,
+      children ? JSON.stringify(children) : null,
+      desire_ministry,
       date_created
     ];
 
@@ -405,6 +430,11 @@ async function createMemberWithConnection(memberData, connection) {
         email,
         phone_number: normalizedPhoneNumber,
         position,
+        profession,
+        spouse_name,
+        marriage_date: marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null,
+        children,
+        desire_ministry,
         date_created
       }
     };
@@ -450,7 +480,12 @@ async function updateMember(memberId, memberData) {
       position,
       guardian_name,
       guardian_contact,
-      guardian_relationship
+      guardian_relationship,
+      profession,
+      spouse_name,
+      marriage_date,
+      children,
+      desire_ministry
     } = memberData;
 
     // Check for duplicate member before updating (exclude current member)
@@ -535,6 +570,26 @@ async function updateMember(memberId, memberData) {
     if (guardian_relationship !== undefined) {
       fields.push('guardian_relationship = ?');
       params.push(guardian_relationship);
+    }
+    if (profession !== undefined) {
+      fields.push('profession = ?');
+      params.push(profession);
+    }
+    if (spouse_name !== undefined) {
+      fields.push('spouse_name = ?');
+      params.push(spouse_name);
+    }
+    if (marriage_date !== undefined) {
+      fields.push('marriage_date = ?');
+      params.push(marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null);
+    }
+    if (children !== undefined) {
+      fields.push('children = ?');
+      params.push(children ? JSON.stringify(children) : null);
+    }
+    if (desire_ministry !== undefined) {
+      fields.push('desire_ministry = ?');
+      params.push(desire_ministry);
     }
 
     if (fields.length === 0) {
@@ -934,6 +989,11 @@ async function exportMembersToCSV(options = {}) {
       'Phone Number',
       'Civil Status',
       'Position',
+      'Profession',
+      'Spouse Name',
+      'Marriage Date',
+      'Children',
+      'Desire Ministry',
       'Date Created'
     ];
 
@@ -954,6 +1014,11 @@ async function exportMembersToCSV(options = {}) {
         member.phone_number || '',
         member.civil_status || '',
         member.position || '',
+        member.profession || '',
+        `"${(member.spouse_name || '').replace(/"/g, '""')}"`,
+        member.marriage_date ? moment(member.marriage_date).format('YYYY-MM-DD') : '',
+        member.children ? `"${JSON.stringify(member.children).replace(/"/g, '""')}"` : '',
+        member.desire_ministry || '',
         member.date_created ? moment(member.date_created).format('YYYY-MM-DD HH:mm:ss') : ''
       ];
 
@@ -1008,7 +1073,13 @@ async function exportMembersToExcel(options = {}) {
         'Address': member.address || '',
         'Email': member.email || '',
         'Phone Number': member.phone_number || '',
+        'Civil Status': member.civil_status || '',
         'Position': member.position || '',
+        'Profession': member.profession || '',
+        'Spouse Name': member.spouse_name || '',
+        'Marriage Date': member.marriage_date ? moment(member.marriage_date).format('YYYY-MM-DD') : '',
+        'Children': member.children ? JSON.stringify(member.children) : '',
+        'Desire Ministry': member.desire_ministry || '',
         'Date Created': member.date_created ? moment(member.date_created).format('YYYY-MM-DD HH:mm:ss') : '',
         'Join Date': member.date_created ? moment(member.date_created).format('YYYY-MM-DD') : ''
       };
@@ -1034,7 +1105,13 @@ async function exportMembersToExcel(options = {}) {
       { wch: 40 },  // Address
       { wch: 25 },  // Email
       { wch: 15 },  // Phone Number
+      { wch: 15 },  // Civil Status
       { wch: 20 },  // Position
+      { wch: 20 },  // Profession
+      { wch: 20 },  // Spouse Name
+      { wch: 12 },  // Marriage Date
+      { wch: 30 },  // Children
+      { wch: 20 },  // Desire Ministry
       { wch: 20 },  // Date Created
       { wch: 12 }   // Join Date
     ];

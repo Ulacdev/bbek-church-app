@@ -98,6 +98,10 @@
                 <span class="value">{{ civilStatus || '_______' }}</span>
               </div>
               <div class="info-field-row">
+                <span class="label">Profession:</span>
+                <span class="value">{{ profession || '____________' }}</span>
+              </div>
+              <div class="info-field-row">
                 <span class="label">Address:</span>
                 <span class="value">{{ address || '________________________________' }}</span>
               </div>
@@ -105,8 +109,13 @@
                 <span class="label">Phone:</span>
                 <span class="value">{{ phoneNumber || '____________' }}</span>
               </div>
+             
             </div>
             <div class="info-column right-column">
+               <div class="info-field-row">
+                 <span class="label">Ministry Interest:</span>
+                 <span class="value">{{ desireMinistry || '____________' }}</span>
+               </div>
               <div class="info-field-row">
                 <span class="label">Age:</span>
                 <span class="value">{{ age || '__' }}</span>
@@ -125,6 +134,23 @@
                 <span class="value">{{ email || '________________________' }}</span>
               </div>
               
+            </div>
+          </div>
+
+          <!-- Family Information (if applicable) -->
+          <div class="family-section" v-if="hasFamilyInfo">
+            <div class="section-title">FAMILY INFORMATION</div>
+            <div class="info-field-row" v-if="spouseName">
+              <span class="label">Spouse:</span>
+              <span class="value">{{ spouseName }}</span>
+            </div>
+            <div class="info-field-row" v-if="formattedMarriageDate">
+              <span class="label">Marriage Date:</span>
+              <span class="value">{{ formattedMarriageDate }}</span>
+            </div>
+            <div class="info-field-row" v-if="formattedChildren">
+              <span class="label">Children:</span>
+              <span class="value">{{ formattedChildren }}</span>
             </div>
           </div>
 
@@ -200,6 +226,13 @@ const props = defineProps({
   phoneNumber: { type: String, default: '' },
   civilStatus: { type: String, default: '' },
   position: { type: String, default: '' },
+
+  // New family fields from tbl_waterbaptism
+  profession: { type: String, default: '' },
+  spouseName: { type: String, default: '' },
+  marriageDate: { type: [String, Date], default: '' },
+  children: { type: [Array, String], default: () => [] },
+  desireMinistry: { type: String, default: '' },
   
   // Member guardian fields (from tbl_members)
   memberGuardianName: { type: String, default: '' },
@@ -297,6 +330,60 @@ const formattedGuardianRelationship = computed(() => {
     'other': 'Other'
   }
   return relationships[relationship] || relationship
+})
+
+// Check if there's any family information to display
+const hasFamilyInfo = computed(() => {
+  return props.spouseName || props.marriageDate || (props.children && props.children.length > 0) || props.desireMinistry
+})
+
+// Check if position is admin/staff (not regular member or none)
+const isAdminOrStaffPosition = computed(() => {
+  const staffPositions = [
+    'president', 'vice_president', 'secretary', 'assistant_secretary',
+    'treasurer', 'auditor', 'coordinator', 'pio', 'socmed_coordinator',
+    'senior_pastor', 'sending_pastor', 'department'
+  ]
+  return staffPositions.includes(props.position)
+})
+
+// Format marriage date for display
+const formattedMarriageDate = computed(() => {
+  if (!props.marriageDate) return ''
+  try {
+    const date = new Date(props.marriageDate)
+    if (isNaN(date.getTime())) return ''
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return ''
+  }
+})
+
+// Format children array for display
+const formattedChildren = computed(() => {
+  if (!props.children || props.children.length === 0) return ''
+
+  let childrenArray = []
+  if (typeof props.children === 'string') {
+    try {
+      childrenArray = JSON.parse(props.children)
+    } catch {
+      return ''
+    }
+  } else {
+    childrenArray = props.children
+  }
+
+  if (!Array.isArray(childrenArray) || childrenArray.length === 0) return ''
+
+  const childrenNames = childrenArray.map(child => {
+    const name = child.name || ''
+    const age = child.age ? ` (${child.age}yo)` : ''
+    const gender = child.gender === 'M' ? '♂' : child.gender === 'F' ? '♀' : ''
+    return `${name}${age}${gender}`.trim()
+  }).filter(name => name.length > 0)
+
+  return childrenNames.join(', ')
 })
 
 // Fetch header data from CMS
@@ -671,6 +758,44 @@ onMounted(async () => {
 }
 
 .info-column .info-field-row .value {
+  font-size: 11px;
+  font-weight: 400;
+  color: #2c1810;
+  font-family: 'Times New Roman', serif;
+  text-align: left;
+  flex: 1;
+  border-bottom: 1px dotted #8b7355;
+  min-width: 80px;
+}
+
+/* Family Section */
+.family-section {
+  margin-bottom: 10px;
+  position: relative;
+  z-index: 3;
+}
+
+.family-section .info-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.family-section .info-field-row:last-child {
+  margin-bottom: 0;
+}
+
+.family-section .info-field-row .label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2c1810;
+  font-family: 'Times New Roman', serif;
+  white-space: nowrap;
+}
+
+.family-section .info-field-row .value {
   font-size: 11px;
   font-weight: 400;
   color: #2c1810;

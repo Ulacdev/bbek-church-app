@@ -190,9 +190,26 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
       this.loading = true
       this.error = null
       try {
-        // Send all editable fields
+        // Send all editable fields including new family fields
         const updateData = {
           member_id: baptismData.member_id,
+          // Personal info fields
+          firstname: baptismData.firstname,
+          middle_name: baptismData.middle_name,
+          lastname: baptismData.lastname,
+          birthdate: baptismData.birthdate,
+          age: baptismData.age,
+          gender: baptismData.gender,
+          civil_status: baptismData.civil_status,
+          profession: baptismData.profession,
+          spouse_name: baptismData.spouse_name,
+          marriage_date: baptismData.marriage_date,
+          children: baptismData.children,
+          desire_ministry: baptismData.desire_ministry,
+          address: baptismData.address,
+          email: baptismData.email,
+          phone_number: baptismData.phone_number,
+          // Baptism details
           baptism_date: baptismData.baptism_date,
           location: baptismData.location,
           pastor_name: baptismData.pastor_name,

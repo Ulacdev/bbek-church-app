@@ -68,7 +68,7 @@ function convertBufferToString(value) {
 function processBaptismRecord(record) {
   const fieldsToConvert = [
     'address', 'firstname', 'lastname', 'middle_name', 'email', 'phone_number',
-    'civil_status', 'location', 'pastor_name', 'status', 'guardian_name',
+    'civil_status', 'profession', 'spouse_name', 'desire_ministry', 'location', 'pastor_name', 'status', 'guardian_name',
     'guardian_contact', 'guardian_relationship', 'member_address', 'member_email',
     'member_phone_number', 'member_firstname', 'member_lastname', 'member_middle_name',
     'member_guardian_name', 'member_guardian_contact', 'member_guardian_relationship'
@@ -153,6 +153,11 @@ async function createWaterBaptism(baptismData) {
       gender,
       address,
       civil_status,
+      profession,
+      spouse_name,
+      marriage_date,
+      children,
+      desire_ministry,
       baptism_date,
       location,
       pastor_name,
@@ -197,12 +202,15 @@ async function createWaterBaptism(baptismData) {
     let sql;
     let params;
     
+    // Format marriage_date
+    const formattedMarriageDate = marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null;
+
     if (formattedBaptismDate === null) {
       // Omit baptism_date column when it's null
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, profession, spouse_name, marriage_date, children, desire_ministry, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
@@ -218,6 +226,11 @@ async function createWaterBaptism(baptismData) {
         gender || null,
         address || null,
         civil_status || null,
+        profession || null,
+        spouse_name || null,
+        formattedMarriageDate,
+        children || null,
+        desire_ministry || null,
         location || null,
         pastor_name || null,
         status,
@@ -230,8 +243,8 @@ async function createWaterBaptism(baptismData) {
       // Include baptism_date when it has a value
       sql = `
         INSERT INTO tbl_waterbaptism
-          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, baptism_date, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (baptism_id, member_id, is_member, firstname, lastname, middle_name, email, phone_number, birthdate, age, gender, address, civil_status, profession, spouse_name, marriage_date, children, desire_ministry, baptism_date, location, pastor_name, status, guardian_name, guardian_contact, guardian_relationship, date_created)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         final_baptism_id,
@@ -247,6 +260,11 @@ async function createWaterBaptism(baptismData) {
         gender || null,
         address || null,
         civil_status || null,
+        profession || null,
+        spouse_name || null,
+        formattedMarriageDate,
+        children || null,
+        desire_ministry || null,
         formattedBaptismDate,
         location || null,
         pastor_name || null,
@@ -702,6 +720,11 @@ async function updateWaterBaptism(baptismId, baptismData) {
       gender,
       address,
       civil_status,
+      profession,
+      spouse_name,
+      marriage_date,
+      children,
+      desire_ministry,
       baptism_date,
       location,
       pastor_name,
@@ -775,6 +798,32 @@ async function updateWaterBaptism(baptismId, baptismData) {
     if (civil_status !== undefined) {
       fields.push('civil_status = ?');
       params.push(civil_status);
+    }
+
+    if (profession !== undefined) {
+      fields.push('profession = ?');
+      params.push(profession);
+    }
+
+    if (spouse_name !== undefined) {
+      fields.push('spouse_name = ?');
+      params.push(spouse_name);
+    }
+
+    if (marriage_date !== undefined) {
+      const formattedMarriageDate = marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null;
+      fields.push('marriage_date = ?');
+      params.push(formattedMarriageDate);
+    }
+
+    if (children !== undefined) {
+      fields.push('children = ?');
+      params.push(children);
+    }
+
+    if (desire_ministry !== undefined) {
+      fields.push('desire_ministry = ?');
+      params.push(desire_ministry);
     }
 
     if (baptism_date !== undefined) {
@@ -991,6 +1040,11 @@ async function exportWaterBaptismsToExcel(options = {}) {
         'Email': baptism.email || '',
         'Phone Number': baptism.phone_number || '',
         'Civil Status': baptism.civil_status || '',
+        'Profession': baptism.profession || '',
+        'Spouse Name': baptism.spouse_name || '',
+        'Marriage Date': baptism.marriage_date || '',
+        'Children': baptism.children || '',
+        'Desire Ministry': baptism.desire_ministry || '',
         'Location': baptism.location || '',
         'Pastor Name': baptism.pastor_name || '',
         'Baptism Date': baptism.baptism_date ? moment(baptism.baptism_date).format('YYYY-MM-DD HH:mm:ss') : '',
@@ -1019,7 +1073,11 @@ async function exportWaterBaptismsToExcel(options = {}) {
       { wch: 25 },  // Email
       { wch: 15 },  // Phone Number
       { wch: 15 },  // Civil Status
-      { wch: 20 },  // Position
+      { wch: 20 },  // Profession
+      { wch: 20 },  // Spouse Name
+      { wch: 15 },  // Marriage Date
+      { wch: 30 },  // Children
+      { wch: 20 },  // Desire Ministry
       { wch: 25 },  // Location
       { wch: 20 },  // Pastor Name
       { wch: 20 },  // Baptism Date

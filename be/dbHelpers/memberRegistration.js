@@ -427,6 +427,10 @@ async function registerMemberFromWaterBaptism(payload = {}) {
     // baptism_date is set to null as it will be set later when the baptism is scheduled/completed
     const baptismResult = await createWaterBaptism({
       member_id: createdMemberId,
+      profession: payload.profession || null,
+      spouse_name: payload.spouse_name || null,
+      marriage_date: payload.marriage_date || null,
+      children: payload.children || null,
       baptism_date: null,
       status: 'pending'
     });

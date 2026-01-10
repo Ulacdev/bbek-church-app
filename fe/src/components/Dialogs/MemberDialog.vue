@@ -161,6 +161,111 @@
         </el-select>
       </el-form-item>
 
+      <!-- Profession -->
+      <el-form-item label="Profession" prop="profession">
+        <el-input
+          v-model="formData.profession"
+          placeholder="Enter profession/occupation"
+          size="large"
+          clearable
+        />
+      </el-form-item>
+
+      <!-- Spouse Name (only show if married) -->
+      <el-form-item v-if="formData.civil_status === 'married'" label="Spouse Name" prop="spouse_name">
+        <el-input
+          v-model="formData.spouse_name"
+          placeholder="Enter spouse's full name"
+          size="large"
+          clearable
+        />
+      </el-form-item>
+
+      <!-- Marriage Date (only show if married) -->
+      <el-form-item v-if="formData.civil_status === 'married'" label="Marriage Date" prop="marriage_date">
+        <el-date-picker
+          v-model="formData.marriage_date"
+          type="date"
+          placeholder="Select marriage date"
+          size="large"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          style="width: 100%"
+        />
+      </el-form-item>
+
+      <!-- Children (only show if married) -->
+      <el-form-item v-if="formData.civil_status === 'married'" label="Children">
+        <div class="children-section">
+          <div v-for="(child, index) in formData.children" :key="index" class="child-item">
+            <div class="child-fields">
+              <el-input
+                v-model="child.name"
+                placeholder="Child's full name"
+                size="large"
+                style="flex: 2; margin-right: 8px;"
+              />
+              <el-input-number
+                v-model="child.age"
+                :min="0"
+                :max="100"
+                placeholder="Age"
+                size="large"
+                style="flex: 1; margin-right: 8px;"
+              />
+              <el-select
+                v-model="child.gender"
+                placeholder="Gender"
+                size="large"
+                style="flex: 1; margin-right: 8px;"
+              >
+                <el-option label="Male" value="M" />
+                <el-option label="Female" value="F" />
+                <el-option label="Other" value="O" />
+              </el-select>
+              <el-date-picker
+                v-model="child.birthday"
+                type="date"
+                placeholder="Birthday"
+                size="large"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                style="flex: 1; margin-right: 8px;"
+              />
+              <el-button
+                type="danger"
+                size="large"
+                @click="removeChild(index)"
+                :disabled="formData.children.length === 1"
+              >
+                Remove
+              </el-button>
+            </div>
+          </div>
+          <el-button
+            type="primary"
+            size="large"
+            @click="addChild"
+            style="margin-top: 8px;"
+          >
+            Add Child
+          </el-button>
+        </div>
+      </el-form-item>
+
+      <!-- Desire Ministry (only for admin/staff positions) -->
+      <el-form-item v-if="isAdminOrStaffPosition" label="Desire Ministry" prop="desire_ministry">
+        <el-input
+          v-model="formData.desire_ministry"
+          type="textarea"
+          :rows="3"
+          placeholder="Enter desired ministry or service"
+          size="large"
+          maxlength="255"
+          show-word-limit
+        />
+      </el-form-item>
+
       <!-- Guardian Name -->
       <el-form-item label="Guardian Name" prop="guardian_name">
         <el-input
@@ -273,6 +378,16 @@ const labelPosition = computed(() => {
 // Check if in edit mode
 const isEditMode = computed(() => !!props.memberData)
 
+// Check if current position is admin/staff (not regular member or none)
+const isAdminOrStaffPosition = computed(() => {
+  const staffPositions = [
+    'president', 'vice_president', 'secretary', 'assistant_secretary',
+    'treasurer', 'auditor', 'coordinator', 'pio', 'socmed_coordinator',
+    'senior_pastor', 'sending_pastor', 'department'
+  ]
+  return staffPositions.includes(formData.position)
+})
+
 // Church positions based on organization structure
 const churchPositions = [
   { label: 'President', value: 'president' },
@@ -304,6 +419,11 @@ const formData = reactive({
   phone_number: '',
   civil_status: '',
   position: 'none',
+  profession: '',
+  spouse_name: '',
+  marriage_date: '',
+  children: [],
+  desire_ministry: '',
   guardian_name: '',
   guardian_contact: '',
   guardian_relationship: ''
@@ -401,6 +521,15 @@ const rules = {
   ],
   guardian_contact: [
     { max: 20, message: 'Guardian contact must not exceed 20 characters', trigger: 'blur' }
+  ],
+  profession: [
+    { max: 100, message: 'Profession must not exceed 100 characters', trigger: 'blur' }
+  ],
+  spouse_name: [
+    { max: 100, message: 'Spouse name must not exceed 100 characters', trigger: 'blur' }
+  ],
+  desire_ministry: [
+    { max: 255, message: 'Desire ministry must not exceed 255 characters', trigger: 'blur' }
   ]
 }
 
@@ -411,13 +540,28 @@ const calculateAge = () => {
     const today = new Date()
     let age = today.getFullYear() - birthDate.getFullYear()
     const monthDiff = today.getMonth() - birthDate.getMonth()
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--
     }
-    
+
     formData.age = age
   }
+}
+
+// Add child
+const addChild = () => {
+  formData.children.push({
+    name: '',
+    age: null,
+    gender: '',
+    birthday: ''
+  })
+}
+
+// Remove child
+const removeChild = (index) => {
+  formData.children.splice(index, 1)
 }
 
 // Watch for memberData changes to populate form in edit mode
@@ -435,6 +579,11 @@ watch(() => props.memberData, (newData) => {
     formData.phone_number = newData.phone_number ? newData.phone_number.replace(/^\+63/, '') : ''
     formData.civil_status = newData.civil_status || ''
     formData.position = newData.position || 'none'
+    formData.profession = newData.profession || ''
+    formData.spouse_name = newData.spouse_name || ''
+    formData.marriage_date = newData.marriage_date || ''
+    formData.children = Array.isArray(newData.children) ? [...newData.children] : []
+    formData.desire_ministry = newData.desire_ministry || ''
     formData.testimony = newData.testimony || ''
     formData.guardian_name = newData.guardian_name || ''
     formData.guardian_contact = newData.guardian_contact || ''
@@ -465,8 +614,13 @@ watch(() => props.modelValue, (isOpen) => {
     formData.email = data.email || ''
     formData.phone_number = data.phone_number ? data.phone_number.replace(/^\+63/, '') : ''
     formData.civil_status = data.civil_status || ''
-    formData.testimony = data.testimony || ''
     formData.position = data.position || 'none'
+    formData.profession = data.profession || ''
+    formData.spouse_name = data.spouse_name || ''
+    formData.marriage_date = data.marriage_date || ''
+    formData.children = Array.isArray(data.children) ? [...data.children] : []
+    formData.desire_ministry = data.desire_ministry || ''
+    formData.testimony = data.testimony || ''
     formData.guardian_name = data.guardian_name || ''
     formData.guardian_contact = data.guardian_contact || ''
     formData.guardian_relationship = data.guardian_relationship || ''
@@ -492,8 +646,13 @@ const resetForm = () => {
   formData.email = ''
   formData.phone_number = ''
   formData.civil_status = ''
-  formData.testimony = ''
   formData.position = 'none'
+  formData.profession = ''
+  formData.spouse_name = ''
+  formData.marriage_date = ''
+  formData.children = []
+  formData.desire_ministry = ''
+  formData.testimony = ''
   formData.guardian_name = ''
   formData.guardian_contact = ''
   formData.guardian_relationship = ''
@@ -545,8 +704,13 @@ const handleSubmit = async () => {
       email: formData.email.trim().toLowerCase(),
       phone_number: `+63${formData.phone_number}`, // Add +63 prefix
       civil_status: formData.civil_status,
-      testimony: formData.testimony?.trim() || '',
       position: formData.position,
+      profession: formData.profession?.trim() || null,
+      spouse_name: formData.spouse_name?.trim() || null,
+      marriage_date: formData.marriage_date || null,
+      children: formData.children?.length > 0 ? formData.children : null,
+      desire_ministry: formData.desire_ministry?.trim() || null,
+      testimony: formData.testimony?.trim() || '',
       guardian_name: formData.guardian_name?.trim() || null,
       guardian_contact: formData.guardian_contact?.trim() || null,
       guardian_relationship: formData.guardian_relationship || null
@@ -676,6 +840,47 @@ defineExpose({
 .dialog-footer .el-button--primary:hover {
   background-color: #0d9488;
   border-color: #0d9488;
+}
+
+.children-section {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  background-color: #fafafa;
+}
+
+.child-item {
+  margin-bottom: 12px;
+}
+
+.child-item:last-child {
+  margin-bottom: 0;
+}
+
+.child-fields {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .child-fields {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .child-fields .el-input,
+  .child-fields .el-select,
+  .child-fields .el-date-editor {
+    width: 100% !important;
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+  }
+
+  .child-fields .el-button {
+    align-self: flex-end;
+  }
 }
 
 @media (max-width: 960px) {

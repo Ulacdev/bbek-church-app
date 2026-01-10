@@ -338,6 +338,128 @@
                       </el-select>
                     </el-form-item>
 
+                    <el-form-item label="Profession" prop="profession" class="form-group">
+                      <template #label>
+                        <span>Profession</span>
+                      </template>
+                      <el-input
+                        v-model="formData.profession"
+                        placeholder="Enter your profession"
+                        size="large"
+                        :disabled="memberRegistrationStore.loading"
+                      />
+                    </el-form-item>
+
+
+                    <!-- Spouse and Children fields - shown only if married -->
+                    <template v-if="formData.civilStatus === 'married'">
+                      <el-form-item label="Spouse Name" prop="spouseName" class="form-group">
+                        <template #label>
+                          <span>Spouse Name</span>
+                        </template>
+                        <el-input
+                          v-model="formData.spouseName"
+                          placeholder="Enter spouse's full name"
+                          size="large"
+                          :disabled="memberRegistrationStore.loading"
+                        />
+                      </el-form-item>
+
+                      <el-form-item label="Marriage Date" prop="marriageDate" class="form-group">
+                        <template #label>
+                          <span>Marriage Date</span>
+                        </template>
+                        <el-date-picker
+                          v-model="formData.marriageDate"
+                          type="date"
+                          placeholder="Select marriage date"
+                          size="large"
+                          format="YYYY-MM-DD"
+                          value-format="YYYY-MM-DD"
+                          style="width: 100%"
+                          :disabled="memberRegistrationStore.loading"
+                        />
+                      </el-form-item>
+
+                      <!-- Children Section -->
+                      <div class="children-section">
+                        <h4 class="children-title">Children Information</h4>
+                        <p class="children-subtitle">Add information about your children (optional)</p>
+
+                        <div v-for="(child, index) in formData.children" :key="index" class="child-item">
+                          <div class="child-header">
+                            <span class="child-number">Child {{ index + 1 }}</span>
+                            <el-button
+                              type="danger"
+                              size="small"
+                              @click="removeChild(index)"
+                              :disabled="memberRegistrationStore.loading"
+                            >
+                              Remove
+                            </el-button>
+                          </div>
+
+                          <div class="form-row">
+                            <el-form-item :label="`Child ${index + 1} Name`" :prop="`children.${index}.name`" class="form-group">
+                              <el-input
+                                v-model="child.name"
+                                :placeholder="`Enter child ${index + 1} name`"
+                                size="large"
+                                :disabled="memberRegistrationStore.loading"
+                              />
+                            </el-form-item>
+                            <el-form-item :label="`Child ${index + 1} Age`" :prop="`children.${index}.age`" class="form-group">
+                              <el-input
+                                v-model.number="child.age"
+                                type="number"
+                                :placeholder="`Enter child ${index + 1} age`"
+                                size="large"
+                                :disabled="memberRegistrationStore.loading"
+                              />
+                            </el-form-item>
+                          </div>
+
+                          <div class="form-row">
+                            <el-form-item :label="`Child ${index + 1} Gender`" :prop="`children.${index}.gender`" class="form-group">
+                              <el-select
+                                v-model="child.gender"
+                                :placeholder="`Select child ${index + 1} gender`"
+                                size="large"
+                                style="width: 100%"
+                                :disabled="memberRegistrationStore.loading"
+                              >
+                                <el-option label="Male" value="M" />
+                                <el-option label="Female" value="F" />
+                              </el-select>
+                            </el-form-item>
+                            <el-form-item :label="`Child ${index + 1} Birthday`" :prop="`children.${index}.birthday`" class="form-group">
+                              <el-date-picker
+                                v-model="child.birthday"
+                                type="date"
+                                :placeholder="`Select child ${index + 1} birthday`"
+                                size="large"
+                                format="YYYY-MM-DD"
+                                value-format="YYYY-MM-DD"
+                                style="width: 100%"
+                                :disabled="memberRegistrationStore.loading"
+                              />
+                            </el-form-item>
+                          </div>
+                        </div>
+
+                        <el-button
+                          type="primary"
+                          size="large"
+                          @click="addChild"
+                          :disabled="memberRegistrationStore.loading"
+                          class="add-child-btn"
+                        >
+                          <v-icon start>add</v-icon>
+                          Add Child
+                        </el-button>
+                      </div>
+                    </template>
+
                     <el-form-item label="Guardian Name" prop="guardianName" class="form-group">
                       <template #label>
                         <span>Guardian Name (Optional)</span>
@@ -471,6 +593,11 @@ const formData = reactive({
   address: '',
   email: '',
   phoneNumber: '',
+  civilStatus: '',
+  profession: '',
+  spouseName: '',
+  marriageDate: null,
+  children: [],
   testimony: '',
   preferredDate: null,
   guardianName: '',
@@ -791,9 +918,13 @@ const handleSubmit = async () => {
       address: formData.address.trim(),
       email: formData.email.trim(),
       phone_number: formatPhoneNumber(formData.phoneNumber),
+      civil_status: formData.civilStatus,
+      profession: formData.profession.trim() || null,
+      spouse_name: formData.spouseName.trim() || null,
+      marriage_date: formData.marriageDate || null,
+      children: formData.children.length > 0 ? JSON.stringify(formData.children) : null,
       testimony: formData.testimony.trim() || null,
       preferred_date: formData.preferredDate || null,
-      civil_status: formData.civilStatus,
       guardian_name: formData.guardianName.trim() || null,
       guardian_contact: formData.guardianContact ? formatPhoneNumber(formData.guardianContact) : null,
       guardian_relationship: formData.guardianRelationship || null
@@ -857,6 +988,19 @@ const handleSubmit = async () => {
   }
 }
 
+const addChild = () => {
+  formData.children.push({
+    name: '',
+    age: null,
+    gender: '',
+    birthday: null
+  })
+}
+
+const removeChild = (index) => {
+  formData.children.splice(index, 1)
+}
+
 const resetForm = () => {
   formData.firstname = ''
   formData.middleName = ''
@@ -868,6 +1012,10 @@ const resetForm = () => {
   formData.email = ''
   formData.phoneNumber = ''
   formData.civilStatus = ''
+  formData.profession = ''
+  formData.spouseName = ''
+  formData.marriageDate = null
+  formData.children = []
   formData.testimony = ''
   formData.preferredDate = null
   formData.guardianName = ''
@@ -1599,6 +1747,60 @@ const resetForm = () => {
 
 .mt-4 {
   margin-top: 16px;
+}
+
+/* Children Section Styles */
+.children-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.children-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.children-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.child-item {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+}
+
+.child-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.child-number {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.add-child-btn {
+  width: 100%;
+  margin-top: 16px;
+  background-color: #14b8a6;
+  border-color: #14b8a6;
+}
+
+.add-child-btn:hover {
+  background-color: #0d9488;
+  border-color: #0d9488;
 }
 </style>
 

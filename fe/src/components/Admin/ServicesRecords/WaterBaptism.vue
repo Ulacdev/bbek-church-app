@@ -358,6 +358,11 @@ const editBaptism = (baptism) => {
     age: baptism.age || '',
     gender: baptism.gender || '',
     civil_status: baptism.civil_status || '',
+    profession: baptism.profession || '',
+    spouse_name: baptism.spouse_name || '',
+    marriage_date: baptism.marriage_date || null,
+    children: baptism.children ? (typeof baptism.children === 'string' ? JSON.parse(baptism.children) : baptism.children) : [],
+    desire_ministry: baptism.desire_ministry || '',
     address: baptism.address || '',
     email: baptism.email || '',
     phone_number: baptism.phone_number || ''
