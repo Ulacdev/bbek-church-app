@@ -197,59 +197,82 @@
       <!-- Children (only show if married) -->
       <el-form-item v-if="formData.civil_status === 'married'" label="Children">
         <div class="children-section">
+          <div class="children-header">
+            <span class="children-count">{{ formData.children.length }} Child(ren)</span>
+            <el-button
+              type="primary"
+              size="large"
+              @click="addChild"
+              class="add-child-btn"
+            >
+              + Add Child
+            </el-button>
+          </div>
+          
           <div v-for="(child, index) in formData.children" :key="index" class="child-item">
-            <div class="child-fields">
-              <el-input
-                v-model="child.name"
-                placeholder="Child's full name"
-                size="large"
-                style="flex: 2; margin-right: 8px;"
-              />
-              <el-input-number
-                v-model="child.age"
-                :min="0"
-                :max="100"
-                placeholder="Age"
-                size="large"
-                style="flex: 1; margin-right: 8px;"
-              />
-              <el-select
-                v-model="child.gender"
-                placeholder="Gender"
-                size="large"
-                style="flex: 1; margin-right: 8px;"
-              >
-                <el-option label="Male" value="M" />
-                <el-option label="Female" value="F" />
-                <el-option label="Other" value="O" />
-              </el-select>
-              <el-date-picker
-                v-model="child.birthday"
-                type="date"
-                placeholder="Birthday"
-                size="large"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                style="flex: 1; margin-right: 8px;"
-              />
+            <el-divider content-position="left">
+              Child {{ index + 1 }}
               <el-button
+                v-if="formData.children.length > 1"
                 type="danger"
-                size="large"
+                size="small"
                 @click="removeChild(index)"
-                :disabled="formData.children.length === 1"
+                class="remove-child-btn"
+                circle
               >
-                Remove
+                <el-icon><Delete /></el-icon>
               </el-button>
+            </el-divider>
+            
+            <div class="child-grid">
+              <el-form-item label="Full Name" :prop="`children.${index}.name`" :rules="childNameRules">
+                <el-input
+                  v-model="child.name"
+                  placeholder="Enter child's full name"
+                  size="large"
+                  clearable
+                />
+              </el-form-item>
+              
+              <el-form-item label="Age" :prop="`children.${index}.age`" :rules="childAgeRules">
+                <el-input-number
+                  v-model="child.age"
+                  :min="0"
+                  :max="100"
+                  placeholder="Enter age"
+                  size="large"
+                  style="width: 100%;"
+                />
+              </el-form-item>
+              
+              <el-form-item label="Gender" :prop="`children.${index}.gender`" :rules="childGenderRules">
+                <el-select
+                  v-model="child.gender"
+                  placeholder="Select gender"
+                  size="large"
+                  style="width: 100%;"
+                  clearable
+                >
+                  <el-option label="Male" value="M" />
+                  <el-option label="Female" value="F" />
+                  <el-option label="Other" value="O" />
+                </el-select>
+              </el-form-item>
+              
+              <el-form-item label="Birthday" :prop="`children.${index}.birthday`" :rules="childBirthdayRules">
+                <el-date-picker
+                  v-model="child.birthday"
+                  type="date"
+                  placeholder="Select birthday"
+                  size="large"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
+                  style="width: 100%;"
+                  :max-date="new Date()"
+                />
+              </el-form-item>
             </div>
           </div>
-          <el-button
-            type="primary"
-            size="large"
-            @click="addChild"
-            style="margin-top: 8px;"
-          >
-            Add Child
-          </el-button>
         </div>
       </el-form-item>
 
@@ -326,6 +349,7 @@
 <script setup>
 import { ref, reactive, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import { useMemberRecordStore } from '@/stores/ChurchRecords/memberRecordStore'
 
 // Props
@@ -530,6 +554,44 @@ const rules = {
   ],
   desire_ministry: [
     { max: 255, message: 'Desire ministry must not exceed 255 characters', trigger: 'blur' }
+  ],
+  // Child validation rules
+  childNameRules: [
+    { required: true, message: 'Child name is required', trigger: 'blur' },
+    { min: 2, max: 100, message: 'Child name must be between 2 and 100 characters', trigger: 'blur' }
+  ],
+  childAgeRules: [
+    { required: true, message: 'Child age is required', trigger: 'blur' },
+    { type: 'number', min: 0, max: 100, message: 'Age must be between 0 and 100', trigger: 'blur' }
+  ],
+  childGenderRules: [
+    { required: true, message: 'Child gender is required', trigger: 'change' }
+  ],
+  childBirthdayRules: [
+    { required: true, message: 'Child birthday is required', trigger: 'change' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error('Birthday is required'))
+          return
+        }
+        const selectedDate = new Date(value)
+        const today = new Date()
+        if (selectedDate > today) {
+          callback(new Error('Birthday cannot be in the future'))
+          return
+        }
+        // Check if age is reasonable (not more than 150 years ago)
+        const minDate = new Date()
+        minDate.setFullYear(today.getFullYear() - 150)
+        if (selectedDate < minDate) {
+          callback(new Error('Birthday is too far in the past'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
   ]
 }
 
@@ -947,4 +1009,5 @@ defineExpose({
   }
 }
 </style>
+
 
