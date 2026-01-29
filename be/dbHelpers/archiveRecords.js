@@ -662,10 +662,60 @@ async function restoreArchive(archiveId, restoredBy = null, restoreNotes = null)
       };
     }
 
+    // Clean up values: convert empty strings to NULL for date/datetime and JSON columns
+    const dateColumns = [
+      'birthdate', 'baptism_date', 'wedding_anniversary', 'marriage_date',
+      'date_created', 'date_updated', 'date_of_birth', 'date_baptized',
+      'membership_date', 'ordination_date', 'service_date', 'event_date',
+      'start_date', 'end_date', 'archived_at', 'restored_at',
+      'approval_date', 'completed_date', 'scheduled_date', 'confirmed_date',
+      'payment_date', 'received_date', 'submitted_date', 'processed_date'
+    ];
+
+    // JSON columns that need empty strings converted to NULL
+    const jsonColumns = [
+      'children', 'spouse', 'emergency_contact', 'custom_fields',
+      'metadata', 'attributes', 'settings', 'preferences',
+      'family_members', 'related_ids', 'tags', 'categories',
+      'permissions', 'roles', 'configuration', 'options'
+    ];
+
+    const cleanedData = {};
+    for (const [key, value] of Object.entries(mappedData)) {
+      // Check if this is a date column with empty string value
+      const isDateColumn = dateColumns.some(col => key.toLowerCase().includes(col.toLowerCase()));
+      if (isDateColumn && (value === '' || value === null || value === undefined)) {
+        cleanedData[key] = null;
+        continue;
+      }
+
+      // Check if this is a JSON column with empty string value
+      const isJsonColumn = jsonColumns.some(col => key.toLowerCase().includes(col.toLowerCase()));
+      if (isJsonColumn) {
+        if (value === '' || value === null || value === undefined) {
+          cleanedData[key] = null;
+        } else if (typeof value === 'string') {
+          // Try to parse as JSON, if fails, set to null
+          try {
+            JSON.parse(value);
+            cleanedData[key] = value; // Keep as string for MySQL JSON
+          } catch (e) {
+            cleanedData[key] = null;
+          }
+        } else {
+          cleanedData[key] = value;
+        }
+        continue;
+      }
+
+      // For other columns, keep as is
+      cleanedData[key] = value;
+    }
+
     // Build INSERT query dynamically based on mapped data (use actual table name)
-    const fields = Object.keys(mappedData);
+    const fields = Object.keys(cleanedData);
     const placeholders = fields.map(() => '?').join(', ');
-    const values = fields.map(field => mappedData[field]);
+    const values = fields.map(field => cleanedData[field]);
 
     const insertSql = `
       INSERT INTO \`${actualTableName}\` (${fields.map(f => `\`${f}\``).join(', ')})
@@ -1012,6 +1062,139 @@ async function bulkDeleteArchivesPermanently(archiveIds) {
   }
 }
 
+/**
+ * BULK RESTORE - Restore multiple archived records back to their original tables
+ * @param {Array<Number>} archiveIds - Array of Archive IDs to restore
+ * @param {String} restoredBy - User ID who is restoring the records
+ * @param {String} restoreNotes - Optional notes about the restoration
+ * @returns {Promise<Object>} Result object with success/failure counts
+ */
+async function bulkRestoreArchives(archiveIds, restoredBy = null, restoreNotes = null) {
+  try {
+    if (!Array.isArray(archiveIds) || archiveIds.length === 0) {
+      throw new Error('Archive IDs array is required and cannot be empty');
+    }
+
+    // Validate all IDs are numbers
+    const validIds = archiveIds.filter(id => typeof id === 'number' && id > 0);
+    if (validIds.length === 0) {
+      throw new Error('No valid archive IDs provided');
+    }
+
+    const results = {
+      restored: [],
+      failed: [],
+      skipped: []
+    };
+
+    // Process all archive records in parallel for faster performance
+    const restorePromises = validIds.map(async (archiveId) => {
+      try {
+        // Check if archive exists and not already restored
+        const archiveResult = await getArchiveById(archiveId);
+        
+        if (!archiveResult.success) {
+          return {
+            status: 'failed',
+            archive_id: archiveId,
+            reason: 'Archive record not found'
+          };
+        }
+
+        const archive = archiveResult.data;
+        const isRestored = archive.restored === 1 || archive.restored === true || archive.restored === '1';
+        
+        if (isRestored) {
+          return {
+            status: 'skipped',
+            archive_id: archiveId,
+            original_table: archive.original_table,
+            original_id: archive.original_id,
+            reason: 'Already restored'
+          };
+        }
+
+        // Attempt to restore the archive
+        const restoreResult = await restoreArchive(archiveId, restoredBy, restoreNotes);
+        
+        if (restoreResult.success) {
+          return {
+            status: 'restored',
+            archive_id: archiveId,
+            original_table: archive.original_table,
+            original_id: archive.original_id
+          };
+        } else {
+          return {
+            status: 'failed',
+            archive_id: archiveId,
+            original_table: archive.original_table,
+            original_id: archive.original_id,
+            reason: restoreResult.message
+          };
+        }
+      } catch (error) {
+        console.warn(`Failed to restore archive ${archiveId}:`, error.message);
+        return {
+          status: 'failed',
+          archive_id: archiveId,
+          reason: error.message
+        };
+      }
+    });
+
+    // Wait for all restores to complete in parallel
+    const restoreResults = await Promise.all(restorePromises);
+
+    // Categorize results
+    for (const result of restoreResults) {
+      if (result.status === 'restored') {
+        results.restored.push({
+          archive_id: result.archive_id,
+          original_table: result.original_table,
+          original_id: result.original_id
+        });
+      } else if (result.status === 'failed') {
+        results.failed.push({
+          archive_id: result.archive_id,
+          original_table: result.original_table,
+          original_id: result.original_id,
+          reason: result.reason
+        });
+      } else if (result.status === 'skipped') {
+        results.skipped.push({
+          archive_id: result.archive_id,
+          original_table: result.original_table,
+          original_id: result.original_id,
+          reason: result.reason
+        });
+      }
+    }
+
+    const totalProcessed = results.restored.length + results.failed.length + results.skipped.length;
+    const successRate = totalProcessed > 0 ? ((results.restored.length / validIds.length) * 100).toFixed(1) : 0;
+
+    return {
+      success: true,
+      message: `Bulk restore completed: ${results.restored.length} restored, ${results.failed.length} failed, ${results.skipped.length} skipped`,
+      data: {
+        requested: validIds.length,
+        processed: totalProcessed,
+        restored: results.restored.length,
+        failed: results.failed.length,
+        skipped: results.skipped.length,
+        success_rate: parseFloat(successRate),
+        restored_archives: results.restored,
+        failed_archives: results.failed,
+        skipped_archives: results.skipped
+      }
+    };
+  } catch (error) {
+    console.error('Error bulk restoring archives:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   archiveRecord,
   getAllArchives,
@@ -1020,6 +1203,7 @@ module.exports = {
   getArchiveSummary,
   getArchivesByDateRange,
   deleteArchivePermanently,
-  bulkDeleteArchivesPermanently
+  bulkDeleteArchivesPermanently,
+  bulkRestoreArchives
 };
 

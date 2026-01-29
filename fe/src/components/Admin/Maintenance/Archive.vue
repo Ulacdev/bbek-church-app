@@ -171,6 +171,15 @@
           <span>{{ selectedArchives.length }} archive{{ selectedArchives.length > 1 ? 's' : '' }} selected</span>
           <div>
             <el-button
+              type="success"
+              size="small"
+              :disabled="loading"
+              @click="bulkRestoreSelected"
+            >
+              <el-icon><RefreshRight /></el-icon>
+              Restore Selected
+            </el-button>
+            <el-button
               type="danger"
               size="small"
               :disabled="loading"
@@ -231,14 +240,14 @@
       <div class="table-wrapper">
         <el-table
           v-loading="loading"
-          :data="archives"
+          :data="sortedArchives"
           stripe
           style="width: 100%"
           empty-text="No archived records found"
           table-layout="auto"
           @selection-change="handleSelectionChange"
         >
-          <el-table-column type="selection" width="55" />
+          <el-table-column type="selection" width="55" :selectable="selectable" />
           <el-table-column prop="archived_at" label="Archived Date" min-width="160" width="180">
             <template #default="{ row }">
               {{ formatDateTime(row.archived_at) }}
@@ -500,6 +509,23 @@ const itemsPerPage = computed({
 const pageSizeOptions = computed(() => archiveStore.pageSizeOptions)
 const summaryStats = computed(() => archiveStore.summaryStats)
 
+// Sort archives: non-restored (archived) first, then restored
+const sortedArchives = computed(() => {
+  return [...archives.value].sort((a, b) => {
+    // Non-restored (archived = 0) should come first
+    if (a.restored === b.restored) {
+      // If same status, sort by archived date (newest first)
+      return new Date(b.archived_at) - new Date(a.archived_at)
+    }
+    return a.restored ? 1 : -1
+  })
+})
+
+// Check if a row is selectable (only non-restored archives can be selected)
+const selectable = (row) => {
+  return !row.restored
+}
+
 // Local state
 const detailsDialog = ref(false)
 const selectedArchive = ref(null)
@@ -645,6 +671,53 @@ const bulkDeleteArchives = async () => {
     if (error !== 'cancel') {
       console.error('Error bulk deleting archives:', error)
       ElMessage.error('Failed to delete selected archives')
+    }
+  }
+}
+
+const bulkRestoreSelected = async () => {
+  // Filter out already restored archives
+  const archivesToRestore = selectedArchives.value.filter(a => !a.restored)
+  
+  if (archivesToRestore.length === 0) {
+    ElMessage.info('No non-restored archives selected')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to restore ${archivesToRestore.length} selected archive${archivesToRestore.length > 1 ? 's' : ''} back to their original tables?`,
+      'Confirm Bulk Restore',
+      {
+        confirmButtonText: 'Restore',
+        cancelButtonText: 'Cancel',
+        type: 'warning',
+      }
+    )
+
+    // Extract archive IDs
+    const archiveIds = archivesToRestore.map(archive => archive.archive_id)
+
+    // Use the bulk restore endpoint
+    const result = await archiveStore.bulkRestoreArchives(archiveIds)
+
+    if (result.success) {
+      const { restored, failed, skipped } = result.data
+      let message = `Restored ${restored} archive${restored !== 1 ? 's' : ''}`
+      if (failed > 0) {
+        message += `, ${failed} failed`
+      }
+      if (skipped > 0) {
+        message += `, ${skipped} skipped (already restored)`
+      }
+      ElMessage.success(message)
+    }
+
+    clearSelection()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error bulk restoring archives:', error)
+      ElMessage.error('Failed to restore selected archives')
     }
   }
 }

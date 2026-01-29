@@ -186,6 +186,121 @@ export const useArchiveStore = defineStore('archive', {
       }
     },
 
+    async restoreAllArchives(restoreNotes = null) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const accessToken = localStorage.getItem('accessToken')
+        const response = await axios.post('/archives/restoreAllArchives', {
+          restore_notes: restoreNotes
+        }, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+
+        if (response.data.success) {
+          // Refresh the archives list and summary stats
+          await this.fetchArchives()
+          await this.fetchSummaryStats()
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to restore all archives')
+        }
+      } catch (error) {
+        console.error('Error restoring all archives:', error)
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to restore all archives'
+        this.error = errorMessage
+        const restoreError = new Error(errorMessage)
+        restoreError.response = error.response
+        throw restoreError
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async restoreAllArchives(restoreNotes = null) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const accessToken = localStorage.getItem('accessToken')
+        const response = await axios.post('/archives/restoreAllArchives', {
+          restore_notes: restoreNotes
+        }, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+
+        if (response.data.success) {
+          // Refresh the archives list and summary stats
+          await this.fetchArchives()
+          await this.fetchSummaryStats()
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to restore all archives')
+        }
+      } catch (error) {
+        console.error('Error restoring all archives:', error)
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to restore all archives'
+        this.error = errorMessage
+        const restoreError = new Error(errorMessage)
+        restoreError.response = error.response
+        throw restoreError
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkRestoreArchives(archiveIds, restoreNotes = null) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const accessToken = localStorage.getItem('accessToken')
+        const response = await axios.post('/archives/bulkRestoreArchives', {
+          archive_ids: archiveIds,
+          restore_notes: restoreNotes
+        }, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        })
+
+        if (response.data.success) {
+          // Refresh the archives list and summary stats
+          await this.fetchArchives()
+          await this.fetchSummaryStats()
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to bulk restore archives')
+        }
+      } catch (error) {
+        console.error('Error bulk restoring archives:', error)
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to bulk restore archives'
+        this.error = errorMessage
+        const bulkRestoreError = new Error(errorMessage)
+        bulkRestoreError.response = error.response
+        throw bulkRestoreError
+      } finally {
+        this.loading = false
+      }
+    },
+
     async bulkDeleteArchivesPermanently(archiveIds) {
       this.loading = true
       this.error = null
