@@ -39,6 +39,15 @@ function determineModule(path) {
   return 'Unknown Module';
 }
 
+// Helper function to truncate description if too long (max 5000 chars)
+const MAX_DESCRIPTION_LENGTH = 5000;
+function truncateDescription(description) {
+  if (!description || description.length <= MAX_DESCRIPTION_LENGTH) {
+    return description;
+  }
+  return description.substring(0, MAX_DESCRIPTION_LENGTH - 50) + '... [truncated]';
+}
+
 // Helper function to get primary key field for a table
 function getPrimaryKeyField(tableName) {
   const primaryKeys = {
@@ -447,7 +456,7 @@ const auditTrailMiddleware = async (req, res, next) => {
             }
 
             if (Object.keys(cleanData).length > 0) {
-              createDescription += ` - Complete Data: ${JSON.stringify(cleanData)}`;
+              createDescription += ` - Complete Data: ${truncateDescription(JSON.stringify(cleanData))}`;
             }
           }
 
@@ -585,7 +594,7 @@ const auditTrailMiddleware = async (req, res, next) => {
             }
 
             if (Object.keys(cleanData).length > 0) {
-              deleteDescription += ` - Complete Data: ${JSON.stringify(cleanData)}`;
+              deleteDescription += ` - Complete Data: ${truncateDescription(JSON.stringify(cleanData))}`;
             }
           }
 
