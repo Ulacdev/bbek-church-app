@@ -5,7 +5,7 @@
       <div class="gcash-content">
         <!-- GCash Logo -->
         <div class="gcash-logo-container">
-          <img src="/img/gcash.png" alt="GCash Logo" class="gcash-logo-img" />
+          <img :src="gcashLogoSrc" alt="GCash Logo" class="gcash-logo-img" />
         </div>
         
         <!-- GCash Text -->
@@ -13,12 +13,12 @@
         
         <!-- Instruction Text -->
         <p class="gcash-instruction">
-          Send your donation to this GCash account
+          {{ gcashInstruction }}
         </p>
         
         <!-- GCash QR Code -->
         <div class="gcash-qr-container">
-          <img src="/img/gcash-qr.png" alt="GCash QR Code" class="gcash-qr-img" />
+          <img :src="gcashQrSrc" alt="GCash QR Code" class="gcash-qr-img" />
         </div>
       </div>
     </v-card>
@@ -26,11 +26,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from '@/api/axios'
+
+// Props to receive data from parent Give.vue
+const props = defineProps({
+  gcashLogoImage: {
+    type: String,
+    default: '/img/gcash.png'
+  },
+  gcashQrImage: {
+    type: String,
+    default: '/img/gcash-qr.png'
+  },
+  gcashInstructionText: {
+    type: String,
+    default: 'Send your donation to this GCash account'
+  }
+})
 
 const gcashText = ref('GCash')
 const gcashNumber = ref('09309224324')
+
+// Computed properties for template
+const gcashLogoSrc = computed(() => props.gcashLogoImage)
+const gcashQrSrc = computed(() => props.gcashQrImage)
+const gcashInstruction = computed(() => props.gcashInstructionText)
 
 // Fetch give data from CMS
 const fetchGiveData = async () => {

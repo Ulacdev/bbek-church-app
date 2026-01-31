@@ -83,7 +83,11 @@
             <v-row class="give-methods-row">
               <v-col cols="12" md="6" class="give-online-col">
                 <h4 class="text-h6 font-weight-bold mb-2" style="font-family: 'Georgia', serif; font-style: italic;">Give Online</h4>
-                <GiveOnlineForm />
+                <GiveOnlineForm 
+                  :gcash-logo-image="giveData.gcashLogoImage"
+                  :gcash-qr-image="giveData.gcashQrImage"
+                  :gcash-instruction-text="giveData.gcashInstructionText"
+                />
               </v-col>
               <v-col cols="12" md="6" class="give-in-person-col">
                 <h4 class="text-h6 font-weight-bold mb-2" style="font-family: 'Georgia', serif; font-style: italic;">Other Ways to Give</h4>
@@ -131,6 +135,9 @@ const giveData = ref({
   chooseMethodText: 'Choose your preferred method of giving below. Every gift makes a lasting impact.',
   gcashText: 'GCash',
   gcashNumber: '09309224324',
+  gcashLogoImage: '/img/gcash.png',
+  gcashQrImage: '/img/gcash-qr.png',
+  gcashInstructionText: 'Send your donation to this GCash account',
   backButtonText: 'Back to Home',
   backButtonColor: '#00bcd4'
 })
@@ -181,6 +188,7 @@ const fetchGiveData = async () => {
       if (content.chooseMethodText) giveData.value.chooseMethodText = content.chooseMethodText
       if (content.gcashText) giveData.value.gcashText = content.gcashText
       if (content.gcashNumber) giveData.value.gcashNumber = content.gcashNumber
+      if (content.gcashInstructionText) giveData.value.gcashInstructionText = content.gcashInstructionText
       if (content.backButtonText) giveData.value.backButtonText = content.backButtonText
       if (content.backButtonColor) {
         giveData.value.backButtonColor = content.backButtonColor
@@ -195,18 +203,37 @@ const fetchGiveData = async () => {
       if (content.scheduledGivingTitle) giveInPersonData.value.scheduledGivingTitle = content.scheduledGivingTitle
       if (content.scheduledGivingText) giveInPersonData.value.scheduledGivingText = content.scheduledGivingText
       
-      // Handle hero image - images are stored as BLOB, returned as base64 in images object
-      // The image is stored with field_name = 'heroImage' in tbl_cms_images
-      if (cmsImages && typeof cmsImages === 'object' && cmsImages.heroImage) {
-        const heroImageBase64 = cmsImages.heroImage
-        if (heroImageBase64 && typeof heroImageBase64 === 'string' && heroImageBase64.startsWith('data:image/')) {
-          giveData.value.heroImage = heroImageBase64
-          console.log('✅ Hero image loaded from CMS (BLOB converted to base64)')
-        } else {
-          console.log('⚠️ Hero image in CMS is not a valid base64 image')
+      // Handle images - images are stored as BLOB, returned as base64 in images object
+      // The images are stored with field_name in tbl_cms_images
+      if (cmsImages && typeof cmsImages === 'object') {
+        // Handle GCash Logo
+        if (cmsImages.gcashLogoImage) {
+          const logoBase64 = cmsImages.gcashLogoImage
+          if (logoBase64 && typeof logoBase64 === 'string' && logoBase64.startsWith('data:image/')) {
+            giveData.value.gcashLogoImage = logoBase64
+            console.log('✅ GCash logo loaded from CMS')
+          }
+        }
+        // Handle GCash QR Code
+        if (cmsImages.gcashQrImage) {
+          const qrBase64 = cmsImages.gcashQrImage
+          if (qrBase64 && typeof qrBase64 === 'string' && qrBase64.startsWith('data:image/')) {
+            giveData.value.gcashQrImage = qrBase64
+            console.log('✅ GCash QR code loaded from CMS')
+          }
+        }
+        // Handle hero image
+        if (cmsImages.heroImage) {
+          const heroImageBase64 = cmsImages.heroImage
+          if (heroImageBase64 && typeof heroImageBase64 === 'string' && heroImageBase64.startsWith('data:image/')) {
+            giveData.value.heroImage = heroImageBase64
+            console.log('✅ Hero image loaded from CMS (BLOB converted to base64)')
+          } else {
+            console.log('⚠️ Hero image in CMS is not a valid base64 image')
+          }
         }
       } else {
-        console.log('ℹ️ No hero image found in CMS, using default')
+        console.log('ℹ️ No images found in CMS, using defaults')
       }
       
       console.log('✅ Give CMS data loaded successfully')

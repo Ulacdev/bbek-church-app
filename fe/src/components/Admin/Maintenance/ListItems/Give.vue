@@ -354,6 +354,89 @@
         ></el-input>
       </div>
     </div>
+    <el-divider />
+
+    <!-- GCash Instruction Text -->
+    <div class="list-item">
+      <div class="item-label">GCash Instruction Text</div>
+      <div class="item-preview">
+        <span class="text-grey">{{ giveData.gcashInstructionText }}</span>
+      </div>
+      <div class="item-action">
+        <el-input
+          v-model="giveData.gcashInstructionText"
+          type="textarea"
+          :rows="3"
+          size="small"
+          placeholder="Enter instruction text"
+          style="max-width: 400px;"
+        ></el-input>
+      </div>
+    </div>
+    <el-divider />
+
+    <!-- GCash Logo -->
+    <div class="list-item">
+      <div class="item-label">GCash Logo</div>
+      <div class="item-preview">
+        <el-image
+          v-if="giveData.gcashLogoImage"
+          :src="giveData.gcashLogoImage"
+          fit="contain"
+          class="preview-image"
+          style="max-width: 100px; max-height: 100px;"
+        />
+        <span v-else class="text-grey">No file chosen</span>
+      </div>
+      <div class="item-action">
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/*"
+          @change="handleGcashLogoChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Choose File
+            </el-button>
+          </template>
+        </el-upload>
+        <span v-if="!giveData.gcashLogoImage" class="text-grey ml-2">No file chosen</span>
+      </div>
+    </div>
+    <el-divider />
+
+    <!-- GCash QR Code -->
+    <div class="list-item">
+      <div class="item-label">GCash QR Code</div>
+      <div class="item-preview">
+        <el-image
+          v-if="giveData.gcashQrImage"
+          :src="giveData.gcashQrImage"
+          fit="contain"
+          class="preview-image"
+          style="max-width: 150px; max-height: 150px;"
+        />
+        <span v-else class="text-grey">No file chosen</span>
+      </div>
+      <div class="item-action">
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/*"
+          @change="handleGcashQrChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Choose File
+            </el-button>
+          </template>
+        </el-upload>
+        <span v-if="!giveData.gcashQrImage" class="text-grey ml-2">No file chosen</span>
+      </div>
+    </div>
   </div>
 
   <!-- Fixed Actions Bar -->
@@ -404,6 +487,9 @@ const defaultGiveData = {
   chooseMethodText: 'Choose your preferred method of giving below. Every gift makes a lasting impact.',
   gcashText: 'GCash',
   gcashNumber: '09309224324',
+  gcashLogoImage: '/img/gcash.png',
+  gcashQrImage: '/img/gcash-qr.png',
+  gcashInstructionText: 'Send your donation to this GCash account',
   backButtonText: 'Back to Home',
   backButtonColor: '#00bcd4',
   // Give In Person Card fields
@@ -494,6 +580,28 @@ const handleHeroImageChange = (file) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     giveData.heroImage = e.target.result
+  }
+  reader.readAsDataURL(fileObj)
+}
+
+// Handle GCash logo change
+const handleGcashLogoChange = (file) => {
+  if (!file || !file.raw) return
+  const fileObj = file.raw
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    giveData.gcashLogoImage = e.target.result
+  }
+  reader.readAsDataURL(fileObj)
+}
+
+// Handle GCash QR code change
+const handleGcashQrChange = (file) => {
+  if (!file || !file.raw) return
+  const fileObj = file.raw
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    giveData.gcashQrImage = e.target.result
   }
   reader.readAsDataURL(fileObj)
 }
