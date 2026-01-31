@@ -112,10 +112,8 @@ const getAllowedOrigins = () => {
   if (IS_VERCEL) {
     return [
       'https://biblebaptistekklesiaofkawit.xyz',
-      'https://www.biblebaptistekklesiaofkawit.xyz',
       'https://bbek-church-app.vercel.app',
       'https://bbek-church-app-git-main-ulacdev.vercel.app',
-      'https://bbek-church-app-livid.vercel.app',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175'
@@ -373,7 +371,7 @@ app.use((err, req, res, next) => {
   }
   
   // Handle database max_connection errors
-  const { isMaxConnectionError, isMaxUserConnectionsError } = require('../database/db');
+  const { isMaxConnectionError, isMaxUserConnectionsError } = require('./database/db');
   if (isMaxConnectionError(err)) {
     const isUserLimit = isMaxUserConnectionsError(err);
     const errorType = isUserLimit ? 'max_user_connections' : 'max_connections';
