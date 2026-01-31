@@ -56,27 +56,21 @@
     <div class="list-item" v-if="homeData.backgroundType === 'video'">
       <div class="item-label">Background Video</div>
       <div class="item-preview">
-        <div v-if="homeData.homeVideo" class="video-preview">
+        <div v-if="homeData.homeVideo && (homeData.homeVideo.startsWith('http') || homeData.homeVideo.startsWith('data:'))" class="video-preview">
           <el-icon class="success-icon"><CircleCheck /></el-icon>
           <span class="ml-2 text-success">Video ready</span>
-          <span class="ml-2 text-grey">({{ formatFileSize(homeData.homeVideo) }})</span>
+          <span v-if="homeData.homeVideo.startsWith('http')" class="ml-2 text-grey">(Embed URL)</span>
+          <span v-else class="ml-2 text-grey">({{ formatFileSize(homeData.homeVideo) }})</span>
         </div>
         <span v-else class="text-grey">No video selected</span>
       </div>
       <div class="item-action">
-        <el-upload
-          :auto-upload="false"
-          :show-file-list="false"
-          accept="video/*"
-          @change="handleHomeVideoChange"
-        >
-          <template #trigger>
-            <el-button size="small" type="primary">
-              <el-icon><Upload /></el-icon>
-              Choose Video
-            </el-button>
-          </template>
-        </el-upload>
+        <el-input
+          v-model="homeData.homeVideo"
+          placeholder="Enter YouTube/Vimeo embed URL (e.g., https://www.youtube.com/embed/...)"
+          clearable
+          style="width: 400px;"
+        />
         <el-button
           v-if="homeData.homeVideo"
           size="small"
@@ -87,6 +81,10 @@
           <el-icon><Delete /></el-icon>
           Clear
         </el-button>
+      </div>
+      <div class="text-info" style="margin-top: 8px; font-size: 12px;">
+        <el-icon><InfoFilled /></el-icon>
+        Tip: Use YouTube embed URL for best compatibility. Example: https://www.youtube.com/embed/VIDEO_ID
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'video'" />
@@ -620,7 +618,7 @@
 
 <script setup>
 import { reactive, ref, watch, onMounted } from 'vue'
-import { Upload, Loading, CircleCheck, Delete } from '@element-plus/icons-vue'
+import { Upload, Loading, CircleCheck, Delete, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useCms } from '@/composables/useCms'
 import Loader from './Loader.vue'
@@ -742,16 +740,19 @@ onMounted(async () => {
           }))
         } else if (key === 'homeVideo' || key === 'visionImage') {
           // These are handled by images, but set them if they exist
-          // Explicitly check if the value is valid (not null, not empty, is a valid data URL)
+          // Explicitly check if the value is valid (not null, not empty, is a valid data URL or embed URL)
           const value = loadedData[key]
           if (value &&
               typeof value === 'string' &&
               value.length > 0 &&
-              (value.startsWith('data:image/') || value.startsWith('data:video/'))) {
+              (value.startsWith('data:image/') || 
+               value.startsWith('data:video/') || 
+               value.startsWith('http'))) {
             homeData[key] = value
             console.log(`Set ${key} from loaded data:`, {
               length: value.length,
-              startsWith: value.substring(0, 30)
+              startsWith: value.substring(0, 30),
+              isUrl: value.startsWith('http')
             })
           } else {
             // Explicitly clear if video/image is deleted or invalid
@@ -759,7 +760,7 @@ onMounted(async () => {
               exists: !!value,
               type: typeof value,
               length: value ? value.length : 0,
-              isValid: value && typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/'))
+              isValid: value && typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/') || value.startsWith('http'))
             })
             homeData[key] = null
             if (key === 'homeVideo') {
@@ -1049,18 +1050,28 @@ const saveChanges = async () => {
     // Extract homeVideo first before any modifications
     const homeVideoToSave = contentToSave.homeVideo
     
-    // Handle homeVideo (can be video or image)
-    if (homeVideoToSave && typeof homeVideoToSave === 'string' && (homeVideoToSave.startsWith('data:image/') || homeVideoToSave.startsWith('data:video/'))) {
-      imagesToSave.homeVideo = homeVideoToSave
-      console.log('Extracting homeVideo to save:', {
-        length: homeVideoToSave.length,
-        mimeType: homeVideoToSave.substring(0, 50),
-        isVideo: homeVideoToSave.startsWith('data:video/')
-      })
+    // Handle homeVideo (can be video file, embed URL, or image)
+    if (homeVideoToSave && typeof homeVideoToSave === 'string') {
+      if (homeVideoToSave.startsWith('data:image/') || homeVideoToSave.startsWith('data:video/')) {
+        // Base64 file data - save as image
+        imagesToSave.homeVideo = homeVideoToSave
+        console.log('Extracting homeVideo base64 to save:', {
+          length: homeVideoToSave.length,
+          mimeType: homeVideoToSave.substring(0, 50),
+          isVideo: homeVideoToSave.startsWith('data:video/')
+        })
+      } else if (homeVideoToSave.startsWith('http')) {
+        // Embed URL (YouTube/Vimeo) - save directly as string
+        imagesToSave.homeVideo = homeVideoToSave
+        console.log('Saving homeVideo embed URL:', homeVideoToSave)
+      } else {
+        // Invalid - mark for deletion
+        imagesToSave.homeVideo = null
+        console.log('Invalid homeVideo format - marking for deletion')
+      }
       delete contentToSave.homeVideo
     } else {
       // homeVideo is null, empty, or invalid - mark for deletion
-      // This handles both new uploads (null) and deletion requests
       imagesToSave.homeVideo = null
       delete contentToSave.homeVideo
     }
@@ -1132,7 +1143,9 @@ const saveChanges = async () => {
             if (value &&
                 typeof value === 'string' &&
                 value.length > 0 &&
-                (value.startsWith('data:image/') || value.startsWith('data:video/'))) {
+                (value.startsWith('data:image/') || 
+                 value.startsWith('data:video/') || 
+                 value.startsWith('http'))) {
               homeData[key] = value
             } else {
               // Clear if deleted or invalid
@@ -1177,19 +1190,26 @@ const saveChanges = async () => {
             ElMessage.warning('Video may not have been deleted. Please try again.')
           }
         } else if (imagesToSave.homeVideo && loadedData.homeVideo) {
-          // Video was saved - verify size
-          const savedLength = loadedData.homeVideo.length
-          const sentLength = imagesToSave.homeVideo.length
-          console.log('Video save verification:', {
-            sentLength,
-            savedLength,
-            match: savedLength === sentLength
-          })
-
-          if (Math.abs(savedLength - sentLength) > 100) {
-            ElMessage.warning('Video may not have been saved correctly. Please try saving again.')
-          } else {
+          // Video was saved - verify URL or base64
+          if (imagesToSave.homeVideo.startsWith('http')) {
+            // Embed URL - just verify it exists
+            console.log('Video embed URL saved successfully')
             ElMessage.success('Video saved successfully!')
+          } else {
+            // Base64 video - verify size
+            const savedLength = loadedData.homeVideo.length
+            const sentLength = imagesToSave.homeVideo.length
+            console.log('Video save verification:', {
+              sentLength,
+              savedLength,
+              match: savedLength === sentLength
+            })
+
+            if (Math.abs(savedLength - sentLength) > 100) {
+              ElMessage.warning('Video may not have been saved correctly. Please try saving again.')
+            } else {
+              ElMessage.success('Video saved successfully!')
+            }
           }
         }
       }

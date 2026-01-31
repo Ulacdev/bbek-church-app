@@ -28,9 +28,9 @@ u<template>
         class="hero-background-image"
         :style="{ backgroundImage: `url(${homeData.homeBackgroundImage})` }"
       ></div>
-      <!-- Video Background -->
+      <!-- Video Background (local file) -->
       <video
-        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo"
+        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo && !homeData.homeVideo.startsWith('http')"
         ref="videoRef"
         :key="videoKey"
         class="hero-video"
@@ -45,6 +45,15 @@ u<template>
         <source :src="homeData.homeVideo" type="video/mp4">
         Your browser does not support the video tag.
       </video>
+      <!-- YouTube/Vimeo Embed Background -->
+      <iframe
+        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo && homeData.homeVideo.startsWith('http')"
+        :src="homeData.homeVideo"
+        class="hero-video hero-embed"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
       <!-- Carousel Background -->
       <v-carousel
         v-else-if="homeData.backgroundType === 'carousel' && homeData.carouselImages && homeData.carouselImages.length > 0"
@@ -464,6 +473,14 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.hero-embed {
+  width: 100vw;
+  height: 100vh;
+  left: 50%;
+  right: 50%;
+  transform: translateX(-50%);
 }
 
 .hero-fallback {
