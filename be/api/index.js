@@ -371,7 +371,7 @@ app.use((err, req, res, next) => {
   }
   
   // Handle database max_connection errors
-  const { isMaxConnectionError, isMaxUserConnectionsError } = require('./database/db');
+  const { isMaxConnectionError, isMaxUserConnectionsError } = require('../database/db');
   if (isMaxConnectionError(err)) {
     const isUserLimit = isMaxUserConnectionsError(err);
     const errorType = isUserLimit ? 'max_user_connections' : 'max_connections';
