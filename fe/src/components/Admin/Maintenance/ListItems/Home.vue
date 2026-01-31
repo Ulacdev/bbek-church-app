@@ -1031,37 +1031,22 @@ const saveChanges = async () => {
     // Prepare images object
     const imagesToSave = {}
     
-    // Extract images and videos from content
+    // Extract homeVideo first before any modifications
+    const homeVideoToSave = contentToSave.homeVideo
+    
     // Handle homeVideo (can be video or image)
-    if (contentToSave.homeVideo && typeof contentToSave.homeVideo === 'string' && (contentToSave.homeVideo.startsWith('data:image/') || contentToSave.homeVideo.startsWith('data:video/'))) {
-      imagesToSave.homeVideo = contentToSave.homeVideo
+    if (homeVideoToSave && typeof homeVideoToSave === 'string' && (homeVideoToSave.startsWith('data:image/') || homeVideoToSave.startsWith('data:video/'))) {
+      imagesToSave.homeVideo = homeVideoToSave
       console.log('Extracting homeVideo to save:', {
-        length: contentToSave.homeVideo.length,
-        mimeType: contentToSave.homeVideo.substring(0, 50),
-        isVideo: contentToSave.homeVideo.startsWith('data:video/')
+        length: homeVideoToSave.length,
+        mimeType: homeVideoToSave.substring(0, 50),
+        isVideo: homeVideoToSave.startsWith('data:video/')
       })
       delete contentToSave.homeVideo
     } else {
-      // If homeVideo is null, empty, or invalid, only delete if it was explicitly cleared
-      // Don't delete if it's just not in contentToSave (might be in images already)
-      console.log('homeVideo not found in contentToSave:', {
-        exists: !!contentToSave.homeVideo,
-        type: typeof contentToSave.homeVideo,
-        value: contentToSave.homeVideo ? contentToSave.homeVideo.substring(0, 20) : 'N/A',
-        inHomeData: !!homeData.homeVideo,
-        homeDataType: typeof homeData.homeVideo
-      })
-      // Only mark for deletion if homeData.homeVideo is explicitly null/empty
-      // Otherwise, it might already be saved and we don't want to delete it
-      if (!homeData.homeVideo ||
-          (typeof homeData.homeVideo === 'string' && homeData.homeVideo.length === 0)) {
-        console.log('homeVideo is empty in homeData - marking for deletion')
-        imagesToSave.homeVideo = null
-      }
-      else {
-        console.log('homeVideo exists in homeData but not in contentToSave - keeping existing video')
-        // Don't include it in imagesToSave, which means it won't be updated or deleted
-      }
+      // homeVideo is null, empty, or invalid - mark for deletion
+      // This handles both new uploads (null) and deletion requests
+      imagesToSave.homeVideo = null
       delete contentToSave.homeVideo
     }
     
