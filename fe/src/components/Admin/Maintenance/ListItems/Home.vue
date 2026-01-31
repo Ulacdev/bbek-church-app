@@ -59,7 +59,7 @@
         <div v-if="homeData.homeVideo" class="video-preview">
           <el-icon class="success-icon"><CircleCheck /></el-icon>
           <span class="ml-2 text-success">Video ready</span>
-          <span class="ml-2 text-grey">({{ formatFileSize(homeData.homeVideo) }})</span>
+          <span class="ml-2 text-grey">({{ formatVideoSize(homeData.homeVideo) }})</span>
         </div>
         <span v-else class="text-grey">No video selected</span>
       </div>
