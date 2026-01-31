@@ -835,11 +835,6 @@ const handleVideoChange = async (file) => {
     console.warn(`⚠️ Video size (${formatFileSize(fileSize)}) exceeds Vercel's 4.5MB limit. Upload may fail.`)
   }
   
-  // Warn if close to Vercel limit
-  if (fileSize > vercelLimit) {
-    ElMessage.warning(`Video is large (${formatFileSize(fileSize)}). Uploading to Vercel/serverless may take time. Consider compressing to under 4.5MB for faster uploads.`)
-  }
-  
   uploadingVideo.value = true
   videoUploadProgress.value = 0
   homeData.homeVideoFile = fileObj
@@ -1472,4 +1467,3 @@ const saveChanges = async () => {
 }
 
 </style>
-
