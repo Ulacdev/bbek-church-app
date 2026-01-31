@@ -112,8 +112,10 @@ const getAllowedOrigins = () => {
   if (IS_VERCEL) {
     return [
       'https://biblebaptistekklesiaofkawit.xyz',
+      'https://www.biblebaptistekklesiaofkawit.xyz',
       'https://bbek-church-app.vercel.app',
       'https://bbek-church-app-git-main-ulacdev.vercel.app',
+      'https://bbek-church-app-livid.vercel.app',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175'
