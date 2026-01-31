@@ -821,7 +821,7 @@ const handleVideoChange = async (file) => {
   
   const fileObj = file.raw
   const fileSize = fileObj.size
-  const maxSize = 50 * 1024 * 1024 // 50MB limit - recommended for Vercel/serverless hosting
+  const maxSize = 15 * 1024 * 1024 // 15MB limit - recommended for Vercel/serverless hosting
   const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel body limit
   
   // Check file size
