@@ -41,9 +41,9 @@ u<template>
         <v-carousel-item
           v-for="(image, index) in homeData.carouselImages"
           :key="`carousel-${index}`"
-          :src="image"
-          cover
-        />
+        >
+          <img :src="image" alt="Carousel image" style="width: 100%; height: 100%; object-fit: cover;" />
+        </v-carousel-item>
       </v-carousel>
       <!-- Fallback Background -->
       <div
