@@ -894,22 +894,25 @@ const handleDeleteVideo = async () => {
   }
 }
 
-const handleCarouselImagesChange = (fileList) => {
+const handleCarouselImagesChange = (uploadFile) => {
   if (!homeData.carouselImages) {
     homeData.carouselImages = []
   }
-  // fileList is an array of file objects from Element Plus upload
-  fileList.forEach(file => {
-    if (file.raw) {
+  // Element Plus @change returns { file, files } object
+  // For multiple uploads, we need to handle each file
+  const files = uploadFile.files || (uploadFile.file ? [uploadFile] : [])
+  
+  Array.from(files).forEach(fileObj => {
+    if (fileObj.raw) {
       const reader = new FileReader()
       reader.onload = (ev) => {
         homeData.carouselImages.push(ev.target?.result)
         console.log('Added carousel image, total:', homeData.carouselImages.length)
       }
       reader.onerror = (ev) => {
-        console.error('Error reading file:', file.name)
+        console.error('Error reading file:', fileObj.name)
       }
-      reader.readAsDataURL(file.raw)
+      reader.readAsDataURL(fileObj.raw)
     }
   })
 }
