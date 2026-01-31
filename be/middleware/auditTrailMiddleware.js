@@ -307,7 +307,7 @@ const auditTrailMiddleware = async (req, res, next) => {
         user_position: userInfo.account?.position || userInfo.position || 'member',
         action_type: actionData.action_type,
         module: actionData.module,
-        description: enhancedDescription,
+        description: truncateDescription(enhancedDescription),
         entity_type: actionData.entity_type,
         entity_id: actionData.entity_id,
         ip_address: req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown',
