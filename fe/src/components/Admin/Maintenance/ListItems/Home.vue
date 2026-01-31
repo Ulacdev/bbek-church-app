@@ -807,6 +807,15 @@ watch(() => props.homeData, (newData) => {
   }
 }, { deep: true })
 
+// Handle home video change from upload component
+const handleHomeVideoChange = (uploadFile) => {
+  if (!uploadFile || !uploadFile.raw) {
+    console.error('Invalid file object:', uploadFile)
+    return
+  }
+  handleVideoChange(uploadFile)
+}
+
 const handleVideoChange = async (file) => {
   if (!file || !file.raw) return
   
