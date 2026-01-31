@@ -13,6 +13,7 @@
           size="small"
           style="width: 200px;"
         >
+          <el-option label="Video Background" value="video" />
           <el-option label="Image Carousel" value="carousel" />
           <el-option label="Single Image" value="image" />
           <el-option label="None (Gradient)" value="none" />
@@ -50,6 +51,45 @@
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'image'" />
+
+    <!-- Home Video Background -->
+    <div class="list-item" v-if="homeData.backgroundType === 'video'">
+      <div class="item-label">Background Video</div>
+      <div class="item-preview">
+        <div v-if="homeData.homeVideo" class="video-preview">
+          <el-icon class="success-icon"><CircleCheck /></el-icon>
+          <span class="ml-2 text-success">Video ready</span>
+          <span class="ml-2 text-grey">({{ formatFileSize(homeData.homeVideo) }})</span>
+        </div>
+        <span v-else class="text-grey">No video selected</span>
+      </div>
+      <div class="item-action">
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="video/*"
+          @change="handleHomeVideoChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Choose Video
+            </el-button>
+          </template>
+        </el-upload>
+        <el-button
+          v-if="homeData.homeVideo"
+          size="small"
+          type="danger"
+          @click="clearHomeVideo"
+          style="margin-left: 8px;"
+        >
+          <el-icon><Delete /></el-icon>
+          Clear
+        </el-button>
+      </div>
+    </div>
+    <el-divider v-if="homeData.backgroundType === 'video'" />
 
     <!-- Home Carousel Images -->
     <div class="list-item" v-if="homeData.backgroundType === 'carousel'">

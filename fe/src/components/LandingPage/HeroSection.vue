@@ -28,6 +28,23 @@ u<template>
         class="hero-background-image"
         :style="{ backgroundImage: `url(${homeData.homeBackgroundImage})` }"
       ></div>
+      <!-- Video Background -->
+      <video
+        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo"
+        ref="videoRef"
+        :key="videoKey"
+        class="hero-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        @loadedmetadata="onVideoLoaded"
+        @error="onVideoError"
+        @timeupdate="onTimeUpdate"
+      >
+        <source :src="homeData.homeVideo" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
       <!-- Carousel Background -->
       <v-carousel
         v-else-if="homeData.backgroundType === 'carousel' && homeData.carouselImages && homeData.carouselImages.length > 0"
