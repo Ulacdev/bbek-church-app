@@ -360,9 +360,15 @@ router.post('/:pageName/save', async (req, res) => {
       const sizeInMB = (parseInt(contentLength) / (1024 * 1024)).toFixed(2);
       console.log(`CMS Save Request Size: ${sizeInMB}MB (${contentLength} bytes)`);
       
-      // Warn if approaching limit
-      if (parseInt(contentLength) > 400 * 1024 * 1024) { // 400MB
-        console.warn(`⚠️ Large CMS request detected: ${sizeInMB}MB - approaching 500MB limit`);
+      // Vercel has a 4.5MB limit for serverless functions
+      // For videos, we recommend uploading files under 50MB
+      if (parseInt(contentLength) > 50 * 1024 * 1024) { // 50MB
+        console.warn(`⚠️ Large CMS request: ${sizeInMB}MB - may timeout on serverless`);
+      }
+      
+      // Check for Vercel limit (4.5MB)
+      if (parseInt(contentLength) > 4.5 * 1024 * 1024) {
+        console.warn(`⚠️ Request exceeds Vercel's 4.5MB limit. Consider using smaller videos or file-based storage.`);
       }
     }
     

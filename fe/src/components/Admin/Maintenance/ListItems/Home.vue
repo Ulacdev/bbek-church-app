@@ -821,12 +821,18 @@ const handleVideoChange = async (file) => {
   
   const fileObj = file.raw
   const fileSize = fileObj.size
-  const maxSize = 100 * 1024 * 1024 // 100MB limit for videos
+  const maxSize = 50 * 1024 * 1024 // 50MB limit - recommended for Vercel/serverless hosting
+  const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel body limit
   
   // Check file size
   if (fileSize > maxSize) {
-    ElMessage.error(`Video file is too large. Maximum size is ${formatFileSize(maxSize)}`)
+    ElMessage.error(`Video file is too large. Maximum recommended size is ${formatFileSize(maxSize)} for stable hosting.`)
     return
+  }
+  
+  // Warn if close to Vercel limit
+  if (fileSize > vercelLimit) {
+    ElMessage.warning(`Video is large (${formatFileSize(fileSize)}). Uploading to Vercel/serverless may take time. Consider compressing to under 4.5MB for faster uploads.`)
   }
   
   uploadingVideo.value = true
