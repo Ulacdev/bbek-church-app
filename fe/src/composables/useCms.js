@@ -168,12 +168,24 @@ export function useCms(pageName) {
         // Remove from content (or keep a placeholder)
         delete content[key]
       } else if (Array.isArray(value)) {
-        // Handle arrays (e.g., services array)
+        // Handle arrays (e.g., services array, carouselImages array)
         value.forEach((item, index) => {
           if (typeof item === 'object') {
             extractImagesFromContent(item, imagesObj, `${fieldPath}[${index}]`)
+          } else if (typeof item === 'string' && (item.startsWith('data:image/') || item.startsWith('data:video/'))) {
+            // Handle arrays of base64 images (e.g., carouselImages)
+            imagesObj[`${fieldPath}[${index}]`] = item
+            // Mark for removal from array (will be filtered later)
+            value[index] = null
           }
         })
+        // Remove null entries from array
+        const newArray = value.filter(item => item !== null)
+        if (newArray.length === 0) {
+          delete content[key]
+        } else if (newArray.length !== value.length) {
+          content[key] = newArray
+        }
       } else if (typeof value === 'object' && value !== null) {
         // Recursively process nested objects
         extractImagesFromContent(value, imagesObj, fieldPath)
