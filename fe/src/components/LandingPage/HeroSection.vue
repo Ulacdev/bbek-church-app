@@ -80,7 +80,64 @@ u<template>
 
       <!-- Overlay -->
       <div class="hero-overlay"></div>
-     
+      
+      <!-- Video Controls (for local video only) -->
+      <div v-if="homeData.backgroundType === 'video' && homeData.homeVideo && !homeData.homeVideo.startsWith('http')" class="video-controls" :class="{ 'video-controls-hidden': !showControls }">
+        <div class="video-controls-bar">
+          <!-- Play/Pause -->
+          <v-btn icon variant="text" color="white" size="small" @click="togglePlayPause">
+            <v-icon>{{ isPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
+          </v-btn>
+          
+          <!-- Progress -->
+          <div class="progress-container">
+            <input 
+              type="range" 
+              class="progress-bar"
+              min="0" 
+              :max="duration" 
+              v-model="currentTime"
+              @input="seekVideo"
+            />
+          </div>
+          
+          <!-- Time Display -->
+          <span class="time-display">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
+          
+          <!-- Volume -->
+          <v-btn icon variant="text" color="white" size="small" @click="toggleMute">
+            <v-icon>{{ isMuted ? 'mdi-volume-off' : 'mdi-volume-high' }}</v-icon>
+          </v-btn>
+          
+          <!-- Speed -->
+          <v-menu>
+            <template v-slot:activator="{ props }">
+              <v-btn icon variant="text" color="white" size="small" v-bind="props">
+                <v-icon>mdi-speedometer</v-icon>
+              </v-btn>
+            </template>
+            <v-list class="speed-menu">
+              <v-list-item @click="setPlaybackRate(0.5)" :active="playbackRate === 0.5">
+                <v-list-item-title>0.5x</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="setPlaybackRate(1)" :active="playbackRate === 1">
+                <v-list-item-title>1x</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="setPlaybackRate(1.5)" :active="playbackRate === 1.5">
+                <v-list-item-title>1.5x</v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="setPlaybackRate(2)" :active="playbackRate === 2">
+                <v-list-item-title>2x</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+          
+          <!-- Fullscreen -->
+          <v-btn icon variant="text" color="white" size="small" @click="toggleFullscreen">
+            <v-icon>mdi-fullscreen</v-icon>
+          </v-btn>
+        </div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -196,7 +253,7 @@ const floatingElements = ref([
   { style: { bottom: '50%', left: '16%', width: '20px', height: '20px', animationDelay: '2.1s' } }
 ])
 
-const togglePlay = () => {
+const togglePlayPause = () => {
   if (videoRef.value) {
     if (isPlaying.value) {
       videoRef.value.pause()
@@ -218,6 +275,25 @@ const changePlaybackRate = (rate) => {
   if (videoRef.value) {
     videoRef.value.playbackRate = rate
     playbackRate.value = rate
+  }
+}
+
+const setPlaybackRate = changePlaybackRate
+
+const seekVideo = () => {
+  if (videoRef.value) {
+    videoRef.value.currentTime = currentTime.value
+  }
+}
+
+const toggleFullscreen = () => {
+  const container = document.querySelector('.background-container')
+  if (container) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      container.requestFullscreen()
+    }
   }
 }
 
@@ -591,6 +667,12 @@ onUnmounted(() => {
   pointer-events: auto;
 }
 
+.video-controls-hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+
 .video-controls-bar {
   display: flex;
   align-items: center;
@@ -601,6 +683,41 @@ onUnmounted(() => {
   border-radius: 24px;
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.progress-container {
+  display: flex;
+  align-items: center;
+  width: 120px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.progress-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.progress-bar::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
 }
 
 .time-display {
