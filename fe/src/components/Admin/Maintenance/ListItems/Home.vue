@@ -898,11 +898,16 @@ const handleCarouselImagesChange = (fileList) => {
   if (!homeData.carouselImages) {
     homeData.carouselImages = []
   }
+  // fileList is an array of file objects from Element Plus upload
   fileList.forEach(file => {
     if (file.raw) {
       const reader = new FileReader()
       reader.onload = (ev) => {
         homeData.carouselImages.push(ev.target?.result)
+        console.log('Added carousel image, total:', homeData.carouselImages.length)
+      }
+      reader.onerror = (ev) => {
+        console.error('Error reading file:', file.name)
       }
       reader.readAsDataURL(file.raw)
     }
@@ -1031,9 +1036,11 @@ const saveChanges = async () => {
     
     // Handle carousel images
     if (contentToSave.carouselImages && Array.isArray(contentToSave.carouselImages)) {
+      console.log('Processing', contentToSave.carouselImages.length, 'carousel images')
       contentToSave.carouselImages.forEach((image, index) => {
         if (image && typeof image === 'string' && image.startsWith('data:image/')) {
           imagesToSave[`carouselImages[${index}]`] = image
+          console.log(`Added carouselImages[${index}] to imagesToSave`)
         }
       })
       // Clear carouselImages from content since they're stored in images
@@ -1102,17 +1109,20 @@ const saveChanges = async () => {
         // Handle carousel images - reconstruct array from individual image keys
         const carouselImages = [];
         const imagesData = loadedData.images || {};
+        console.log('Loading carousel images from CMS, imagesData keys:', Object.keys(imagesData).filter(k => k.startsWith('carouselImages')))
         for (const [key, value] of Object.entries(imagesData)) {
           if (key.startsWith('carouselImages[') && key.endsWith(']')) {
             const match = key.match(/carouselImages\[(\d+)\]/);
             if (match) {
               const index = parseInt(match[1]);
               carouselImages[index] = value;
+              console.log(`Loaded carouselImages[${index}]`)
             }
           }
         }
         // Remove undefined entries and assign
         homeData.carouselImages = carouselImages.filter(img => img);
+        console.log('Total carousel images loaded:', homeData.carouselImages.length)
 
         // Verify video was saved or deleted
         if (imagesToSave.homeVideo === null) {

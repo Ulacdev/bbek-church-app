@@ -283,6 +283,7 @@ const fetchHomeData = async (forceRefresh = false) => {
 
       // Handle carousel images - reconstruct array from individual image keys
       const carouselImages = [];
+      console.log('CMS Images keys:', Object.keys(images || {}).filter(k => k.startsWith('carousel')))
       for (const [key, value] of Object.entries(images || {})) {
         if (key.startsWith('carouselImages[') && key.endsWith(']')) {
           const match = key.match(/carouselImages\[(\d+)\]/);
@@ -294,6 +295,7 @@ const fetchHomeData = async (forceRefresh = false) => {
       }
       // Remove undefined entries and assign
       homeData.value.carouselImages = carouselImages.filter(img => img);
+      console.log('Loaded carousel images:', homeData.value.carouselImages.length);
       
       // Handle video - wait a bit more to ensure DOM is cleared
       await nextTick()
