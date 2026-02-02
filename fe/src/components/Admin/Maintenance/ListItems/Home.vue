@@ -66,7 +66,7 @@
       <div class="item-action">
         <el-input
           v-model="homeData.homeVideo"
-          placeholder="Enter YouTube/Vimeo embed URL (e.g., https://www.youtube.com/embed/dQw4w9WgXcQ)"
+          placeholder="Enter YouTube embed URL (e.g., https://www.youtube.com/embed/VIDEO_ID)"
           clearable
           style="width: 400px;"
         />
@@ -83,7 +83,13 @@
       </div>
       <div class="text-info" style="margin-top: 8px; font-size: 12px;">
         <el-icon><InfoFilled /></el-icon>
-        Tip: Use YouTube embed URL. Example: https://www.youtube.com/embed/dQw4w9WgXcQ
+        How to get embed URL:
+        <ol style="margin: 8px 0; padding-left: 20px;">
+          <li>Go to YouTube video</li>
+          <li>Click Share → Embed</li>
+          <li>Copy the URL from src="https://www.youtube.com/embed/..."</li>
+          <li>Example: https://www.youtube.com/embed/dQw4w9WgXcQ</li>
+        </ol>
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'video'" />
