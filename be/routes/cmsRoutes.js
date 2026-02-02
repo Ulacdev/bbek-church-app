@@ -375,6 +375,10 @@ router.post('/:pageName/save', async (req, res) => {
     const { pageName } = req.params;
     const { content, images } = req.body;
 
+    console.log(`[CMS SAVE] Content keys:`, content ? Object.keys(content) : 'No content');
+    console.log(`[CMS SAVE] homeVideo:`, content?.homeVideo);
+    console.log(`[CMS SAVE] backgroundType:`, content?.backgroundType);
+
     if (!content) {
       return res.status(400).json({
         success: false,

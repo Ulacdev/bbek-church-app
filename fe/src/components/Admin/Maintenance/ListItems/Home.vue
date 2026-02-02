@@ -13,8 +13,6 @@
           size="small"
           style="width: 200px;"
         >
-          <el-option label="Video Background" value="video" />
-          <el-option label="Image Carousel" value="carousel" />
           <el-option label="Single Image" value="image" />
           <el-option label="None (Gradient)" value="none" />
         </el-select>
@@ -50,113 +48,6 @@
         </el-upload>
       </div>
     </div>
-    <el-divider v-if="homeData.backgroundType === 'image'" />
-
-    <!-- Home Video Background -->
-    <div class="list-item" v-if="homeData.backgroundType === 'video'">
-      <div class="item-label">Background Video</div>
-      <div class="item-preview">
-        <div v-if="homeData.homeVideo" class="video-preview">
-          <el-icon class="success-icon"><CircleCheck /></el-icon>
-          <span class="ml-2 text-success">Video ready</span>
-          <span v-if="homeData.homeVideo.startsWith('http')" class="ml-2 text-grey">(Embed URL)</span>
-        </div>
-        <span v-else class="text-grey">No video selected</span>
-      </div>
-      <div class="item-action">
-        <el-input
-          v-model="homeData.homeVideo"
-          placeholder="Paste YouTube, Facebook, or Vimeo URL (e.g., https://www.youtube.com/watch?v=...)"
-          clearable
-          style="width: 400px;"
-        />
-        <el-button
-          v-if="homeData.homeVideo"
-          size="small"
-          type="danger"
-          @click="homeData.homeVideo = null"
-          style="margin-left: 8px;"
-        >
-          <el-icon><Delete /></el-icon>
-          Clear
-        </el-button>
-      </div>
-      <div class="text-info" style="margin-top: 8px; font-size: 12px;">
-        <el-icon><InfoFilled /></el-icon>
-        Supported platforms:
-        <ul style="margin: 8px 0; padding-left: 20px;">
-          <li><strong>YouTube:</strong> https://www.youtube.com/watch?v=... or https://youtu.be/...</li>
-          <li><strong>Facebook:</strong> https://www.facebook.com/.../videos/... or https://www.facebook.com/watch/live/...</li>
-          <li><strong>Vimeo:</strong> https://vimeo.com/...</li>
-        </ul>
-      </div>
-    </div>
-    <el-divider v-if="homeData.backgroundType === 'video'" />
-
-    <!-- Home Carousel Images -->
-    <div class="list-item" v-if="homeData.backgroundType === 'carousel'">
-      <div class="item-label">Carousel Images</div>
-      <div class="item-preview">
-        <div class="carousel-preview">
-          <div v-if="homeData.carouselImages && homeData.carouselImages.length > 0" class="images-count">
-            <el-icon class="success-icon"><CircleCheck /></el-icon>
-            <span class="ml-2 text-success">{{ homeData.carouselImages.length }} image(s) ready</span>
-          </div>
-          <span v-else class="text-grey">No images selected</span>
-        </div>
-      </div>
-      <div class="item-action">
-        <div class="carousel-actions">
-          <el-upload
-            :auto-upload="false"
-            :show-file-list="false"
-            accept="image/*"
-            multiple
-            @change="handleCarouselImagesChange"
-          >
-            <template #trigger>
-              <el-button size="small" type="primary">
-                <el-icon><Upload /></el-icon>
-                Add Images
-              </el-button>
-            </template>
-          </el-upload>
-          <el-button
-            v-if="homeData.carouselImages && homeData.carouselImages.length > 0"
-            size="small"
-            type="danger"
-            @click="clearAllCarouselImages"
-            style="margin-left: 8px;"
-          >
-            <el-icon><Delete /></el-icon>
-            Clear All
-          </el-button>
-        </div>
-        <!-- Display selected images -->
-        <div v-if="homeData.carouselImages && homeData.carouselImages.length > 0" class="selected-images">
-          <div
-            v-for="(image, index) in homeData.carouselImages"
-            :key="`carousel-${index}`"
-            class="image-item"
-          >
-            <el-image
-              :src="image"
-              fit="cover"
-              class="thumbnail"
-            />
-            <el-button
-              size="small"
-              type="danger"
-              @click="removeCarouselImage(index)"
-              class="remove-btn"
-            >
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <el-divider v-if="homeData.backgroundType === 'carousel'" />
 
     <!-- Home Welcome Text -->
     <div class="list-item">
@@ -648,11 +539,9 @@ const { loading, saving, loadPageData, savePageData, fileToBase64 } = useCms('ho
 
 // Default data structure
 const defaultHomeData = {
-  backgroundType: 'none', // 'image', 'video', or 'none'
+  backgroundType: 'none', // 'image' or 'none'
   homeBackgroundImage: '',
   homeBackgroundImageFile: null,
-  homeVideo: null,
-  carouselImages: [],
   welcomeText: 'Welcome to Bible Baptist Church of Kwali',
   sundayService: 'Sunday Worship 9:30 AM - 12:00 PM',
   wednesdayService: 'Wednesday Service 7:00 PM - 9:00 PM',
@@ -718,12 +607,6 @@ onMounted(async () => {
   if (props.activeSection === 'home') {
     const loadedData = await loadPageData()
     if (loadedData) {
-      console.log('Loaded data from CMS:', {
-        keys: Object.keys(loadedData),
-        hasHomeVideo: !!loadedData.homeVideo,
-        homeVideoType: typeof loadedData.homeVideo,
-        homeVideoLength: loadedData.homeVideo ? loadedData.homeVideo.length : 0
-      })
       // Handle button color migration from old separate fields to new shared field
       if (loadedData.planVisitButtonColor && !loadedData.buttonColor) {
         homeData.buttonColor = loadedData.planVisitButtonColor
@@ -739,57 +622,19 @@ onMounted(async () => {
             image: service.image || '',
             ...service
           }))
-        } else if (key === 'homeVideo' || key === 'visionImage') {
-          // These are handled by images, but set them if they exist
-          // Explicitly check if the value is valid (not null, not empty, is a valid data URL or embed URL)
+        } else if (key === 'visionImage') {
+          // Handle vision image
           const value = loadedData[key]
-          if (value &&
-              typeof value === 'string' &&
-              value.length > 0 &&
-              (value.startsWith('data:image/') || 
-               value.startsWith('data:video/') || 
-               value.startsWith('http'))) {
+          if (value && typeof value === 'string' && value.length > 0 && (value.startsWith('data:image/') || value.startsWith('http'))) {
             homeData[key] = value
-            console.log(`Set ${key} from loaded data:`, {
-              length: value.length,
-              startsWith: value.substring(0, 30),
-              isUrl: value.startsWith('http')
-            })
           } else {
-            // Explicitly clear if video/image is deleted or invalid
-            console.log(`Clearing ${key} - value is deleted or invalid:`, {
-              exists: !!value,
-              type: typeof value,
-              length: value ? value.length : 0,
-              isValid: value && typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/') || value.startsWith('http'))
-            })
             homeData[key] = null
-            if (key === 'homeVideo') {
-              homeData.homeVideoFile = null
-            } else if (key === 'visionImage') {
-              homeData.visionImageFile = null
-            }
+            homeData.visionImageFile = null
           }
         } else {
           homeData[key] = loadedData[key]
         }
       })
-
-      // Handle carousel images - reconstruct array from individual image keys
-      // The loadedData structure has images in a separate property
-      const carouselImages = [];
-      const imagesData = loadedData.images || {};
-      for (const [key, value] of Object.entries(imagesData)) {
-        if (key.startsWith('carouselImages[') && key.endsWith(']')) {
-          const match = key.match(/carouselImages\[(\d+)\]/);
-          if (match) {
-            const index = parseInt(match[1]);
-            carouselImages[index] = value;
-          }
-        }
-      }
-      // Remove undefined entries and assign
-      homeData.carouselImages = carouselImages.filter(img => img);
     }
   }
 })
@@ -809,41 +654,9 @@ watch(() => props.homeData, (newData) => {
   }
 }, { deep: true })
 
-const handleCarouselImagesChange = (uploadFile) => {
-  if (!homeData.carouselImages) {
-    homeData.carouselImages = []
-  }
-  // Element Plus @change returns { file, files } object
-  // For multiple uploads, we need to handle each file
-  const files = uploadFile.files || (uploadFile.file ? [uploadFile] : [])
-  
-  Array.from(files).forEach(fileObj => {
-    if (fileObj.raw) {
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        homeData.carouselImages.push(ev.target?.result)
-        console.log('Added carousel image, total:', homeData.carouselImages.length)
-      }
-      reader.onerror = (ev) => {
-        console.error('Error reading file:', fileObj.name)
-      }
-      reader.readAsDataURL(fileObj.raw)
-    }
-  })
-}
-
-const removeCarouselImage = (index) => {
-  homeData.carouselImages.splice(index, 1)
-}
-
-const clearAllCarouselImages = () => {
-  homeData.carouselImages = []
-}
-
 const getBackgroundTypeLabel = (type) => {
   switch (type) {
     case 'image': return 'Single Image'
-    case 'carousel': return 'Image Carousel'
     case 'none': return 'None (Gradient)'
     default: return 'None (Gradient)'
   }
@@ -891,7 +704,7 @@ const convertToEmbedUrl = (url) => {
 
   try {
     // If already an embed URL, return as is
-    if (url.includes("/embed/") || url.includes("embed")) {
+    if (url.includes("/embed/") || url.includes("embed") || url.includes("facebook.com/plugins")) {
       return url;
     }
 
@@ -919,13 +732,18 @@ const convertToEmbedUrl = (url) => {
     // Facebook URL conversion
     if (url.includes("facebook.com") || url.includes("fb.com")) {
       // Facebook videos need to be converted to embed format
-      if (url.includes("/videos/") || url.includes("/watch") || url.includes("/live")) {
+      // Format: https://www.facebook.com/plugins/video.php?href=ENCODED_URL
+      if (url.includes("/videos/") || url.includes("/watch") || url.includes("/live") || url.includes("/reel/")) {
         const encodedUrl = encodeURIComponent(url);
         return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
       } else {
-        // General Facebook video embed
-        const encodedUrl = encodeURIComponent(url);
-        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
+        // Try to extract video ID from URL patterns
+        // Pattern: facebook.com/username/videos/VIDEO_ID or facebook.com/reel/VIDEO_ID
+        const fbMatch = url.match(/facebook\.com\/[^\/]+\/(videos|reel)\/(\d+)/);
+        if (fbMatch) {
+          const encodedUrl = encodeURIComponent(url);
+          return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
+        }
       }
     }
 
@@ -965,9 +783,11 @@ const saveChanges = async () => {
     // Prepare content (remove file objects and keep only base64 images)
     const contentToSave = JSON.parse(JSON.stringify(homeData))
     
-    // Remove file objects
+    // Remove file objects and video fields
     delete contentToSave.visionImageFile
     delete contentToSave.homeBackgroundImageFile
+    delete contentToSave.homeVideoFile
+    delete contentToSave.homeVideo
     if (contentToSave.services) {
       contentToSave.services.forEach(service => {
         delete service.imageFile
@@ -977,15 +797,25 @@ const saveChanges = async () => {
     // Prepare images object
     const imagesToSave = {}
     
-    // Convert homeVideo URL to embed format
+    // Handle homeVideo - convert URL to embed format if needed
     if (contentToSave.homeVideo && typeof contentToSave.homeVideo === 'string') {
-      const embedUrl = convertToEmbedUrl(contentToSave.homeVideo)
-      if (embedUrl !== contentToSave.homeVideo) {
-        console.log('Converting video URL to embed format:', {
-          original: contentToSave.homeVideo,
-          embed: embedUrl
-        })
-        contentToSave.homeVideo = embedUrl
+      // Check if it's already a complete embed URL (contains facebook.com/plugins, youtube.com/embed, etc.)
+      const isEmbedUrl = contentToSave.homeVideo.includes('facebook.com/plugins') || 
+                         contentToSave.homeVideo.includes('youtube.com/embed') ||
+                         contentToSave.homeVideo.includes('player.vimeo.com') ||
+                         contentToSave.homeVideo.includes('vimeo.com/embed') ||
+                         contentToSave.homeVideo.includes('/embed/');
+      
+      if (!isEmbedUrl && contentToSave.homeVideo.startsWith('http')) {
+        // Convert regular URL to embed format
+        const embedUrl = convertToEmbedUrl(contentToSave.homeVideo)
+        if (embedUrl && embedUrl !== contentToSave.homeVideo) {
+          console.log('Converting video URL to embed format:', {
+            original: contentToSave.homeVideo,
+            embed: embedUrl
+          })
+          contentToSave.homeVideo = embedUrl
+        }
       }
     }
     
@@ -1001,19 +831,6 @@ const saveChanges = async () => {
       delete contentToSave.homeBackgroundImage
     }
     
-    // Handle carousel images
-    if (contentToSave.carouselImages && Array.isArray(contentToSave.carouselImages)) {
-      console.log('Processing', contentToSave.carouselImages.length, 'carousel images')
-      contentToSave.carouselImages.forEach((image, index) => {
-        if (image && typeof image === 'string' && image.startsWith('data:image/')) {
-          imagesToSave[`carouselImages[${index}]`] = image
-          console.log(`Added carouselImages[${index}] to imagesToSave`)
-        }
-      })
-      // Clear carouselImages from content since they're stored in images
-      contentToSave.carouselImages = []
-    }
-
     // Handle service images
     if (contentToSave.services && Array.isArray(contentToSave.services)) {
       contentToSave.services.forEach((service, index) => {
@@ -1027,6 +844,7 @@ const saveChanges = async () => {
     // Debug: Log what we're about to save
     console.log('Saving to CMS:', {
       contentKeys: Object.keys(contentToSave),
+      backgroundType: contentToSave.backgroundType,
       imageKeys: Object.keys(imagesToSave)
     })
     

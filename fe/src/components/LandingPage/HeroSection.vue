@@ -1,4 +1,4 @@
-u<template>
+<template>
   <section id="hero-section" class="hero-section" style="position: relative;">
     <!-- Loading overlay -->
     <v-overlay :model-value="isLoadingHome" contained class="align-center justify-center" style="z-index: 10;">
@@ -16,128 +16,22 @@ u<template>
     </div>
 
     <!-- Background Container -->
-    <div
-      class="background-container"
-      @mouseenter="showControlsOnHover"
-      @mouseleave="hideControls"
-      @mousemove="showControlsOnHover"
-    >
+    <div class="background-container">
       <!-- Background Image -->
       <div
         v-if="homeData.backgroundType === 'image' && homeData.homeBackgroundImage"
         class="hero-background-image"
         :style="{ backgroundImage: `url(${homeData.homeBackgroundImage})` }"
       ></div>
-      <!-- Video Background (local file) -->
-      <video
-        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo && !homeData.homeVideo.startsWith('http')"
-        ref="videoRef"
-        :key="videoKey"
-        class="hero-video"
-        autoplay
-        muted
-        loop
-        playsinline
-        @loadedmetadata="onVideoLoaded"
-        @error="onVideoError"
-        @timeupdate="onTimeUpdate"
-      >
-        <source :src="homeData.homeVideo" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-      <!-- YouTube/Vimeo Embed Background -->
-      <iframe
-        v-else-if="homeData.backgroundType === 'video' && homeData.homeVideo && homeData.homeVideo.startsWith('http')"
-        :src="homeData.homeVideo"
-        class="hero-video hero-embed"
-        frameborder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
-      ></iframe>
-      <!-- Carousel Background -->
-      <v-carousel
-        v-else-if="homeData.backgroundType === 'carousel' && homeData.carouselImages && homeData.carouselImages.length > 0"
-        class="hero-carousel"
-        height="100%"
-        hide-delimiters
-        show-arrows="hover"
-        cycle
-        interval="5000"
-      >
-        <v-carousel-item
-          v-for="(image, index) in homeData.carouselImages"
-          :key="`carousel-${index}`"
-        >
-          <img :src="image" alt="Carousel image" style="width: 100%; height: 100%; object-fit: cover;" />
-        </v-carousel-item>
-      </v-carousel>
-      <!-- Fallback Background -->
+      <!-- Fallback Background (gradient) -->
       <div
         v-else
-        class="hero-video hero-fallback"
+        class="hero-fallback"
         :style="{ backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }"
       ></div>
 
       <!-- Overlay -->
       <div class="hero-overlay"></div>
-      
-      <!-- Video Controls (for local video only) -->
-      <div v-if="homeData.backgroundType === 'video' && homeData.homeVideo && !homeData.homeVideo.startsWith('http')" class="video-controls" :class="{ 'video-controls-hidden': !showControls }">
-        <div class="video-controls-bar">
-          <!-- Play/Pause -->
-          <v-btn icon variant="text" color="white" size="small" @click="togglePlayPause">
-            <v-icon>{{ isPlaying ? 'mdi-pause' : 'mdi-play' }}</v-icon>
-          </v-btn>
-          
-          <!-- Progress -->
-          <div class="progress-container">
-            <input 
-              type="range" 
-              class="progress-bar"
-              min="0" 
-              :max="duration" 
-              v-model="currentTime"
-              @input="seekVideo"
-            />
-          </div>
-          
-          <!-- Time Display -->
-          <span class="time-display">{{ formatTime(currentTime) }} / {{ formatTime(duration) }}</span>
-          
-          <!-- Volume -->
-          <v-btn icon variant="text" color="white" size="small" @click="toggleMute">
-            <v-icon>{{ isMuted ? 'mdi-volume-off' : 'mdi-volume-high' }}</v-icon>
-          </v-btn>
-          
-          <!-- Speed -->
-          <v-menu>
-            <template v-slot:activator="{ props }">
-              <v-btn icon variant="text" color="white" size="small" v-bind="props">
-                <v-icon>mdi-speedometer</v-icon>
-              </v-btn>
-            </template>
-            <v-list class="speed-menu">
-              <v-list-item @click="setPlaybackRate(0.5)" :active="playbackRate === 0.5">
-                <v-list-item-title>0.5x</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="setPlaybackRate(1)" :active="playbackRate === 1">
-                <v-list-item-title>1x</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="setPlaybackRate(1.5)" :active="playbackRate === 1.5">
-                <v-list-item-title>1.5x</v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="setPlaybackRate(2)" :active="playbackRate === 2">
-                <v-list-item-title>2x</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-          
-          <!-- Fullscreen -->
-          <v-btn icon variant="text" color="white" size="small" @click="toggleFullscreen">
-            <v-icon>mdi-fullscreen</v-icon>
-          </v-btn>
-        </div>
-      </div>
     </div>
 
     <!-- Content -->
@@ -196,7 +90,7 @@ u<template>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useCmsStore } from '@/stores/cmsStore'
 
 const cmsStore = useCmsStore()
@@ -204,19 +98,60 @@ const cmsStore = useCmsStore()
 // Loading state for CMS data
 const isLoadingHome = computed(() => cmsStore.isPageLoading('home'))
 
-const videoRef = ref(null)
-const isPlaying = ref(true)
-const isMuted = ref(true)
-const currentTime = ref(0)
-const duration = ref(0)
-const showControls = ref(false)
+// Convert video URL to embed URL (same as Live.vue)
+const convertToEmbedUrl = (url) => {
+  if (!url) return null;
+
+  try {
+    // If already an embed URL, return as is
+    if (url.includes("/embed/") || url.includes("embed") || url.includes("facebook.com/plugins")) {
+      return url;
+    }
+
+    // YouTube URL conversion
+    if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
+      let videoId = null;
+      const watchMatch = url.match(/[?&]v=([^&]+)/);
+      if (watchMatch) videoId = watchMatch[1];
+      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+      if (shortMatch) videoId = shortMatch[1];
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+      }
+    }
+
+    // Facebook URL conversion
+    if (url.includes("facebook.com") || url.includes("fb.com")) {
+      if (url.includes("/videos/") || url.includes("/watch") || url.includes("/live") || url.includes("/reel/")) {
+        const encodedUrl = encodeURIComponent(url);
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
+      }
+    }
+
+    // Vimeo URL conversion
+    if (url.includes("vimeo.com/")) {
+      const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+      if (vimeoMatch) {
+        return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+      }
+    }
+
+    // If it's already an iframe-compatible URL, return as is
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      if (url.includes("/embed") || url.includes("player") || url.includes("iframe")) {
+        return url;
+      }
+    }
+
+    return url;
+  } catch (error) {
+    console.error('Error converting URL to embed format:', error);
+    return url;
+  }
+}
+
+// Computed property for embed URL
 const churchName = ref('Bible Baptist Ekklesia of Kawit')
-const videoExists = ref(true)
-const videoSrc = ref(null)
-const videoKey = ref(0) // Force video element recreation
-const playbackRate = ref(1)
-const playbackSpeeds = ref([0.5, 0.75, 1, 1.25, 1.5, 2])
-let controlsTimeout = null
 
 // Home page data from CMS
 const homeData = ref({
@@ -236,9 +171,7 @@ const homeData = ref({
   button2HoverColor: '#0d9488',
   button2Link: '/services/water-baptism',
   button2Variant: 'filled', // 'filled' or 'outlined'
-  homeVideo: null,
-  homeBackgroundImage: null,
-  carouselImages: []
+  homeBackgroundImage: null
 })
 
 const floatingElements = ref([
@@ -253,66 +186,6 @@ const floatingElements = ref([
   { style: { bottom: '50%', left: '16%', width: '20px', height: '20px', animationDelay: '2.1s' } }
 ])
 
-const togglePlayPause = () => {
-  if (videoRef.value) {
-    if (isPlaying.value) {
-      videoRef.value.pause()
-    } else {
-      videoRef.value.play()
-    }
-    isPlaying.value = !isPlaying.value
-  }
-}
-
-const toggleMute = () => {
-  if (videoRef.value) {
-    videoRef.value.muted = !isMuted.value
-    isMuted.value = !isMuted.value
-  }
-}
-
-const changePlaybackRate = (rate) => {
-  if (videoRef.value) {
-    videoRef.value.playbackRate = rate
-    playbackRate.value = rate
-  }
-}
-
-const setPlaybackRate = changePlaybackRate
-
-const seekVideo = () => {
-  if (videoRef.value) {
-    videoRef.value.currentTime = currentTime.value
-  }
-}
-
-const toggleFullscreen = () => {
-  const container = document.querySelector('.background-container')
-  if (container) {
-    if (document.fullscreenElement) {
-      document.exitFullscreen()
-    } else {
-      container.requestFullscreen()
-    }
-  }
-}
-
-const onVideoLoaded = () => {
-  if (videoRef.value) {
-    duration.value = videoRef.value.duration
-  }
-}
-
-const onVideoError = () => {
-  videoExists.value = false
-}
-
-const onTimeUpdate = () => {
-  if (videoRef.value) {
-    currentTime.value = videoRef.value.currentTime
-  }
-}
-
 const formatTime = (time) => {
   const minutes = Math.floor(time / 60)
   const seconds = Math.floor(time % 60)
@@ -320,38 +193,9 @@ const formatTime = (time) => {
 }
 
 
-const showControlsOnHover = () => {
-  if (controlsTimeout) {
-    clearTimeout(controlsTimeout)
-  }
-  showControls.value = true
-}
-
-const hideControls = () => {
-  if (controlsTimeout) {
-    clearTimeout(controlsTimeout)
-  }
-  controlsTimeout = setTimeout(() => {
-    showControls.value = false
-  }, 2000)
-}
-
 // Fetch home data from CMS
 const fetchHomeData = async (forceRefresh = false) => {
   try {
-    // First, clear the video completely to force refresh
-    if (videoRef.value) {
-      videoRef.value.pause()
-      videoRef.value.src = ''
-      videoRef.value.load()
-    }
-    videoSrc.value = null
-    videoExists.value = false
-    homeData.value.homeVideo = null
-
-    // Wait for DOM to update and clear
-    await nextTick()
-
     const cmsData = await cmsStore.fetchPageData('home', forceRefresh)
     if (cmsData) {
       const { page, images } = cmsData
@@ -382,103 +226,13 @@ const fetchHomeData = async (forceRefresh = false) => {
       if (images?.homeBackgroundImage) {
         homeData.value.homeBackgroundImage = images.homeBackgroundImage
       }
-
-      // Handle carousel images - reconstruct array from individual image keys
-      const carouselImages = [];
-      console.log('CMS Images keys:', Object.keys(images || {}).filter(k => k.startsWith('carousel')))
-      for (const [key, value] of Object.entries(images || {})) {
-        if (key.startsWith('carouselImages[') && key.endsWith(']')) {
-          const match = key.match(/carouselImages\[(\d+)\]/);
-          if (match) {
-            const index = parseInt(match[1]);
-            carouselImages[index] = value;
-          }
-        }
-      }
-      // Remove undefined entries and assign
-      homeData.value.carouselImages = carouselImages.filter(img => img);
-      console.log('Loaded carousel images:', homeData.value.carouselImages.length);
-      
-      // Handle video - wait a bit more to ensure DOM is cleared
-      await nextTick()
-      
-      if (images?.homeVideo) {
-        homeData.value.homeVideo = images.homeVideo
-        // Increment key to force video element recreation
-        videoKey.value++
-        // Set new video source - the :key attribute will force video element to re-render
-        videoSrc.value = images.homeVideo
-        videoExists.value = true
-        
-        // Wait for video element to be created and then load it
-        await nextTick()
-        await nextTick() // Double nextTick to ensure element is ready
-        
-        if (videoRef.value) {
-          videoRef.value.load()
-          if (isPlaying.value) {
-            videoRef.value.play().catch(err => {
-              console.warn('Video autoplay prevented:', err)
-            })
-          }
-        }
-      } else {
-        // No video in CMS - show fallback background
-        videoKey.value++ // Increment to force removal
-        videoSrc.value = null
-        videoExists.value = false
-      }
-    } else {
-      // No data from CMS - show fallback
-      videoSrc.value = null
-      videoExists.value = false
     }
   } catch (error) {
     if (error.response?.status !== 404) {
       console.error('Error fetching home data from CMS:', error)
     }
-    // On error, show fallback
-    videoSrc.value = null
-    videoExists.value = false
   }
 }
-
-// Watch for video source changes and reload video
-// Note: The :key attribute on the video element should handle most of the recreation
-// This watch is mainly for ensuring the video plays after being created
-watch([videoSrc, videoExists], async ([newSrc, exists], [oldSrc, oldExists]) => {
-  // Only handle if we have a new valid source and video should exist
-  if (newSrc && exists && newSrc !== oldSrc) {
-    // Wait for DOM to update and video element to be created (key change forces recreation)
-    await nextTick()
-    await nextTick() // Double nextTick to ensure element is ready
-    
-    // Retry a few times in case the element isn't ready yet
-    let retries = 0
-    const maxRetries = 5
-    
-    const tryLoadVideo = async () => {
-      if (videoRef.value && videoRef.value.load) {
-        try {
-          videoRef.value.load()
-          if (isPlaying.value && videoRef.value.play) {
-            videoRef.value.play().catch(err => {
-              console.warn('Video autoplay prevented:', err)
-            })
-          }
-        } catch (error) {
-          console.error('Error loading video:', error)
-        }
-      } else if (retries < maxRetries) {
-        retries++
-        await new Promise(resolve => setTimeout(resolve, 100))
-        await tryLoadVideo()
-      }
-    }
-    
-    await tryLoadVideo()
-  }
-}, { flush: 'post' }) // Use 'post' flush to ensure DOM has updated
 
 // Listen for CMS updates
 const handleCmsUpdate = async (event) => {
@@ -502,10 +256,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  if (controlsTimeout) {
-    clearTimeout(controlsTimeout)
-  }
-
   // Remove event listener
   window.removeEventListener('cms-page-updated', handleCmsUpdate)
 })
@@ -939,6 +689,29 @@ onUnmounted(() => {
   .floating-element {
     display: none;
   }
+}
+
+/* Video embed error styling */
+.hero-embed-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2rem;
+  border-radius: 8px;
+  z-index: 5;
+}
+
+.hero-embed-error p {
+  margin: 0.5rem 0;
+}
+
+.hero-embed-error .error-details {
+  font-size: 0.875rem;
+  opacity: 0.8;
 }
 </style>
 
