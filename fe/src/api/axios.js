@@ -6,7 +6,7 @@ import { checkAccessTokenValidity } from '@/utils/tokenValidation'
 // Development: '/api' is proxied by Vite dev server (configured in vite.config.js)
 // Production: Must set VITE_API_URL environment variable (e.g., in Vercel settings)
 const API_URL = import.meta.env.PROD
-  ? (`${import.meta.env.VITE_API_URL}/api` || '')
+  ? (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '')
   : '/api'
 
 // Log configuration for debugging
