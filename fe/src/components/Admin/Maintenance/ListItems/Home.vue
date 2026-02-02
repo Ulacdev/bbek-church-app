@@ -66,7 +66,7 @@
       <div class="item-action">
         <el-input
           v-model="homeData.homeVideo"
-          placeholder="Enter YouTube embed URL (e.g., https://www.youtube.com/embed/VIDEO_ID)"
+          placeholder="Paste YouTube, Facebook, or Vimeo URL (e.g., https://www.youtube.com/watch?v=...)"
           clearable
           style="width: 400px;"
         />
@@ -83,13 +83,12 @@
       </div>
       <div class="text-info" style="margin-top: 8px; font-size: 12px;">
         <el-icon><InfoFilled /></el-icon>
-        How to get embed URL:
-        <ol style="margin: 8px 0; padding-left: 20px;">
-          <li>Go to YouTube video</li>
-          <li>Click Share → Embed</li>
-          <li>Copy the URL from src="https://www.youtube.com/embed/..."</li>
-          <li>Example: https://www.youtube.com/embed/dQw4w9WgXcQ</li>
-        </ol>
+        Supported platforms:
+        <ul style="margin: 8px 0; padding-left: 20px;">
+          <li><strong>YouTube:</strong> https://www.youtube.com/watch?v=... or https://youtu.be/...</li>
+          <li><strong>Facebook:</strong> https://www.facebook.com/.../videos/... or https://www.facebook.com/watch/live/...</li>
+          <li><strong>Vimeo:</strong> https://vimeo.com/...</li>
+        </ul>
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'video'" />
@@ -886,6 +885,78 @@ const handleServiceImageChange = (file, index) => {
   reader.readAsDataURL(fileObj)
 }
 
+// Convert video URL to embed URL (like Live page)
+const convertToEmbedUrl = (url) => {
+  if (!url) return null;
+
+  try {
+    // If already an embed URL, return as is
+    if (url.includes("/embed/") || url.includes("embed")) {
+      return url;
+    }
+
+    // YouTube URL conversion
+    if (url.includes("youtube.com/watch") || url.includes("youtu.be/")) {
+      let videoId = null;
+
+      // Extract video ID from youtube.com/watch?v=VIDEO_ID
+      const watchMatch = url.match(/[?&]v=([^&]+)/);
+      if (watchMatch) {
+        videoId = watchMatch[1];
+      }
+
+      // Extract video ID from youtu.be/VIDEO_ID
+      const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+      if (shortMatch) {
+        videoId = shortMatch[1];
+      }
+
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+      }
+    }
+
+    // Facebook URL conversion
+    if (url.includes("facebook.com") || url.includes("fb.com")) {
+      // Facebook videos need to be converted to embed format
+      if (url.includes("/videos/") || url.includes("/watch") || url.includes("/live")) {
+        const encodedUrl = encodeURIComponent(url);
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
+      } else {
+        // General Facebook video embed
+        const encodedUrl = encodeURIComponent(url);
+        return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560&height=315`;
+      }
+    }
+
+    // Vimeo URL conversion
+    if (url.includes("vimeo.com/")) {
+      const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+      if (vimeoMatch) {
+        return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+      }
+    }
+
+    // If it's already an iframe-compatible URL or embed URL, return as is
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      // Check if it looks like an embed URL
+      if (
+        url.includes("/embed") ||
+        url.includes("player") ||
+        url.includes("iframe")
+      ) {
+        return url;
+      }
+    }
+
+    // Return original URL if no conversion needed
+    return url;
+  } catch (error) {
+    console.error('Error converting URL to embed format:', error);
+    return url;
+  }
+}
+
 // Save changes to CMS
 const saveChanges = async () => {
   if (saving.value) return
@@ -905,6 +976,18 @@ const saveChanges = async () => {
     
     // Prepare images object
     const imagesToSave = {}
+    
+    // Convert homeVideo URL to embed format
+    if (contentToSave.homeVideo && typeof contentToSave.homeVideo === 'string') {
+      const embedUrl = convertToEmbedUrl(contentToSave.homeVideo)
+      if (embedUrl !== contentToSave.homeVideo) {
+        console.log('Converting video URL to embed format:', {
+          original: contentToSave.homeVideo,
+          embed: embedUrl
+        })
+        contentToSave.homeVideo = embedUrl
+      }
+    }
     
     // Handle visionImage
     if (contentToSave.visionImage && typeof contentToSave.visionImage === 'string' && contentToSave.visionImage.startsWith('data:image/')) {
