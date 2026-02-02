@@ -56,33 +56,25 @@
     <div class="list-item" v-if="homeData.backgroundType === 'video'">
       <div class="item-label">Background Video</div>
       <div class="item-preview">
-        <div v-if="homeData.homeVideo && (homeData.homeVideo.startsWith('http') || homeData.homeVideo.startsWith('data:'))" class="video-preview">
+        <div v-if="homeData.homeVideo" class="video-preview">
           <el-icon class="success-icon"><CircleCheck /></el-icon>
           <span class="ml-2 text-success">Video ready</span>
           <span v-if="homeData.homeVideo.startsWith('http')" class="ml-2 text-grey">(Embed URL)</span>
-          <span v-else class="ml-2 text-grey">({{ formatVideoSize(homeData.homeVideo) }})</span>
         </div>
         <span v-else class="text-grey">No video selected</span>
       </div>
       <div class="item-action">
-        <el-upload
-          :auto-upload="false"
-          :show-file-list="false"
-          accept="video/*"
-          @change="handleHomeVideoChange"
-        >
-          <template #trigger>
-            <el-button size="small" type="primary">
-              <el-icon><Upload /></el-icon>
-              Add Video
-            </el-button>
-          </template>
-        </el-upload>
+        <el-input
+          v-model="homeData.homeVideo"
+          placeholder="Enter YouTube/Vimeo embed URL (e.g., https://www.youtube.com/embed/dQw4w9WgXcQ)"
+          clearable
+          style="width: 400px;"
+        />
         <el-button
           v-if="homeData.homeVideo"
           size="small"
           type="danger"
-          @click="clearHomeVideo"
+          @click="homeData.homeVideo = null"
           style="margin-left: 8px;"
         >
           <el-icon><Delete /></el-icon>
@@ -91,7 +83,7 @@
       </div>
       <div class="text-info" style="margin-top: 8px; font-size: 12px;">
         <el-icon><InfoFilled /></el-icon>
-        Tip: Upload MP4, WebM, or OGG video files (max 15MB)
+        Tip: Use YouTube embed URL. Example: https://www.youtube.com/embed/dQw4w9WgXcQ
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'video'" />
@@ -647,9 +639,7 @@ const props = defineProps({
 // Initialize CMS composable
 const { loading, saving, loadPageData, savePageData, fileToBase64 } = useCms('home')
 
-// Video upload state
-const uploadingVideo = ref(false)
-const videoUploadProgress = ref(0)
+
 
 // Default data structure
 const defaultHomeData = {
@@ -657,7 +647,6 @@ const defaultHomeData = {
   homeBackgroundImage: '',
   homeBackgroundImageFile: null,
   homeVideo: null,
-  homeVideoFile: null,
   carouselImages: [],
   welcomeText: 'Welcome to Bible Baptist Church of Kwali',
   sundayService: 'Sunday Worship 9:30 AM - 12:00 PM',
@@ -815,154 +804,6 @@ watch(() => props.homeData, (newData) => {
   }
 }, { deep: true })
 
-// Handle home video change from upload component
-const handleHomeVideoChange = (uploadFile) => {
-  if (!uploadFile || !uploadFile.raw) {
-    console.error('Invalid file object:', uploadFile)
-    return
-  }
-  handleVideoChange(uploadFile)
-}
-
-const handleVideoChange = async (file) => {
-  if (!file || !file.raw) return
-  
-  const fileObj = file.raw
-  const fileSize = fileObj.size
-  const maxSize = 15 * 1024 * 1024 // 15MB limit
-  const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel body limit
-  
-  // Check file size
-  if (fileSize > maxSize) {
-    ElMessage.error(`Video file is too large. Maximum size is ${formatFileSize(maxSize)}`)
-    return
-  }
-  
-  // Warning for files close to Vercel limit
-  if (fileSize > vercelLimit) {
-    console.warn(`⚠️ Video size (${formatFileSize(fileSize)}) exceeds Vercel's 4.5MB limit. Upload may fail.`)
-  }
-  
-  uploadingVideo.value = true
-  videoUploadProgress.value = 0
-  homeData.homeVideoFile = fileObj
-  
-  try {
-    const reader = new FileReader()
-    
-    // Show progress during read
-    reader.onprogress = (event) => {
-      if (event.lengthComputable) {
-        videoUploadProgress.value = Math.round((event.loaded / event.total) * 100)
-      }
-    }
-    
-    reader.onload = (ev) => {
-      const result = ev.target?.result
-      if (result) {
-        homeData.homeVideo = result
-        console.log('Video converted to base64, length:', result.length)
-        console.log('Video MIME type:', result.substring(0, 30))
-        ElMessage.success('Video processed successfully! Click "Save Changes" to upload.')
-        videoUploadProgress.value = 100
-      } else {
-        console.error('Failed to convert video to base64')
-        ElMessage.error('Failed to process video file')
-      }
-      uploadingVideo.value = false
-    }
-    
-    reader.onerror = (error) => {
-      console.error('Error reading video file:', error)
-      ElMessage.error('Error processing video file. Please try again.')
-      uploadingVideo.value = false
-      videoUploadProgress.value = 0
-    }
-    
-    // Start reading the file
-    reader.readAsDataURL(fileObj)
-  } catch (error) {
-    console.error('Error handling video change:', error)
-    ElMessage.error('Error processing video file. Please try again.')
-    uploadingVideo.value = false
-    videoUploadProgress.value = 0
-  }
-}
-
-// Helper function to format file size
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}
-
-// Helper function to estimate video size from base64
-const formatVideoSize = (base64String) => {
-  if (!base64String) return '0 Bytes'
-  // Base64 is approximately 4/3 the size of the original
-  const estimatedBytes = (base64String.length * 3) / 4
-  return formatFileSize(estimatedBytes)
-}
-
-// Clear video from local state
-const clearHomeVideo = () => {
-  homeData.homeVideo = null
-  homeData.homeVideoFile = null
-}
-
-// Handle video deletion
-const handleDeleteVideo = async () => {
-  try {
-    // Clear local state immediately
-    homeData.homeVideo = null
-    homeData.homeVideoFile = null
-
-    // Prepare to save with null video (will trigger deletion)
-    const contentToSave = JSON.parse(JSON.stringify(homeData))
-    delete contentToSave.homeVideoFile
-    delete contentToSave.visionImageFile
-    if (contentToSave.services) {
-      contentToSave.services.forEach(service => {
-        delete service.imageFile
-      })
-    }
-
-    // Mark video for deletion
-    const imagesToSave = {
-      homeVideo: null // null will trigger deletion in backend
-    }
-
-    console.log('Deleting video from CMS')
-
-    // Save to CMS (this will delete the video)
-    const success = await savePageData(contentToSave, imagesToSave)
-
-    if (success) {
-      // ElMessage.success('Video deleted successfully!')
-      // Reload data to confirm deletion
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const loadedData = await loadPageData(true)
-      if (loadedData) {
-        // Explicitly clear video if it's deleted
-        if (!loadedData.homeVideo ||
-            (typeof loadedData.homeVideo === 'string' && loadedData.homeVideo.length === 0) ||
-            !loadedData.homeVideo.startsWith('data:video/')) {
-          homeData.homeVideo = null
-          homeData.homeVideoFile = null
-          console.log('Video cleared after deletion')
-        }
-      }
-    } else {
-      ElMessage.error('Failed to delete video. Please try again.')
-    }
-  } catch (error) {
-    console.error('Error deleting video:', error)
-    ElMessage.error('Error deleting video. Please try again.')
-  }
-}
-
 const handleCarouselImagesChange = (uploadFile) => {
   if (!homeData.carouselImages) {
     homeData.carouselImages = []
@@ -1048,7 +889,6 @@ const saveChanges = async () => {
     const contentToSave = JSON.parse(JSON.stringify(homeData))
     
     // Remove file objects
-    delete contentToSave.homeVideoFile
     delete contentToSave.visionImageFile
     delete contentToSave.homeBackgroundImageFile
     if (contentToSave.services) {
@@ -1059,35 +899,6 @@ const saveChanges = async () => {
     
     // Prepare images object
     const imagesToSave = {}
-    
-    // Extract homeVideo first before any modifications
-    const homeVideoToSave = contentToSave.homeVideo
-    
-    // Handle homeVideo (can be video file, embed URL, or image)
-    if (homeVideoToSave && typeof homeVideoToSave === 'string') {
-      if (homeVideoToSave.startsWith('data:image/') || homeVideoToSave.startsWith('data:video/')) {
-        // Base64 file data - save as image
-        imagesToSave.homeVideo = homeVideoToSave
-        console.log('Extracting homeVideo base64 to save:', {
-          length: homeVideoToSave.length,
-          mimeType: homeVideoToSave.substring(0, 50),
-          isVideo: homeVideoToSave.startsWith('data:video/')
-        })
-      } else if (homeVideoToSave.startsWith('http')) {
-        // Embed URL (YouTube/Vimeo) - save directly as string
-        imagesToSave.homeVideo = homeVideoToSave
-        console.log('Saving homeVideo embed URL:', homeVideoToSave)
-      } else {
-        // Invalid - mark for deletion
-        imagesToSave.homeVideo = null
-        console.log('Invalid homeVideo format - marking for deletion')
-      }
-      delete contentToSave.homeVideo
-    } else {
-      // homeVideo is null, empty, or invalid - mark for deletion
-      imagesToSave.homeVideo = null
-      delete contentToSave.homeVideo
-    }
     
     // Handle visionImage
     if (contentToSave.visionImage && typeof contentToSave.visionImage === 'string' && contentToSave.visionImage.startsWith('data:image/')) {
@@ -1127,9 +938,7 @@ const saveChanges = async () => {
     // Debug: Log what we're about to save
     console.log('Saving to CMS:', {
       contentKeys: Object.keys(contentToSave),
-      imageKeys: Object.keys(imagesToSave),
-      homeVideoInImages: !!imagesToSave.homeVideo,
-      homeVideoLength: imagesToSave.homeVideo ? imagesToSave.homeVideo.length : 0
+      imageKeys: Object.keys(imagesToSave)
     })
     
     // Save to CMS
