@@ -60,17 +60,24 @@
           <el-icon class="success-icon"><CircleCheck /></el-icon>
           <span class="ml-2 text-success">Video ready</span>
           <span v-if="homeData.homeVideo.startsWith('http')" class="ml-2 text-grey">(Embed URL)</span>
-          <span v-else class="ml-2 text-grey">({{ formatFileSize(homeData.homeVideo) }})</span>
+          <span v-else class="ml-2 text-grey">({{ formatVideoSize(homeData.homeVideo) }})</span>
         </div>
         <span v-else class="text-grey">No video selected</span>
       </div>
       <div class="item-action">
-        <el-input
-          v-model="homeData.homeVideo"
-          placeholder="Enter YouTube/Vimeo embed URL (e.g., https://www.youtube.com/embed/dQw4w9WgXcQ)"
-          clearable
-          style="width: 400px;"
-        />
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="video/*"
+          @change="handleHomeVideoChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Add Video
+            </el-button>
+          </template>
+        </el-upload>
         <el-button
           v-if="homeData.homeVideo"
           size="small"
@@ -84,7 +91,7 @@
       </div>
       <div class="text-info" style="margin-top: 8px; font-size: 12px;">
         <el-icon><InfoFilled /></el-icon>
-        Tip: Use YouTube embed URL. Example: https://www.youtube.com/embed/dQw4w9WgXcQ
+        Tip: Upload MP4, WebM, or OGG video files (max 15MB)
       </div>
     </div>
     <el-divider v-if="homeData.backgroundType === 'video'" />
@@ -897,6 +904,12 @@ const formatVideoSize = (base64String) => {
   // Base64 is approximately 4/3 the size of the original
   const estimatedBytes = (base64String.length * 3) / 4
   return formatFileSize(estimatedBytes)
+}
+
+// Clear video from local state
+const clearHomeVideo = () => {
+  homeData.homeVideo = null
+  homeData.homeVideoFile = null
 }
 
 // Handle video deletion
