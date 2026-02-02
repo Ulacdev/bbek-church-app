@@ -86,7 +86,7 @@ async function createEvent(eventData) {
     if (title.trim().length > 45) throw new Error('Title exceeds maximum length of 45 characters');
     if (description.trim().length > 500) throw new Error('Description exceeds maximum length of 500 characters');
     if (location.trim().length > 45) throw new Error('Location exceeds maximum length of 45 characters');
-    if (link && link.trim().length > 45) throw new Error('Link exceeds maximum length of 45 characters');
+    if (link && link.trim().length > 500) throw new Error('Link exceeds maximum length of 500 characters');
     if (type.trim().length > 45) throw new Error('Type exceeds maximum length of 45 characters');
     if (status.trim().length > 45) throw new Error('Status exceeds maximum length of 45 characters');
 
