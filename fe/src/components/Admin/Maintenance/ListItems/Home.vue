@@ -1136,96 +1136,10 @@ const saveChanges = async () => {
     const success = await savePageData(contentToSave, imagesToSave)
     
     if (success) {
-      // Wait a moment for database to update and commit transaction
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
       // Dispatch event to notify other components (like HeroSection) to refresh
       window.dispatchEvent(new CustomEvent('cms-page-updated', {
         detail: { page: 'home', timestamp: Date.now() }
       }))
-
-      // Force refresh to bypass any caching
-      const loadedData = await loadPageData(true)
-      if (loadedData) {
-        Object.keys(loadedData).forEach(key => {
-          if (key === 'services' && Array.isArray(loadedData[key])) {
-            homeData.services = loadedData[key].map(service => ({ ...service }))
-          } else if (key === 'homeVideo' || key === 'visionImage') {
-            // Explicitly handle video/image - clear if deleted
-            const value = loadedData[key]
-            if (value &&
-                typeof value === 'string' &&
-                value.length > 0 &&
-                (value.startsWith('data:image/') || 
-                 value.startsWith('data:video/') || 
-                 value.startsWith('http'))) {
-              homeData[key] = value
-            } else {
-              // Clear if deleted or invalid
-              console.log(`Clearing ${key} after save - value is deleted or invalid`)
-              homeData[key] = null
-              if (key === 'homeVideo') {
-                homeData.homeVideoFile = null
-              } else if (key === 'visionImage') {
-                homeData.visionImageFile = null
-              }
-            }
-          } else {
-            homeData[key] = loadedData[key]
-          }
-        })
-
-        // Handle carousel images - reconstruct array from individual image keys
-        const carouselImages = [];
-        const imagesData = loadedData.images || {};
-        console.log('Loading carousel images from CMS, imagesData keys:', Object.keys(imagesData).filter(k => k.startsWith('carouselImages')))
-        for (const [key, value] of Object.entries(imagesData)) {
-          if (key.startsWith('carouselImages[') && key.endsWith(']')) {
-            const match = key.match(/carouselImages\[(\d+)\]/);
-            if (match) {
-              const index = parseInt(match[1]);
-              carouselImages[index] = value;
-              console.log(`Loaded carouselImages[${index}]`)
-            }
-          }
-        }
-        // Remove undefined entries and assign
-        homeData.carouselImages = carouselImages.filter(img => img);
-        console.log('Total carousel images loaded:', homeData.carouselImages.length)
-
-        // Verify video was saved or deleted
-        if (imagesToSave.homeVideo === null) {
-          // Video was marked for deletion
-          if (!loadedData.homeVideo ||
-              (typeof loadedData.homeVideo === 'string' && loadedData.homeVideo.length === 0)) {
-            // ElMessage.success('Video deleted successfully!')
-          } else {
-            ElMessage.warning('Video may not have been deleted. Please try again.')
-          }
-        } else if (imagesToSave.homeVideo && loadedData.homeVideo) {
-          // Video was saved - verify URL or base64
-          if (imagesToSave.homeVideo.startsWith('http')) {
-            // Embed URL - just verify it exists
-            console.log('Video embed URL saved successfully')
-            ElMessage.success('Video saved successfully!')
-          } else {
-            // Base64 video - verify size
-            const savedLength = loadedData.homeVideo.length
-            const sentLength = imagesToSave.homeVideo.length
-            console.log('Video save verification:', {
-              sentLength,
-              savedLength,
-              match: savedLength === sentLength
-            })
-
-            if (Math.abs(savedLength - sentLength) > 100) {
-              ElMessage.warning('Video may not have been saved correctly. Please try saving again.')
-            } else {
-              ElMessage.success('Video saved successfully!')
-            }
-          }
-        }
-      }
     } else {
       ElMessage.error('Failed to save changes. Please check the console for details.')
     }
