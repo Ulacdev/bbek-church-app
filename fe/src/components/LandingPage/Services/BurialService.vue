@@ -426,6 +426,8 @@
                 </v-card-subtitle>
                 <v-card-text>
                   <el-form :model="memberFormData" label-position="top" size="large">
+                    <el-divider content-position="left">Requester Information</el-divider>
+
                     <el-form-item label="Requester Name" class="form-item-with-label">
                       <el-input
                         :model-value="`${userInfo.member?.firstname || ''} ${userInfo.member?.middle_name || ''} ${userInfo.member?.lastname || ''}`.replace(/\s+/g, ' ').trim()"
@@ -440,6 +442,36 @@
                         type="email"
                         placeholder="Your email address"
                         disabled
+                      />
+                    </el-form-item>
+
+                    <el-form-item>
+                      <template #label>
+                        <span>Relationship <span class="required-text">Required</span></span>
+                      </template>
+                      <el-select
+                        v-model="memberFormData.relationship"
+                        placeholder="Select relationship"
+                        style="width: 100%"
+                        clearable
+                      >
+                        <el-option
+                          v-for="rel in relationshipOptions"
+                          :key="rel"
+                          :label="rel"
+                          :value="rel"
+                        />
+                      </el-select>
+                    </el-form-item>
+
+                    <el-form-item>
+                      <template #label>
+                        <span>Location <span class="required-text">Required</span></span>
+                      </template>
+                      <el-input
+                        v-model="memberFormData.location"
+                        placeholder="Enter service location"
+                        clearable
                       />
                     </el-form-item>
 
@@ -491,48 +523,16 @@
                       />
                     </el-form-item>
 
-                    <el-divider content-position="left">Requester Information</el-divider>
-
-                    <el-form-item>
-                      <template #label>
-                        <span>Relationship <span class="required-text">Required</span></span>
-                      </template>
-                      <el-select
-                        v-model="memberFormData.relationship"
-                        placeholder="Select relationship"
-                        style="width: 100%"
-                        clearable
-                      >
-                        <el-option
-                          v-for="rel in relationshipOptions"
-                          :key="rel"
-                          :label="rel"
-                          :value="rel"
-                        />
-                      </el-select>
-                    </el-form-item>
-
-                    <el-form-item>
-                      <template #label>
-                        <span>Location <span class="required-text">Required</span></span>
-                      </template>
-                      <el-input
-                        v-model="memberFormData.location"
-                        placeholder="Enter service location"
-                        clearable
-                      />
-                    </el-form-item>
-
                     <el-form-item>
                       <el-button
                         type="success"
                         size="large"
-                        style="width: 100%;"
+                        style="width: 100%; background-color: #0d9488; border-color: #0d9488;"
                         :loading="isSubmitting"
                         :disabled="isSubmitting"
                         @click="handleMemberSubmit"
                       >
-                        {{ isSubmitting ? 'Submitting...' : 'Submit Service Request' }}
+                        {{ isSubmitting ? 'SUBITTING...' : 'SUBMIT SERVICE REQUEST' }}
                       </el-button>
                     </el-form-item>
                   </el-form>
