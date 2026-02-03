@@ -25,7 +25,7 @@ function convertImageToBlob(imageInput) {
       return null;
     }
     if (typeof imageInput === 'string') {
-      const base64Data = imageInput.includes(',') ? imageInput.split(',')[1] : image64Input;
+      const base64Data = imageInput.includes(',') ? imageInput.split(',')[1] : imageInput;
       return Buffer.from(base64Data, 'base64');
     }
     return null;
