@@ -517,8 +517,20 @@ const rules = {
   phone_number: [
     { required: true, message: 'Phone number is required', trigger: 'blur' },
     {
-      pattern: /^[0-9]{10}$/,
-      message: 'Phone number must be exactly 10 digits (without +63)',
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error('Phone number is required'))
+          return
+        }
+        // Remove any non-digit characters
+        const cleanPhone = value.replace(/\D/g, '')
+        // Check if exactly 11 digits (Philippines format)
+        if (cleanPhone.length !== 11) {
+          callback(new Error('Phone number must be exactly 11 digits'))
+          return
+        }
+        callback()
+      },
       trigger: 'blur'
     }
   ],

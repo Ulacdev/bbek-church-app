@@ -195,7 +195,20 @@ router.post('/createWaterBaptism', async (req, res) => {
                   recipientName: name,
                   memberName: name,
                   baptismDate: baptism.baptism_date || moment().format('YYYY-MM-DD'),
-                  location: baptism.location || 'Bible Baptist Ekklesia of Kawit'
+                  location: baptism.location || '',
+                  pastorName: baptism.pastor_name || '',
+                  isMember: true,
+                  // Registration fields from baptism record
+                  firstname: baptism.firstname || '',
+                  middleName: baptism.middle_name || '',
+                  lastname: baptism.lastname || '',
+                  birthdate: baptism.birthdate || '',
+                  age: baptism.age || null,
+                  gender: baptism.gender || '',
+                  address: baptism.address || '',
+                  phoneNumber: baptism.phone_number || '',
+                  civilStatus: baptism.civil_status || '',
+                  profession: baptism.profession || ''
                 });
                 
                 if (baptismEmailResult.success) {
@@ -575,7 +588,20 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                     recipientName: name,
                     memberName: name,
                     baptismDate: baptism.baptism_date || moment().format('YYYY-MM-DD'),
-                    location: baptism.location || 'Bible Baptist Ekklesia of Kawit'
+                    location: baptism.location || '',
+                    pastorName: baptism.pastor_name || '',
+                    isMember: true,
+                    // Registration fields from baptism record
+                    firstname: baptism.firstname || '',
+                    middleName: baptism.middle_name || '',
+                    lastname: baptism.lastname || '',
+                    birthdate: baptism.birthdate || '',
+                    age: baptism.age || null,
+                    gender: baptism.gender || '',
+                    address: baptism.address || '',
+                    phoneNumber: baptism.phone_number || '',
+                    civilStatus: baptism.civil_status || '',
+                    profession: baptism.profession || ''
                   });
                   
                   if (baptismEmailResult.success) {
@@ -884,7 +910,27 @@ router.post('/register-non-member', async (req, res) => {
         recipientName: recipientName,
         memberName: recipientName,
         baptismDate: req.body.baptism_date || 'To be scheduled',
-        location: req.body.location || 'Bible Baptist Ekklesia of Kawit'
+        location: req.body.location || '',
+        pastorName: req.body.pastor_name || '',
+        isMember: false,
+        // Registration fields
+        firstname: req.body.firstname || '',
+        middleName: req.body.middle_name || '',
+        lastname: req.body.lastname || '',
+        birthdate: req.body.birthdate || '',
+        age: req.body.age || null,
+        gender: req.body.gender || '',
+        address: req.body.address || '',
+        phoneNumber: req.body.phone_number || '',
+        civilStatus: req.body.civil_status || '',
+        profession: req.body.profession || '',
+        spouseName: req.body.spouse_name || '',
+        children: req.body.children || '',
+        guardianName: req.body.guardian_name || '',
+        guardianContact: req.body.guardian_contact || '',
+        guardianRelationship: req.body.guardian_relationship || '',
+        testimony: req.body.testimony || '',
+        desireMinistry: req.body.desire_ministry || ''
       });
       
       if (emailResult.success) {

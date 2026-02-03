@@ -1142,6 +1142,14 @@ const rules = {
               callback(new Error(`Sponsor ${i + 1}: firstname, lastname, phone number, and address are required if sponsor is added`))
               return
             }
+            // Validate phone number is exactly 11 digits
+            if (s.phone_number && s.phone_number.trim()) {
+              const cleanPhone = s.phone_number.replace(/\D/g, '')
+              if (cleanPhone.length !== 11) {
+                callback(new Error(`Sponsor ${i + 1}: phone number must be exactly 11 digits`))
+                return
+              }
+            }
           }
         }
 
@@ -1195,6 +1203,64 @@ const rules = {
         callback()
       },
       trigger: 'change'
+    }
+  ],
+  father_phone_number: [
+    {
+      validator: (rule, value, callback) => {
+        if (!value || !value.trim()) {
+          callback(new Error("Father's phone number is required"))
+          return
+        }
+        // Remove any non-digit characters
+        const cleanPhone = value.replace(/\D/g, '')
+        // Check if exactly 11 digits (Philippines format)
+        if (cleanPhone.length !== 11) {
+          callback(new Error("Father's phone number must be exactly 11 digits"))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  mother_phone_number: [
+    {
+      validator: (rule, value, callback) => {
+        if (!value || !value.trim()) {
+          callback(new Error("Mother's phone number is required"))
+          return
+        }
+        // Remove any non-digit characters
+        const cleanPhone = value.replace(/\D/g, '')
+        // Check if exactly 11 digits (Philippines format)
+        if (cleanPhone.length !== 11) {
+          callback(new Error("Mother's phone number must be exactly 11 digits"))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
+  contact_phone_number: [
+    {
+      validator: (rule, value, callback) => {
+        // Contact phone is optional
+        if (!value || !value.trim()) {
+          callback()
+          return
+        }
+        // Remove any non-digit characters
+        const cleanPhone = value.replace(/\D/g, '')
+        // Check if exactly 11 digits (Philippines format)
+        if (cleanPhone.length !== 11) {
+          callback(new Error('Contact phone number must be exactly 11 digits'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
     }
   ]
 }

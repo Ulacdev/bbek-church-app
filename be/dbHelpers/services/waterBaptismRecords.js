@@ -419,9 +419,27 @@ async function createWaterBaptism(baptismData) {
           baptismDate: createdBaptism.data.baptism_date
             ? moment(createdBaptism.data.baptism_date).format('YYYY-MM-DD HH:mm:ss')
             : 'To be determined',
-          location: createdBaptism.data.location || 'To be determined',
+          location: createdBaptism.data.location || '',
           pastorName: createdBaptism.data.pastor_name,
-          isMember: is_member && !!member_id
+          isMember: is_member && !!member_id,
+          // Registration fields
+          firstname: firstname || '',
+          middleName: middle_name || '',
+          lastname: lastname || '',
+          birthdate: formattedBirthdate || '',
+          age: age || null,
+          gender: gender || '',
+          address: address || '',
+          phoneNumber: phone_number || '',
+          civilStatus: civil_status || '',
+          profession: profession || '',
+          spouseName: spouse_name || '',
+          children: children || '',
+          guardianName: guardian_name || '',
+          guardianContact: guardian_contact || '',
+          guardianRelationship: guardian_relationship || '',
+          testimony: testimony || '',
+          desireMinistry: desire_ministry || ''
         });
       }
     } catch (emailError) {

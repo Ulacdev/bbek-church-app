@@ -679,6 +679,26 @@ const rules = {
       trigger: 'blur'
     }
   ],
+  phone_number: [
+    { required: true, message: 'Phone number is required', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error('Phone number is required'))
+          return
+        }
+        // Remove any non-digit characters
+        const cleanPhone = value.replace(/\D/g, '')
+        // Check if exactly 11 digits (Philippines format)
+        if (cleanPhone.length !== 11) {
+          callback(new Error('Phone number must be exactly 11 digits'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }
+  ],
   address: [
     { required: true, message: 'Address is required', trigger: 'blur' }
   ],
@@ -715,7 +735,7 @@ const rules = {
     }
   ],
   location: [
-    { required: true, message: 'Location is required', trigger: 'blur' }
+    { required: false, message: 'Location is optional', trigger: 'blur' }
   ],
   pastor_name: [
     { required: true, message: 'Pastor is required', trigger: 'change' }

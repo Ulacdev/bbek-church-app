@@ -488,10 +488,12 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Pastor:</strong></td>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${pastorName}</td>
                 </tr>
+                ${baptismDetails.location && baptismDetails.location.trim() !== '' ? `
                 <tr>
                   <td style="padding: 8px 0;"><strong>Location:</strong></td>
-                  <td style="padding: 8px 0;">${location}</td>
+                  <td style="padding: 8px 0;">${baptismDetails.location}</td>
                 </tr>
+                ` : ''}
               </table>
             </div>
             ` : ''}

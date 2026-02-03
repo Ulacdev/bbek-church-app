@@ -501,6 +501,14 @@ const rules = {
             callback(new Error(`Guardian ${i + 1}: firstname, lastname, phone number, and address are required`))
             return
           }
+          // Validate phone number is exactly 11 digits
+          if (g.phone_number && g.phone_number.trim()) {
+            const cleanPhone = g.phone_number.replace(/\D/g, '')
+            if (cleanPhone.length !== 11) {
+              callback(new Error(`Guardian ${i + 1}: phone number must be exactly 11 digits`))
+              return
+            }
+          }
         }
 
         callback()
