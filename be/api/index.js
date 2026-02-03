@@ -184,21 +184,32 @@ app.use(cors(corsOptions));
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
 // IMPORTANT: Skip body-parser for multipart/form-data (handled by multer)
-const skipMultipart = (req) => {
-  const contentType = req.headers['content-type'] || '';
-  return contentType.includes('multipart/form-data');
+const skipMultipart = (contentType) => {
+  return contentType && contentType.includes('multipart/form-data');
 };
 
-app.use(bodyParser.json({ limit: '500mb', type: (req) => {
-  if (skipMultipart(req)) return false;
-  return 'application/json';
-}}));
+// For JSON requests - skip multipart
+app.use(bodyParser.json({ 
+  limit: '500mb',
+  type: (req, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    if (skipMultipart(contentType)) {
+      return 'binary' // Return a type that won't match
+    }
+    return 'application/json';
+  }
+}));
+
+// For URL-encoded requests - skip multipart
 app.use(
   bodyParser.urlencoded({
     extended: true,
     limit: '500mb',
-    type: (req) => {
-      if (skipMultipart(req)) return false;
+    type: (req, res, next) => {
+      const contentType = req.headers['content-type'] || '';
+      if (skipMultipart(contentType)) {
+        return 'application/octet-stream' // Return a type that won't match
+      }
       return 'application/x-www-form-urlencoded';
     }
   })
@@ -206,15 +217,27 @@ app.use(
 
 // Additional body parser specifically for CMS routes with even higher limits
 // This handles cases where multiple large images/videos are sent together
-// IMPORTANT: Skip body-parser for multipart/form-data (handled by multer)
-app.use('/api/cms', bodyParser.json({ limit: '500mb', type: (req) => {
-  if (skipMultipart(req)) return false;
-  return 'application/json';
-}}));
-app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb', type: (req) => {
-  if (skipMultipart(req)) return false;
-  return 'application/x-www-form-urlencoded';
-}}));
+app.use('/api/cms', bodyParser.json({ 
+  limit: '500mb',
+  type: (req, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    if (skipMultipart(contentType)) {
+      return 'binary';
+    }
+    return 'application/json';
+  }
+}));
+app.use('/api/cms', bodyParser.urlencoded({ 
+  extended: true, 
+  limit: '500mb',
+  type: (req, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    if (skipMultipart(contentType)) {
+      return 'application/octet-stream';
+    }
+    return 'application/x-www-form-urlencoded';
+  }
+}));
 
 // Request logging middleware
 // In development: log all requests
