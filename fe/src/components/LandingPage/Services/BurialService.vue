@@ -289,7 +289,7 @@
                       </div>
                       <div class="form-group">
                         <label for="relationship">
-                          Relationship to Deceased <span class="required-text">*</span>
+                          Relationship to Deceased <span class="required-text">Required</span>
                         </label>
                         <el-select
                           v-model="relationship"
@@ -315,7 +315,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="deceased-name">
-                          Deceased Name <span class="required-text">*</span>
+                          Deceased Name <span class="required-text">Required</span>
                         </label>
                         <p class="field-note">Full name of the deceased person</p>
                         <v-text-field
@@ -331,7 +331,7 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-deathdate">
-                          Date of Death <span class="required-text">*</span>
+                          Date of Death <span class="required-text">Required</span>
                         </label>
                         <p class="field-note">When did the deceased pass away</p>
                         <v-text-field
@@ -350,7 +350,7 @@
                     <div class="form-row">
                       <div class="form-group">
                         <label for="deceased-birthdate">
-                          Deceased Birth Date <span class="required-text">*</span>
+                          Deceased Birth Date <span class="required-text">Required</span>
                         </label>
                         <p class="field-note">When was the deceased born</p>
                         <v-text-field
@@ -366,7 +366,7 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-age">
-                          Deceased Age <span class="required-text">*</span>
+                          Deceased Age <span class="required-text">Required</span>
                         </label>
                         <p class="field-note">Auto-calculated from birth date</p>
                         <v-text-field
