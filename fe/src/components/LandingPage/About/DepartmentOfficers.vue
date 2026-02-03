@@ -49,26 +49,25 @@
               xl="2"
             >
               <v-card class="officer-card" elevation="2" hover>
-                <div class="officer-image-container">
-                  <v-avatar size="140" class="officer-avatar">
-                    <v-img
-                      :src="officer.image && officer.image.startsWith('data:') ? officer.image : getImageUrl(officer.image)"
-                      :alt="officer.name"
-                      cover
-                      @error="(event) => handleImageError(event, officer)"
-                    >
-                      <template v-slot:placeholder>
-                        <div class="d-flex align-center justify-center fill-height">
-                          <v-progress-circular
-                            indeterminate
-                            color="grey-lighten-5"
-                          ></v-progress-circular>
-                        </div>
-                      </template>
-                    </v-img>
-                  </v-avatar>
+                <div class="officer-image-wrapper">
+                  <v-img
+                    :src="officer.image && officer.image.startsWith('data:') ? officer.image : getImageUrl(officer.image)"
+                    :alt="officer.name"
+                    cover
+                    @error="(event) => handleImageError(event, officer)"
+                    class="officer-image"
+                  >
+                    <template v-slot:placeholder>
+                      <div class="d-flex align-center justify-center fill-height">
+                        <v-progress-circular
+                          indeterminate
+                          color="grey-lighten-5"
+                        ></v-progress-circular>
+                      </div>
+                    </template>
+                  </v-img>
                 </div>
-                <v-card-text class="officer-content">
+                <v-card-text class="officer-info text-center pa-4">
                   <h3 class="officer-name" :title="officer.name">{{ officer.name }}</h3>
                   <p class="officer-role" :title="officer.role">{{ officer.role }}</p>
                 </v-card-text>
@@ -404,106 +403,72 @@ onMounted(async () => {
   }
 }
 
-/* Officer Card Styles - Image Highlighted */
+/* Officer Card Styles - Church Leader Style */
 .officers-grid {
   justify-content: center;
 }
 
 .officer-card {
-  height: 360px;
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  border: none;
-  background: transparent;
-  box-shadow: none !important;
-  transition: all 0.3s ease;
-  overflow: visible;
-}
-
-.officer-image-container {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  margin-bottom: 12px;
-}
-
-.officer-avatar {
-  size: 180px !important;
-  border: 4px solid #14b8a6;
-  box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+  overflow: hidden;
   transition: all 0.3s ease;
 }
 
-.officer-card:hover .officer-avatar {
-  transform: scale(1.05);
-  box-shadow: 0 12px 32px rgba(20, 184, 166, 0.5);
-  border-color: #0d9488;
+.officer-image-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 100%; /* Square aspect ratio */
+  overflow: hidden;
 }
 
-.officer-content {
-  flex-grow: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  padding: 8px 8px !important;
-  overflow: visible;
+.officer-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.officer-info {
+  padding: 12px 16px !important;
 }
 
 .officer-name {
   font-family: 'Georgia', serif;
   font-style: italic;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4a5568;
-  margin: 0 0 2px 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #37474f;
+  margin: 0 0 4px 0;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 2.2em;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
 }
 
 .officer-role {
   font-family: 'Georgia', serif;
   font-style: italic;
-  font-size: 0.75rem;
-  color: #718096;
-  font-weight: 500;
+  font-size: 0.8rem;
+  color: #14b8a6;
+  font-weight: 600;
   margin: 0;
   line-height: 1.3;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 2em;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
 }
 
-/* Responsive adjustments */
+/* Responsive */
 @media (max-width: 600px) {
-  .officer-card {
-    height: 320px;
-  }
-
-  .officer-avatar {
-    size: 150px !important;
-  }
-
   .officer-name {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
 
   .officer-role {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
   }
 }
 </style>
