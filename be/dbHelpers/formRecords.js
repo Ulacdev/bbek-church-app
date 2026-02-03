@@ -1012,6 +1012,92 @@ async function bulkDeleteForms(formIds, archivedBy = null) {
   }
 }
 
+/**
+ * BULK APPROVE FORMS - Approve multiple pending forms at once
+ * @param {Array<Number>} formIds - Array of Form IDs to approve
+ * @param {String} reviewedBy - User ID who is reviewing the forms
+ * @returns {Promise<Object>} Result object with success/failure counts
+ */
+async function bulkApproveForms(formIds, reviewedBy = null) {
+  try {
+    if (!Array.isArray(formIds) || formIds.length === 0) {
+      throw new Error('Form IDs array is required and cannot be empty');
+    }
+
+    // Validate all IDs are numbers
+    const validIds = formIds.filter(id => typeof id === 'number' && id > 0);
+    if (validIds.length === 0) {
+      throw new Error('No valid form IDs provided');
+    }
+
+    // Only approve forms that are currently 'pending'
+    const placeholders = validIds.map(() => '?').join(',');
+    const selectSql = `SELECT form_id, form_type, form_data FROM tbl_forms WHERE form_id IN (${placeholders}) AND status = 'pending'`;
+    const [formsToApprove] = await query(selectSql, validIds);
+
+    if (formsToApprove.length === 0) {
+      return {
+        success: true,
+        message: 'No pending forms found to approve',
+        data: {
+          requested: validIds.length,
+          approved: 0,
+          skipped: validIds.length
+        }
+      };
+    }
+
+    const approvedFormIds = formsToApprove.map(f => f.form_id);
+    let scheduleChangeCount = 0;
+
+    // Update all pending forms to 'approved'
+    const updateSql = `
+      UPDATE tbl_forms
+      SET status = 'approved',
+          reviewed_by = ?,
+          reviewed_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE form_id IN (${approvedFormIds.map(() => '?').join(',')})
+    `;
+    const [updateResult] = await query(updateSql, [reviewedBy, ...approvedFormIds]);
+
+    // Handle schedule changes - update service dates
+    for (const form of formsToApprove) {
+      if (form.form_type === 'schedule_change') {
+        try {
+          const formData = typeof form.form_data === 'string' ? JSON.parse(form.form_data) : form.form_data;
+          const serviceUpdateResult = await updateServiceDateForScheduleChange({
+            form_type: form.form_type,
+            form_data: formData
+          });
+          if (serviceUpdateResult.success) {
+            scheduleChangeCount++;
+          }
+        } catch (err) {
+          console.warn(`Failed to update service date for form ${form.form_id}:`, err.message);
+        }
+      }
+    }
+
+    const approvedCount = updateResult.affectedRows || 0;
+    const skippedCount = validIds.length - approvedCount;
+
+    return {
+      success: true,
+      message: `Bulk approve completed: ${approvedCount} approved, ${skippedCount} skipped${scheduleChangeCount > 0 ? ` (${scheduleChangeCount} schedule changes updated)` : ''}`,
+      data: {
+        requested: validIds.length,
+        approved: approvedCount,
+        skipped: skippedCount,
+        schedule_changes_updated: scheduleChangeCount
+      }
+    };
+  } catch (error) {
+    console.error('Error bulk approving forms:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createForm,
   getAllForms,
@@ -1020,6 +1106,7 @@ module.exports = {
   updateForm,
   deleteForm,
   bulkDeleteForms,
+  bulkApproveForms,
   getMemberServices
 };
 

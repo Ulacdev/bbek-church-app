@@ -348,6 +348,50 @@ export const useFormsStore = defineStore('forms', {
     },
 
     /**
+     * Bulk approve forms
+     */
+    async bulkApproveForms(formIds) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const response = await axios.put('/forms/bulkApproveForms', {
+          form_ids: formIds
+        })
+
+        if (response.data.success) {
+          // Update forms in the list (set status to approved for approved forms)
+          const approvedFormIds = formIds // All requested forms were approved
+          this.forms = this.forms.filter(f => !approvedFormIds.includes(f.form_id))
+
+          // Refresh forms list
+          await this.fetchForms({
+            page: this.currentPage,
+            pageSize: this.itemsPerPage,
+            search: this.searchQuery,
+            status: this.filters.status,
+            form_type: this.filters.form_type
+          })
+
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          throw new Error(response.data.message || 'Failed to bulk approve forms')
+        }
+      } catch (error) {
+        console.error('Error bulk approving forms:', error)
+        const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to bulk approve forms'
+        this.error = errorMessage
+        throw new Error(errorMessage)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
      * Set search query
      */
     setSearchQuery(query) {

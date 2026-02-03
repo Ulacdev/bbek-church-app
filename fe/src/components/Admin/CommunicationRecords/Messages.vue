@@ -118,8 +118,22 @@
           <div class="d-flex align-center justify-space-between">
             <div class="text-body-2">
               <strong>{{ selectedForms.length }}</strong> message{{ selectedForms.length > 1 ? 's' : '' }} selected
+              <span v-if="pendingSelectedCount > 0" class="ml-2">
+                ({{ pendingSelectedCount }} pending)
+              </span>
             </div>
             <div class="d-flex gap-2">
+              <v-btn
+                v-if="pendingSelectedCount > 0"
+                color="success"
+                variant="flat"
+                size="small"
+                :disabled="loading"
+                @click="bulkApproveForms"
+              >
+                <v-icon left>mdi-check-all</v-icon>
+                Approve Selected
+              </v-btn>
               <v-btn
                 color="error"
                 variant="flat"
@@ -379,6 +393,11 @@ const isIndeterminate = computed(() => {
   return selectedForms.value.length > 0 && selectedForms.value.length < forms.value.length
 })
 
+// Count how many selected forms are pending (can be approved)
+const pendingSelectedCount = computed(() => {
+  return selectedForms.value.filter(form => form.status === 'pending').length
+})
+
 const approvingId = ref(null)
 const rejectingId = ref(null)
 const showViewDialog = ref(false)
@@ -533,6 +552,52 @@ const toggleSelectAll = () => {
 
 const clearSelection = () => {
   selectedForms.value = []
+}
+
+const bulkApproveForms = async () => {
+  try {
+    const pendingForms = selectedForms.value.filter(form => form.status === 'pending')
+    
+    await ElMessageBox.confirm(
+      `Are you sure you want to approve ${pendingForms.length} pending message${pendingForms.length > 1 ? 's' : ''}?`,
+      'Confirm Bulk Approve',
+      {
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        type: 'success',
+      }
+    )
+
+    // Extract form IDs
+    const formIds = pendingForms.map(form => form.form_id)
+
+    // Use the bulk approve endpoint
+    const result = await formsStore.bulkApproveForms(formIds)
+
+    if (result.success) {
+      const { approved, skipped, schedule_changes_updated } = result.data
+
+      if (approved > 0) {
+        ElMessage.success(`Successfully approved ${approved} message${approved > 1 ? 's' : ''}`)
+      }
+
+      if (skipped > 0) {
+        ElMessage.info(`${skipped} message${skipped > 1 ? 's were' : ' was'} already processed and skipped`)
+      }
+
+      if (schedule_changes_updated > 0) {
+        ElMessage.info(`${schedule_changes_updated} schedule change${schedule_changes_updated > 1 ? 's were' : ' was'} updated`)
+      }
+    }
+
+    clearSelection()
+    // fetchForms() is already called in the store method
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error bulk approving forms:', error)
+      ElMessage.error('Failed to approve selected messages')
+    }
+  }
 }
 
 const bulkDeleteForms = async () => {
