@@ -183,18 +183,21 @@ app.use(cors(corsOptions));
 // Body parsers - Increased limit to handle base64 image/video uploads
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
-app.use(bodyParser.json({ limit: '500mb' }));
+// IMPORTANT: Set type checker to ignore multipart/form-data for file uploads
+app.use(bodyParser.json({ limit: '500mb', type: ['application/json', 'text/plain'] }));
 app.use(
   bodyParser.urlencoded({
     extended: true,
-    limit: '500mb'
+    limit: '500mb',
+    type: 'application/x-www-form-urlencoded'
   })
 );
 
 // Additional body parser specifically for CMS routes with even higher limits
 // This handles cases where multiple large images/videos are sent together
-app.use('/api/cms', bodyParser.json({ limit: '500mb' }));
-app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb' }));
+// IMPORTANT: Set type to only parse JSON for CMS routes, not multipart
+app.use('/api/cms', bodyParser.json({ limit: '500mb', type: ['application/json', 'text/plain'] }));
+app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb', type: 'application/x-www-form-urlencoded' }));
 
 // Request logging middleware
 // In development: log all requests
