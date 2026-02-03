@@ -152,44 +152,42 @@ export const useEventsRecordsStore = defineStore('eventsRecords', {
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
-        // Create FormData for file upload
-        const formData = new FormData()
-        
-        // Add all fields to FormData
-        formData.append('title', eventData.title || '')
-        formData.append('description', eventData.description || '')
-        formData.append('start_date', eventData.start_date || '')
-        formData.append('end_date', eventData.end_date || '')
-        formData.append('location', eventData.location || '')
-        if (eventData.link) {
-          formData.append('link', eventData.link)
+        // Prepare event data as JSON (not FormData) - more reliable for Vercel
+        const eventPayload = {
+          title: eventData.title || '',
+          description: eventData.description || '',
+          start_date: eventData.start_date || '',
+          end_date: eventData.end_date || '',
+          location: eventData.location || '',
+          link: eventData.link || '',
+          type: eventData.type || '',
+          status: eventData.status || 'pending'
         }
-        formData.append('type', eventData.type || '')
-        formData.append('status', eventData.status || 'pending')
         
-        // Add image file if provided
+        // Add image as base64 if provided
         if (eventData.imageFile) {
-          formData.append('image', eventData.imageFile)
+          // Convert File to base64
+          const reader = new FileReader()
+          eventPayload.image = await new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(eventData.imageFile)
+          })
+        } else if (eventData.image && typeof eventData.image === 'string' && eventData.image.startsWith('data:')) {
+          // Already base64
+          eventPayload.image = eventData.image
         } else if (eventData.image) {
-          // If image is base64, convert to blob and add as file
-          const blob = base64ToBlob(eventData.image)
-          const file = new File([blob], 'event-image.jpg', { type: blob.type })
-          formData.append('image', file)
+          eventPayload.image = eventData.image
         }
         
-        // Add joined_members if provided (array of member IDs)
+        // Add joined_members if provided
         if (eventData.joined_members !== undefined) {
-          if (Array.isArray(eventData.joined_members)) {
-            formData.append('joined_members', JSON.stringify(eventData.joined_members))
-          } else if (eventData.joined_members) {
-            formData.append('joined_members', eventData.joined_members)
-          }
+          eventPayload.joined_members = JSON.stringify(eventData.joined_members)
         }
         
-        // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-        const response = await axios.post('/church-records/events/createEvent', formData, {
+        const response = await axios.post('/church-records/events/createEvent', eventPayload, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
           }
         })
         
@@ -218,48 +216,43 @@ export const useEventsRecordsStore = defineStore('eventsRecords', {
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
-        // Create FormData for file upload
-        const formData = new FormData()
-        
-        // Add all fields to FormData (only include defined fields)
-        if (eventData.title !== undefined) formData.append('title', eventData.title)
-        if (eventData.description !== undefined) formData.append('description', eventData.description)
-        if (eventData.start_date !== undefined) formData.append('start_date', eventData.start_date)
-        if (eventData.end_date !== undefined) formData.append('end_date', eventData.end_date)
-        if (eventData.location !== undefined) formData.append('location', eventData.location)
-        if (eventData.link !== undefined) {
-          formData.append('link', eventData.link || '')
+        // Prepare event data as JSON (not FormData) - more reliable for Vercel
+        const eventPayload = {
+          title: eventData.title || '',
+          description: eventData.description || '',
+          start_date: eventData.start_date || '',
+          end_date: eventData.end_date || '',
+          location: eventData.location || '',
+          link: eventData.link || '',
+          type: eventData.type || '',
+          status: eventData.status || 'pending'
         }
-        if (eventData.type !== undefined) formData.append('type', eventData.type)
-        if (eventData.status !== undefined) formData.append('status', eventData.status)
         
-        // Add image file if provided (new file or base64)
+        // Add image as base64 if provided (new file or existing base64)
         if (eventData.imageFile) {
-          // imageFile is already a File object
-          formData.append('image', eventData.imageFile)
-        } else if (eventData.image !== undefined) {
-          if (eventData.image) {
-            // If image is base64, convert to blob and add as file
-            const blob = base64ToBlob(eventData.image)
-            const file = new File([blob], 'event-image.jpg', { type: blob.type })
-            formData.append('image', file)
-          }
-          // If image is null/empty, don't append (keeps existing image)
+          // Convert File to base64
+          const reader = new FileReader()
+          eventPayload.image = await new Promise((resolve) => {
+            reader.onload = () => resolve(reader.result)
+            reader.readAsDataURL(eventData.imageFile)
+          })
+        } else if (eventData.image && typeof eventData.image === 'string' && eventData.image.startsWith('data:')) {
+          // Already base64
+          eventPayload.image = eventData.image
+        } else if (eventData.image) {
+          // Convert blob to base64
+          eventPayload.image = eventData.image
         }
         
-        // Add joined_members if provided (array of member IDs)
+        // Add joined_members if provided
         if (eventData.joined_members !== undefined) {
-          if (Array.isArray(eventData.joined_members)) {
-            formData.append('joined_members', JSON.stringify(eventData.joined_members))
-          } else if (eventData.joined_members) {
-            formData.append('joined_members', eventData.joined_members)
-          }
+          eventPayload.joined_members = JSON.stringify(eventData.joined_members)
         }
         
-        // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-        const response = await axios.put(`/church-records/events/updateEvent/${id}`, formData, {
+        const response = await axios.put(`/church-records/events/updateEvent/${id}`, eventPayload, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
           }
         })
         
