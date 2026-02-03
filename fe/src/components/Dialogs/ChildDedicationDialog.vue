@@ -159,46 +159,6 @@
         </el-select>
       </el-form-item>
 
-      <!-- Preferred Dedication Date and Time - Only for Admin/Staff users -->
-      <el-form-item v-if="!isMemberUser" prop="preferred_dedication_date">
-        <template #label>
-          <span> Preferred Dedication Date<span class="required-text">*</span></span>
-        </template>
-        <el-date-picker
-          v-model="formData.preferred_dedication_date"
-          type="date"
-          placeholder="Select preferred dedication date"
-          size="large"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          style="width: 100%"
-          :disabled="loading"
-          :disabled-date="isDateDisabled"
-          @change="onDateChange"
-        />
-      </el-form-item>
-
-      <!-- Preferred Dedication Time - Only for Admin/Staff users -->
-      <el-form-item v-if="!isMemberUser" prop="preferred_dedication_time">
-        <template #label>
-          <span>Preferred Dedication Time<span class="required-text">*</span></span>
-        </template>
-        <el-time-picker
-          v-model="formData.preferred_dedication_time"
-          placeholder="Select preferred dedication time"
-          size="large"
-          format="hh:mm A"
-          value-format="HH:mm"
-          style="width: 100%"
-          :disabled="loading"
-          :disabled-hours="getDisabledHours"
-          :disabled-minutes="getDisabledMinutes"
-          start="08:00"
-          end="18:00"
-          step="30"
-        />
-      </el-form-item>
-
       <!-- Father Details Section -->
       <el-divider content-position="left">Father's Information (Optional)</el-divider>
 
@@ -501,7 +461,52 @@
         />
       </el-form-item>
 
-      <!-- Pastor (Admin/Staff only) -->
+      <!-- Pastor, Location, Status - Only for Admin/Staff users -->
+
+      <!-- Service Details Section - Only for Admin/Staff users -->
+      <el-divider v-if="!isMemberUser" content-position="left">Service Details</el-divider>
+
+      <!-- Preferred Dedication Date - Only for Admin/Staff users -->
+      <el-form-item v-if="!isMemberUser" prop="preferred_dedication_date">
+        <template #label>
+          <span>Preferred Dedication Date<span class="required-text">*</span></span>
+        </template>
+        <el-date-picker
+          v-model="formData.preferred_dedication_date"
+          type="date"
+          placeholder="Select preferred dedication date"
+          size="large"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          style="width: 100%"
+          :disabled="loading"
+          :disabled-date="isDateDisabled"
+          @change="onDateChange"
+        />
+      </el-form-item>
+
+      <!-- Preferred Dedication Time - Only for Admin/Staff users -->
+      <el-form-item v-if="!isMemberUser" prop="preferred_dedication_time">
+        <template #label>
+          <span>Preferred Dedication Time<span class="required-text">*</span></span>
+        </template>
+        <el-time-picker
+          v-model="formData.preferred_dedication_time"
+          placeholder="Select preferred dedication time"
+          size="large"
+          format="hh:mm A"
+          value-format="HH:mm"
+          style="width: 100%"
+          :disabled="loading"
+          :disabled-hours="getDisabledHours"
+          :disabled-minutes="getDisabledMinutes"
+          start="08:00"
+          end="18:00"
+          step="30"
+        />
+      </el-form-item>
+
+      <!-- Pastor - Only for Admin/Staff users -->
       <el-form-item v-if="!isMemberUser" prop="pastor">
         <template #label>
           <span>Pastor <span class="required-text">*</span></span>
@@ -525,7 +530,7 @@
         </el-select>
       </el-form-item>
 
-      <!-- Location (Admin/Staff only) -->
+      <!-- Location - Only for Admin/Staff users -->
       <el-form-item v-if="!isMemberUser" prop="location">
         <template #label>
           <span>Location <span class="required-text">*</span></span>
@@ -539,7 +544,7 @@
         />
       </el-form-item>
 
-      <!-- Status (Admin/Staff only) -->
+      <!-- Status - Only for Admin/Staff users -->
       <el-form-item v-if="!isMemberUser" prop="status" label="Status">
         <el-select
           v-model="formData.status"
