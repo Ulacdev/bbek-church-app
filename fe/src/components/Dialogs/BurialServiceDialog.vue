@@ -20,7 +20,7 @@
       :label-position="labelPosition"
       :hide-required-asterisk="isMember"
     >
-     <!-- Member (Optional for Admin/Staff) -->
+      <!-- Member (Optional for Admin/Staff) -->
       <el-form-item label="Member" prop="member_id" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
         <template #label>
           <span>Member</span>
@@ -43,268 +43,288 @@
         </el-select>
       </el-form-item>
 
-      <!-- Reason of Death (Optional) -->
-      <el-form-item prop="reason_of_death">
-        <template #label>
-          <span>Reason of Death <span class="optional-text">(optional)</span></span>
-        </template>
-        <el-input
-          v-model="formData.reason_of_death"
-          placeholder="Enter cause of death (if known)"
+      <!-- Requester Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-title">Requester Information</span>
+        </div>
+
+        <!-- Requester Name (Required for Admin/Staff when no member selected) -->
+        <el-form-item label="Requester Name" prop="requester_name" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
+          <template #label>
+            <span>{{ isMemberSelected ? 'Member' : 'Requester Name' }}<span v-if="!isMemberSelected" class="required-text"></span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_name"
+            :placeholder="formData.member_id ? 'Auto-filled' : 'Full name'"
+            size="large"
+            clearable
+            :disabled="loading || (formData.member_id && formData.member_id !== '')"
+          />
+        </el-form-item>
+
+        <!-- Requester Email (Required for Admin/Staff when no member selected) -->
+        <el-form-item label="Requester Email" prop="requester_email" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
+          <template #label>
+            <span>{{ isMemberSelected ? 'Member Email' : 'Requester Email' }}<span v-if="!isMemberSelected" class="required-text"></span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_email"
+            type="email"
+            :placeholder="formData.member_id ? 'Auto-filled' : 'Email'"
+            size="large"
+            clearable
+            :disabled="loading || (formData.member_id && formData.member_id !== '')"
+          />
+        </el-form-item>
+
+        <!-- Requester Name (For Member Users) -->
+        <el-form-item prop="requester_name" v-else-if="isMember">
+          <template #label>
+            <span>Requester Name <span class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_name"
+            placeholder="Your full name"
+            size="large"
+            :disabled="true"
+          />
+        </el-form-item>
+
+        <!-- Requester Email (For Member Users) -->
+        <el-form-item prop="requester_email" v-else-if="isMember">
+          <template #label>
+            <span>Requester Email <span class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_email"
+            type="email"
+            placeholder="Your email address"
+            size="large"
+            :disabled="true"
+          />
+        </el-form-item>
+
+        <!-- Requester Name (For Non-Member Users) -->
+        <el-form-item prop="requester_name" v-else-if="!userInfo?.account?.member_id">
+          <template #label>
+            <span>Requester Name <span class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_name"
+            placeholder="Your full name"
+            size="large"
+            clearable
+            :disabled="loading"
+          />
+        </el-form-item>
+
+        <!-- Requester Email (For Non-Member Users) -->
+        <el-form-item prop="requester_email" v-else-if="!userInfo?.account?.member_id">
+          <template #label>
+            <span>Requester Email <span class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.requester_email"
+            type="email"
+            placeholder="Your email"
+            size="large"
+            clearable
+            :disabled="loading"
+          />
+        </el-form-item>
+
+        <!-- Relationship -->
+        <el-form-item prop="relationship">
+          <template #label>
+            <span>Relationship <span v-if="isMember" class="required-text">required</span></span>
+          </template>
+          <el-select
+            v-model="formData.relationship"
+            placeholder="Select relationship"
+            size="large"
+            style="width: 100%"
+            clearable
+            :disabled="loading"
+          >
+            <el-option
+              v-for="rel in relationshipOptions"
+              :key="rel"
+              :label="rel"
+              :value="rel"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- Location -->
+        <el-form-item prop="location">
+          <template #label>
+            <span>Location <span v-if="isMember" class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.location"
+            placeholder="Service location"
+            size="large"
+            clearable
+            :disabled="loading"
+          />
+        </el-form-item>
+      </div>
+
+      <!-- Deceased Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-title">Deceased Information</span>
+        </div>
+
+        <!-- Deceased Name -->
+        <el-form-item prop="deceased_name">
+          <template #label>
+            <span>Deceased Name <span v-if="isMember" class="required-text">required</span></span>
+          </template>
+          <el-input
+            v-model="formData.deceased_name"
+            placeholder="Deceased name"
+            size="large"
+            clearable
+            :disabled="loading"
+          />
+        </el-form-item>
+
+        <!-- Reason of Death (Optional) -->
+        <el-form-item prop="reason_of_death">
+          <template #label>
+            <span>Reason of Death <span class="optional-text">(optional)</span></span>
+          </template>
+          <el-input
+            v-model="formData.reason_of_death"
+            placeholder="Cause of death"
+            size="large"
+            clearable
+            :disabled="loading"
+            maxlength="255"
+          />
+        </el-form-item>
+
+        <!-- Deceased Birthdate -->
+        <el-form-item prop="deceased_birthdate">
+          <template #label>
+            <span>Deceased Birthdate <span v-if="isMember" class="required-text">required</span></span>
+          </template>
+          <el-date-picker
+            v-model="formData.deceased_birthdate"
+            type="date"
+            placeholder="Birthdate"
+            size="large"
+            format="YYYY-MM-DD"
+            style="width: 100%"
+            :disabled="loading"
+            @change="calculateDeceasedAge"
+          />
+        </el-form-item>
+
+        <!-- Date of Death -->
+        <el-form-item prop="date_death">
+          <template #label>
+            <span>Date of Death <span v-if="isMember" class="required-text">required</span></span>
+          </template>
+          <el-date-picker
+            v-model="formData.date_death"
+            type="datetime"
+            placeholder="Date/time of death"
+            size="large"
+            format="YYYY-MM-DD HH:mm"
+            style="width: 100%"
+            :disabled="loading"
+            @change="calculateDeceasedAge"
+          />
+        </el-form-item>
+      </div>
+
+      <!-- Service Details Section -->
+      <div class="form-section">
+        <div class="section-header">
+          <span class="section-title">Service Details</span>
+        </div>
+
+        <!-- Pastor -->
+        <el-form-item label="Pastor" prop="pastor_name" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
+          <template #label>
+            <span>Pastor</span>
+          </template>
+          <el-select
+            v-model="formData.pastor_name"
+            placeholder="Select pastor"
+            size="large"
+            style="width: 100%"
+            clearable
+            :disabled="loading"
+          >
+            <el-option
+              v-for="pastor in pastorOptions"
+              :key="pastor.name"
+              :label="pastor.name"
+              :value="pastor.name"
+            />
+          </el-select>
+        </el-form-item>
+
+        <!-- Service Date & Time (Admin/Staff Only - Required) -->
+        <el-form-item label="Service Date & Time" prop="service_date" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
+          <template #label>
+            <span>Service Date & Time</span>
+          </template>
+          <el-date-picker
+            v-model="formData.service_date"
+            type="datetime"
+            placeholder="Date/time"
+            size="large"
+            format="YYYY-MM-DD HH:mm"
+            style="width: 100%"
+            :disabled="loading"
+            :disabled-date="(date) => date < new Date()"
+            @change="onServiceDateChange"
+          />
+        </el-form-item>
+
+        <!-- Status -->
+        <el-form-item label="Status" prop="status" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
+          <template #label>
+            <span>Status</span>
+          </template>
+          <el-select
+            v-model="formData.status"
+            placeholder="Status"
+            size="large"
+            style="width: 100%"
+            :disabled="loading"
+          >
+            <el-option
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </el-form-item>
+      </div>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleClose" size="large" :disabled="loading">Cancel</el-button>
+        <el-button
+          type="primary"
+          @click="handleSubmit"
           size="large"
-          clearable
+          :loading="loading"
           :disabled="loading"
-          maxlength="255"
-        />
-      </el-form-item>
-
-
-      <!-- Requester Name (Required for Admin/Staff when no member selected) -->
-      <el-form-item label="Requester Name" prop="requester_name" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
-        <template #label>
-          <span>{{ isMemberSelected ? 'Member' : 'Requester Name' }}<span v-if="!isMemberSelected" class="required-text"></span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_name"
-          :placeholder="formData.member_id ? 'Auto-filled from member' : 'Enter requester full name'"
-          size="large"
-          clearable
-          :disabled="loading || (formData.member_id && formData.member_id !== '')"
-        />
-      </el-form-item>
-
-      <!-- Requester Email (Required for Admin/Staff when no member selected) -->
-      <el-form-item label="Requester Email" prop="requester_email" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
-        <template #label>
-          <span>{{ isMemberSelected ? 'Member Email' : 'Requester Email' }}<span v-if="!isMemberSelected" class="required-text"></span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_email"
-          type="email"
-          :placeholder="formData.member_id ? 'Auto-filled from member' : 'Enter requester email address'"
-          size="large"
-          clearable
-          :disabled="loading || (formData.member_id && formData.member_id !== '')"
-        />
-      </el-form-item>
-
-      <!-- Requester Name (For Member Users) -->
-      <el-form-item prop="requester_name" v-else-if="isMember">
-        <template #label>
-          <span>Requester Name <span class="required-text">required</span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_name"
-          placeholder="Your full name"
-          size="large"
-          :disabled="true"
-        />
-      </el-form-item>
-
-      <!-- Requester Email (For Member Users) -->
-      <el-form-item prop="requester_email" v-else-if="isMember">
-        <template #label>
-          <span>Requester Email <span class="required-text">required</span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_email"
-          type="email"
-          placeholder="Your email address"
-          size="large"
-          :disabled="true"
-        />
-      </el-form-item>
-
-      <!-- Requester Name (For Non-Member Users) -->
-      <el-form-item prop="requester_name" v-else-if="!userInfo?.account?.member_id">
-        <template #label>
-          <span>Requester Name <span class="required-text">required</span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_name"
-          placeholder="Enter your full name"
-          size="large"
-          clearable
-          :disabled="loading"
-        />
-      </el-form-item>
-
-      <!-- Requester Email (For Non-Member Users) -->
-      <el-form-item prop="requester_email" v-else-if="!userInfo?.account?.member_id">
-        <template #label>
-          <span>Requester Email <span class="required-text">required</span></span>
-        </template>
-        <el-input
-          v-model="formData.requester_email"
-          type="email"
-          placeholder="Enter your email address"
-          size="large"
-          clearable
-          :disabled="loading"
-        />
-      </el-form-item>
-
-     <!-- Deceased Name -->
-     <el-form-item prop="deceased_name">
-       <template #label>
-         <span>Deceased Name <span v-if="isMember" class="required-text">required</span></span>
-       </template>
-       <el-input
-         v-model="formData.deceased_name"
-         placeholder="Enter deceased full name"
-         size="large"
-         clearable
-         :disabled="loading"
-       />
-     </el-form-item>
-
-     <!-- Deceased Birthdate -->
-     <el-form-item prop="deceased_birthdate">
-       <template #label>
-         <span>Deceased Birthdate <span v-if="isMember" class="required-text">required</span></span>
-       </template>
-       <el-date-picker
-         v-model="formData.deceased_birthdate"
-         type="date"
-         placeholder="Select birthdate"
-         size="large"
-         format="YYYY-MM-DD"
-         style="width: 100%"
-         :disabled="loading"
-         @change="calculateDeceasedAge"
-       />
-     </el-form-item>
-
-     <!-- Date of Death -->
-     <el-form-item prop="date_death">
-       <template #label>
-         <span>Date of Death <span v-if="isMember" class="required-text">required</span></span>
-       </template>
-       <el-date-picker
-         v-model="formData.date_death"
-         type="datetime"
-         placeholder="Select date and time of death"
-         size="large"
-         format="YYYY-MM-DD HH:mm"
-         style="width: 100%"
-         :disabled="loading"
-         @change="calculateDeceasedAge"
-       />
-     </el-form-item>
-
-     <!-- Relationship -->
-     <el-form-item prop="relationship">
-       <template #label>
-         <span>Relationship <span v-if="isMember" class="required-text">required</span></span>
-       </template>
-       <el-select
-         v-model="formData.relationship"
-         placeholder="Select relationship"
-         size="large"
-         style="width: 100%"
-         clearable
-         :disabled="loading"
-       >
-         <el-option
-           v-for="rel in relationshipOptions"
-           :key="rel"
-           :label="rel"
-           :value="rel"
-         />
-       </el-select>
-     </el-form-item>
-
-     <!-- Location -->
-     <el-form-item prop="location">
-       <template #label>
-         <span>Location <span v-if="isMember" class="required-text">required</span></span>
-       </template>
-       <el-input
-         v-model="formData.location"
-         placeholder="Enter service location"
-         size="large"
-         clearable
-         :disabled="loading"
-       />
-     </el-form-item>
-
-     <!-- Pastor -->
-     <el-form-item label="Pastor" prop="pastor_name" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
-       <template #label>
-         <span>Pastor</span>
-       </template>
-       <el-select
-         v-model="formData.pastor_name"
-         placeholder="Select pastor"
-         size="large"
-         style="width: 100%"
-         clearable
-         :disabled="loading"
-       >
-         <el-option
-           v-for="pastor in pastorOptions"
-           :key="pastor.name"
-           :label="pastor.name"
-           :value="pastor.name"
-         />
-       </el-select>
-     </el-form-item>
-
-     <!-- Service Date & Time (Admin/Staff Only - Required) -->
-     <el-form-item label="Service Date & Time" prop="service_date" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
-       <template #label>
-         <span>Service Date & Time</span>
-       </template>
-       <el-date-picker
-         v-model="formData.service_date"
-         type="datetime"
-         placeholder="Select service date and time"
-         size="large"
-         format="YYYY-MM-DD HH:mm"
-         style="width: 100%"
-         :disabled="loading"
-         :disabled-date="(date) => date < new Date()"
-         @change="onServiceDateChange"
-       />
-     </el-form-item>
-
-     <!-- Status -->
-     <el-form-item label="Status" prop="status" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
-       <template #label>
-         <span>Status</span>
-       </template>
-       <el-select
-         v-model="formData.status"
-         placeholder="Status"
-         size="large"
-         style="width: 100%"
-         :disabled="loading"
-       >
-         <el-option
-           v-for="opt in statusOptions"
-           :key="opt.value"
-           :label="opt.label"
-           :value="opt.value"
-         />
-       </el-select>
-     </el-form-item>
-   </el-form>
-
-   <template #footer>
-     <div class="dialog-footer">
-       <el-button @click="handleClose" size="large" :disabled="loading">Cancel</el-button>
-       <el-button
-         type="primary"
-         @click="handleSubmit"
-         size="large"
-         :loading="loading"
-         :disabled="loading"
-       >
-         {{ isEditMode ? 'Update' : userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff' ? 'Add' : 'Send' }} Request
-       </el-button>
-     </div>
-   </template>
- </el-dialog>
+        >
+          {{ isEditMode ? 'Update' : userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff' ? 'Add' : 'Send' }} Request
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -315,7 +335,7 @@ import axios from '@/api/axios'
 
 const burialServiceStore = useBurialServiceStore()
 
-// Function to get user from localStorage safely
+// Function to get from localStorage safely
 const getUserFromStorage = () => {
   try {
     const userInfoStr = localStorage.getItem('userInfo')
@@ -402,7 +422,7 @@ const labelPosition = computed(() => {
 // Check if in edit mode
 const isEditMode = computed(() => !!props.burialServiceData)
 
-// Check if current user is a member (not admin/staff)
+// Check if current is a member (not admin/staff)
 const isMember = computed(() => {
   return userInfo.value && userInfo.value.account &&
          userInfo.value.account.position !== 'admin' &&
@@ -506,29 +526,31 @@ const formData = reactive({
   reason_of_death: '',
   relationship: '',
   location: '',
-  pastor_name: null,
+  pastor_name: '',
   service_date: null,
   status: 'pending'
 })
 
-// Status options - standardized: pending, approved, disapproved, completed, cancelled
+// Status options
 const statusOptions = [
-  { label: 'Pending', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Disapproved', value: 'disapproved' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' }
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' }
 ]
 
 // Validation rules
 const rules = computed(() => {
   const baseRules = {
-    member_id: [
-      { required: false, message: 'Member is optional for admin/staff', trigger: 'change' }
+    requester_name: [
+      { required: true, message: 'Requester name is required', trigger: 'blur' }
+    ],
+    requester_email: [
+      { required: true, message: 'Requester email is required', trigger: 'blur' },
+      { type: 'email', message: 'Please enter a valid email address', trigger: 'blur' }
     ],
     deceased_name: [
-      { required: true, message: 'Deceased name is required', trigger: 'blur' },
-      { min: 2, max: 100, message: 'Deceased name must be between 2 and 100 characters', trigger: 'blur' }
+      { required: true, message: 'Deceased name is required', trigger: 'blur' }
     ],
     deceased_birthdate: [
       { required: true, message: 'Deceased birthdate is required', trigger: 'change' }
@@ -540,238 +562,56 @@ const rules = computed(() => {
       { required: true, message: 'Relationship is required', trigger: 'change' }
     ],
     location: [
-      { required: true, message: 'Location is required', trigger: 'blur' },
-      { min: 3, max: 150, message: 'Location must be between 3 and 150 characters', trigger: 'blur' }
-    ],
-    service_date: [
-      { required: true, message: 'Service date is required', trigger: 'change' },
-      {
-        validator: async (rule, value, callback) => {
-          // Only validate if date is provided
-          if (value) {
-            const isValid = await validateTimeSlot(
-              value,
-              isEditMode.value ? props.burialServiceData?.burial_id : null
-            )
-
-            if (!isValid) {
-              callback(new Error('This date is already booked. Please choose a different date.'))
-              return
-            }
-          }
-          callback()
-        },
-        trigger: ['change', 'blur']
-      }
-    ],
-    status: [
-      { required: true, message: 'Status is required', trigger: 'change' },
-      { max: 50, message: 'Status must not exceed 50 characters', trigger: 'blur' }
+      { required: true, message: 'Location is required', trigger: 'blur' }
     ]
-  };
-
-  // Add requester validation rules based on user type
-  if (userInfo.value?.account?.position === 'admin' || userInfo.value?.account?.position === 'staff') {
-    // For admin/staff: required only when no member is selected
-    baseRules.requester_name = [
-      {
-        required: !isMemberSelected.value,
-        message: 'Requester name is required when no member is selected',
-        trigger: 'blur'
-      },
-      { min: 2, max: 100, message: 'Requester name must be between 2 and 100 characters', trigger: 'blur' }
-    ];
-    baseRules.requester_email = [
-      {
-        required: !isMemberSelected.value,
-        message: 'Requester email is required when no member is selected',
-        trigger: 'blur'
-      },
-      { type: 'email', message: 'Please enter a valid email address', trigger: 'blur' }
-    ];
-  } else if (!userInfo.value?.account?.member_id) {
-    // For non-member users, requester fields are required
-    baseRules.requester_name = [
-      { required: true, message: 'Requester name is required', trigger: 'blur' },
-      { min: 2, max: 100, message: 'Requester name must be between 2 and 100 characters', trigger: 'blur' }
-    ];
-    baseRules.requester_email = [
-      { required: true, message: 'Requester email is required', trigger: 'blur' },
-      { type: 'email', message: 'Please enter a valid email address', trigger: 'blur' }
-    ];
-  } else {
-    // For member users
-    baseRules.requester_name = [
-      { required: true, message: 'Requester name is required', trigger: 'blur' },
-      { min: 2, max: 100, message: 'Requester name must be between 2 and 100 characters', trigger: 'blur' }
-    ];
-    baseRules.requester_email = [
-      { required: true, message: 'Requester email is required', trigger: 'blur' },
-      { type: 'email', message: 'Please enter a valid email address', trigger: 'blur' }
-    ];
   }
 
-  return baseRules;
-});
+  // Additional rules for admin/staff when no member is selected
+  if (userInfo.value?.account?.position === 'admin' || userInfo.value?.account?.position === 'staff') {
+    if (!formData.member_id) {
+      baseRules.requester_name = [
+        { required: true, message: 'Requester name is required', trigger: 'blur' }
+      ]
+      baseRules.requester_email = [
+        { required: true, message: 'Requester email is required', trigger: 'blur' },
+        { type: 'email', message: 'Please enter a valid email address', trigger: 'blur' }
+      ]
+    }
+  }
 
-// Handle service date change - show immediate toast notification for conflicts and update status
-const onServiceDateChange = async (date) => {
-  // First update status based on date change
-  updateStatusFromServiceDate()
+  return baseRules
+})
 
-  // Then check for time slot conflicts if date is selected
-  if (date) {
+// Calculate deceased age
+const calculateDeceasedAge = () => {
+  if (formData.deceased_birthdate && formData.date_death) {
+    const birthDate = new Date(formData.deceased_birthdate)
+    const deathDate = new Date(formData.date_death)
+    const age = deathDate.getFullYear() - birthDate.getFullYear()
+    const monthDiff = deathDate.getMonth() - birthDate.getMonth()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && deathDate.getDate() < birthDate.getDate())) {
+      formData.deceased_age = age - 1
+    } else {
+      formData.deceased_age = age
+    }
+  }
+}
+
+// Handle member selection
+const handleMemberChange = async (memberId) => {
+  if (memberId) {
     try {
-      const isValid = await validateTimeSlot(
-        date,
-        isEditMode.value ? props.burialServiceData?.burial_id : null
-      )
-
-      if (!isValid) {
-        // Show immediate toast notification
-        ElMessage.error({
-          message: `Service date conflict: ${date.split('T')[0]} is already booked. Please choose a different date.`,
-          duration: 5000, // Show for 5 seconds
-          showClose: true,
-          dangerouslyUseHTMLString: false
-        })
+      const response = await axios.get(`/church-records/members/getMemberById/${memberId}`)
+      if (response.data.data) {
+        const member = response.data.data
+        formData.requester_name = member.name || (member.firstname + ' ' + member.lastname)
+        formData.requester_email = member.email || ''
       }
     } catch (error) {
-      console.error('Error validating service date:', error)
-      // Don't show error to user for validation failures, just log
-    }
-  }
-}
-
-// Update status based on service date
-const updateStatusFromServiceDate = () => {
-  if (!formData.service_date) {
-    formData.status = 'pending'
-    return
-  }
-
-  const serviceDate = new Date(formData.service_date)
-  const now = new Date()
-
-  if (isNaN(serviceDate.getTime())) {
-    formData.status = 'pending'
-    return
-  }
-
-  // If service date is in the future, set to 'approved' (scheduled)
-  if (serviceDate.getTime() > now.getTime()) {
-    formData.status = 'approved'
-  } else {
-    // Past date - service should be completed
-    formData.status = 'completed'
-  }
-}
-
-// Watch for burialServiceData changes to populate form in edit mode
-watch(
-  () => props.burialServiceData,
-  (newData) => {
-    if (newData && props.modelValue) {
-      console.log('Burial service data received:', newData)
-      console.log('Requester name from data:', newData.requester_name)
-      console.log('Requester email from data:', newData.requester_email)
-      console.log('Deceased birthdate from data:', newData.deceased_birthdate)
-      formData.member_id = newData.member_id ?? null
-      formData.requester_name = newData.requester_name || ''
-      formData.requester_email = newData.requester_email || ''
-      formData.deceased_name = newData.deceased_name || ''
-      formData.deceased_birthdate = newData.deceased_birthdate || null
-      formData.date_death = newData.date_death ? new Date(newData.date_death.replace(' ', 'T')) : null
-      // Calculate age if both dates are available
-      if (formData.deceased_birthdate && formData.date_death) {
-        calculateDeceasedAge()
-      }
-      formData.relationship = newData.relationship || ''
-      formData.location = newData.location || ''
-      formData.pastor_name = newData.pastor_name ?? null
-      formData.service_date = newData.service_date && newData.service_date.includes(' ') ? new Date(newData.service_date.replace(' ', 'T')) : (newData.service_date ? new Date(newData.service_date) : null)
-      formData.status = newData.status || 'pending'
-    }
-  },
-  { immediate: true }
-)
-
-// Watch dialog open/close to reset or populate form
-watch(
-  () => props.modelValue,
-  async (isOpen) => {
-    if (!isOpen) {
-      resetForm()
-      resetLoading()
-    } else {
-      await Promise.all([
-        burialServiceStore.fetchMemberOptions(),
-        burialServiceStore.fetchPastorOptions(),
-        fetchUnavailableTimeSlots()
-      ])
-      await fetchMemberInfo()
-      
-      if (props.burialServiceData) {
-        const data = props.burialServiceData
-        console.log('Dialog opened with data:', data)
-        console.log('Requester name from dialog data:', data.requester_name)
-        console.log('Requester email from dialog data:', data.requester_email)
-        console.log('Deceased birthdate from dialog data:', data.deceased_birthdate)
-        formData.member_id = data.member_id ?? null
-        formData.requester_name = data.requester_name || ''
-        formData.requester_email = data.requester_email || ''
-        formData.deceased_name = data.deceased_name || ''
-        formData.deceased_birthdate = data.deceased_birthdate || null
-        formData.date_death = data.date_death ? new Date(data.date_death.replace(' ', 'T')) : null
-        formData.reason_of_death = data.reason_of_death || ''
-        // Calculate age if both dates are available
-        if (formData.deceased_birthdate && formData.date_death) {
-          calculateDeceasedAge()
-        }
-        formData.relationship = data.relationship || ''
-        formData.location = data.location || ''
-        formData.pastor_name = data.pastor_name ?? null
-        formData.service_date = data.service_date && data.service_date.includes(' ') ? new Date(data.service_date.replace(' ', 'T')) : (data.service_date ? new Date(data.service_date) : null)
-        formData.status = data.status || 'pending'
-      } else {
-        resetForm()
-        if (userInfo.value && userInfo.value.account && (userInfo.value.account.position === 'admin' || userInfo.value.account.position === 'staff')) {
-          // For admin/staff users, clear requester info
-          formData.requester_name = ''
-          formData.requester_email = ''
-        } else if (userInfo.value?.account?.member_id && userInfo.value.account.position !== 'admin' && userInfo.value.account.position !== 'staff') {
-          // For member users, auto-populate their information
-          const memberInfo = userInfo.value.member
-          if (memberInfo) {
-            formData.requester_name = `${memberInfo.firstname || ''} ${memberInfo.middle_name || ''} ${memberInfo.lastname || ''}`.trim()
-            formData.requester_email = memberInfo.email || ''
-          } else {
-            // Fallback to account name if member info is not available
-            formData.requester_name = `${userInfo.value.account.firstname || ''} ${userInfo.value.account.lastname || ''}`.trim() || userInfo.value.account.email || ''
-            formData.requester_email = userInfo.value.account.email || ''
-          }
-        } else {
-          // For non-member users, auto-populate with account info
-          formData.requester_name = `${userInfo.value.account.firstname || ''} ${userInfo.value.account.lastname || ''}`.trim() || userInfo.value.account.email || ''
-          formData.requester_email = userInfo.value.account.email || ''
-        }
-      }
-    }
-  }
-)
-
-// Handle member selection change
-const handleMemberChange = (memberId) => {
-  if (memberId && memberId !== '') {
-    // Find the selected member
-    const selectedMember = memberOptions.value.find(m => (m.id || m.member_id) === memberId)
-    if (selectedMember) {
-      // Auto-fill requester info from member
-      formData.requester_name = selectedMember.name || `${selectedMember.firstname || ''} ${selectedMember.middle_name || ''} ${selectedMember.lastname || ''}`.trim()
-      formData.requester_email = selectedMember.email || ''
+      console.error('Error fetching member details:', error)
     }
   } else {
-    // Clear auto-filled info when no member selected
     formData.requester_name = ''
     formData.requester_email = ''
   }
@@ -788,390 +628,235 @@ const resetForm = () => {
   formData.reason_of_death = ''
   formData.relationship = ''
   formData.location = ''
-  formData.pastor_name = null
+  formData.pastor_name = ''
   formData.service_date = null
   formData.status = 'pending'
-
+  
+  // Clear validation
   if (formRef.value) {
-    formRef.value.clearValidate()
+    formRef.value.resetFields()
+  }
+}
+
+// Watch for burial service data changes (edit mode)
+watch(() => props.burialServiceData, (newData) => {
+  if (newData) {
+    formData.member_id = newData.member_id || null
+    formData.requester_name = newData.requester_name || ''
+    formData.requester_email = newData.requester_email || ''
+    formData.deceased_name = newData.deceased_name || ''
+    formData.deceased_birthdate = newData.deceased_birthdate ? new Date(newData.deceased_birthdate) : null
+    formData.date_death = newData.date_death ? new Date(newData.date_death) : null
+    formData.reason_of_death = newData.reason_of_death || ''
+    formData.relationship = newData.relationship || ''
+    formData.location = newData.location || ''
+    formData.pastor_name = newData.pastor_name || ''
+    formData.service_date = newData.service_date ? new Date(newData.service_date) : null
+    formData.status = newData.status || 'pending'
+  } else {
+    // Reset form when dialog is opened for new request
+    resetForm()
+  }
+}, { immediate: true })
+
+// Handle service date change
+const onServiceDateChange = async (dateTime) => {
+  if (dateTime && props.burialServiceData?.burial_id) {
+    const isAvailable = await validateTimeSlot(dateTime, props.burialServiceData.burial_id)
+    if (!isAvailable) {
+      ElMessage.warning('This time slot is already booked. Please select a different time.')
+      formData.service_date = null
+    }
+  } else if (dateTime) {
+    const isAvailable = await validateTimeSlot(dateTime)
+    if (!isAvailable) {
+      ElMessage.warning('This time slot is already booked. Please select a different time.')
+      formData.service_date = null
+    }
   }
 }
 
 // Handle close
 const handleClose = () => {
   emit('update:modelValue', false)
+  resetForm()
 }
 
 // Handle submit
 const handleSubmit = async () => {
   if (!formRef.value) return
-
+  
   try {
-    // Check for duplicate burial service before validation
-    // Check based on: member_id + deceased_name + deceased_birthdate
-    if (formData.member_id && formData.deceased_name && formData.deceased_birthdate) {
-      try {
-        const birthdateStr = formData.deceased_birthdate instanceof Date && !isNaN(formData.deceased_birthdate.getTime())
-          ? formData.deceased_birthdate.toISOString().split('T')[0]
-          : null
-        
-        if (!birthdateStr) {
-          console.error('Invalid deceased_birthdate for duplicate check')
-        } else {
-          const checkResponse = await axios.get('/church-records/burial-services/check-duplicate', {
-            params: {
-              member_id: String(formData.member_id),
-              deceased_name: formData.deceased_name.trim(),
-              deceased_birthdate: birthdateStr
-            }
-          })
-        
-          if (checkResponse.data.success && checkResponse.data.data && checkResponse.data.data.exists) {
-            ElMessage.error(`A burial service request for "${formData.deceased_name}" (Birthdate: ${birthdateStr}) already exists from this member. Please check existing records or update the existing request instead.`)
-            return
-          }
-        }
-      } catch (checkError) {
-        // If the error indicates duplicate exists, show the error message
-        if (checkError.response?.data?.message && checkError.response.data.message.includes('already exists')) {
-          ElMessage.error(checkError.response.data.message)
-          return
-        }
-        // For other errors, log but continue with form validation
-        console.error('Error checking for duplicates:', checkError)
-      }
-    }
-
     await formRef.value.validate()
-
-    const actionText = isEditMode.value ? 'update' : 'create'
-    const actionTitle = isEditMode.value ? 'Update' : 'Create'
-
-    await ElMessageBox.confirm(
-      `Are you sure you want to ${actionText} this burial service?`,
-      `Confirm ${actionTitle} Burial Service`,
-      {
-        confirmButtonText: actionTitle,
-        cancelButtonText: 'Cancel',
-        type: 'warning',
-      }
-    )
-
-    loading.value = true
-    loadingInstanceRef.value = ElLoading.service({
-      target: '.burial-service-dialog',
-      text: 'Processing...',
-      background: 'rgba(255, 255, 255, 0.8)',
-    })
-
-    // Format dates properly for submission
-    const formatDateForSubmission = (dateValue, isDateTime = false) => {
-      if (!dateValue) return null
-      try {
-        const date = new Date(dateValue)
-        if (isNaN(date.getTime())) return null
-
-        if (isDateTime) {
-          // Format as YYYY-MM-DD HH:mm:ss in local timezone
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          const hours = String(date.getHours()).padStart(2, '0')
-          const minutes = String(date.getMinutes()).padStart(2, '0')
-          const seconds = String(date.getSeconds()).padStart(2, '0')
-          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-        } else {
-          // Format as YYYY-MM-DD
-          const year = date.getFullYear()
-          const month = String(date.getMonth() + 1).padStart(2, '0')
-          const day = String(date.getDate()).padStart(2, '0')
-          return `${year}-${month}-${day}`
-        }
-      } catch {
-        return null
-      }
-    }
-
-    const submitData = {}
     
-    console.log('Form data before submit:', {
+    loading.value = true
+    
+    // Prepare data
+    const data = {
       member_id: formData.member_id,
       requester_name: formData.requester_name,
       requester_email: formData.requester_email,
-      deceased_birthdate: formData.deceased_birthdate,
-      date_death: formData.date_death,
-      service_date: formData.service_date
-    })
-    
-    // Get member_id: only from form selection (admin/staff) or for member users
-    let finalMemberId = formData.member_id
-
-    // For non-admin users, allow fetching member_id from their email if not already set
-    if (!finalMemberId && userInfo.value?.account?.email &&
-        userInfo.value.account.position !== 'admin' && userInfo.value.account.position !== 'staff') {
-      // Fetch member_id in real-time from API using current logged-in user's email (only for member users)
-      try {
-        const memberResponse = await axios.get(`/church-records/members/getSpecificMemberByEmail/${userInfo.value.account.email}`)
-        if (memberResponse.data?.success && memberResponse.data?.data?.member_id) {
-          finalMemberId = String(memberResponse.data.data.member_id).trim()
-          console.log('Real-time member_id fetched:', finalMemberId)
-        }
-      } catch (error) {
-        console.warn('Could not fetch real-time member_id:', error.message)
-        // Fallback to localStorage member_id if API call fails
-        if (userInfo.value?.member?.member_id) {
-          finalMemberId = String(userInfo.value.member.member_id).trim()
-        }
-      }
+      deceased_name: formData.deceased_name,
+      deceased_birthdate: formData.deceased_birthdate ? new Date(formData.deceased_birthdate).toISOString().split('T')[0] : null,
+      date_death: formData.date_death ? new Date(formData.date_death).toISOString() : null,
+      reason_of_death: formData.reason_of_death,
+      relationship: formData.relationship,
+      location: formData.location,
+      pastor_name: formData.pastor_name,
+      service_date: formData.service_date ? new Date(formData.service_date).toISOString() : null,
+      status: formData.status
     }
     
-    if (finalMemberId) submitData.member_id = finalMemberId
-
-    // Always include requester info (required for backend processing)
-    submitData.requester_name = formData.requester_name ? formData.requester_name.trim() : null
-    submitData.requester_email = formData.requester_email ? formData.requester_email.trim() : null
+    let response
     
-    if (formData.deceased_name) submitData.deceased_name = formData.deceased_name.trim()
-    if (formData.deceased_birthdate) {
-      submitData.deceased_birthdate = formatDateForSubmission(formData.deceased_birthdate, false)
-      console.log('Formatted deceased_birthdate:', submitData.deceased_birthdate)
+    if (isEditMode.value) {
+      // Update existing record
+      response = await axios.put(`/church-records/burial-services/updateBurialService/${props.burialServiceData.burial_id}`, data)
+    } else {
+      // Create new record
+      response = await axios.post('/church-records/burial-services/createBurialService', data)
     }
-    if (formData.date_death) {
-      submitData.date_death = formatDateForSubmission(formData.date_death, true)
-      console.log('Formatted date_death:', submitData.date_death)
-    }
-    if (formData.reason_of_death) submitData.reason_of_death = formData.reason_of_death.trim()
-    if (formData.relationship) submitData.relationship = formData.relationship
-    if (formData.location) submitData.location = formData.location.trim()
-    if (formData.pastor_name) submitData.pastor_name = String(formData.pastor_name).trim()
-    if (formData.service_date) {
-      submitData.service_date = formatDateForSubmission(formData.service_date, true)
-      console.log('Formatted service_date:', submitData.service_date)
-    }
-    if (formData.status) submitData.status = formData.status
     
-    console.log('Final submitData:', submitData)
-
-    emit('submit', submitData)
-    
-    // Safety timeout: reset loading after 30 seconds if still loading
-    // This prevents loading state from getting stuck if parent component fails silently
-    setTimeout(() => {
-      if (loading.value) {
-        resetLoading()
-      }
-    }, 30000)
+    if (response.data.success) {
+      ElMessage.success(isEditMode.value ? 'Burial service updated successfully!' : 'Burial service request submitted successfully!')
+      emit('submit', response.data.data)
+      handleClose()
+    } else {
+      ElMessage.error(response.data.message || 'Failed to submit burial service request')
+    }
   } catch (error) {
-    // Reset loading state
-    resetLoading()
-    
-    if (error !== 'cancel') {
-      console.error('Validation failed or submission cancelled:', error)
-      ElMessage.error('Please fill in all required fields correctly or operation cancelled.')
+    console.error('Error submitting burial service:', error)
+    if (error.response?.data?.message) {
+      ElMessage.error(error.response.data.message)
+    } else if (error.message !== 'Validation failed') {
+      ElMessage.error('Failed to submit burial service request. Please try again.')
     }
+  } finally {
+    loading.value = false
   }
 }
 
-
-// Calculate deceased age based on birthdate and date of death (for validation only)
-const calculateDeceasedAge = () => {
-  // Age calculation kept for potential future validation use
-  // Currently not displayed or stored since table doesn't have age field
-  if (!formData.deceased_birthdate || !formData.date_death) {
-    return
+// Watch for user info changes and fetch member info if needed
+watch(userInfo, async (newUserInfo) => {
+  if (newUserInfo?.account?.member_id && !newUserInfo.member) {
+    await fetchMemberInfo()
   }
+}, { immediate: true })
 
-  const birthDate = new Date(formData.deceased_birthdate)
-  const deathDate = new Date(formData.date_death)
-
-  if (birthDate >= deathDate) {
-    return
-  }
-
-  let age = deathDate.getFullYear() - birthDate.getFullYear()
-  const monthDiff = deathDate.getMonth() - birthDate.getMonth()
-
-  if (monthDiff < 0 || (monthDiff === 0 && deathDate.getDate() < birthDate.getDate())) {
-    age--
-  }
-
-  // Age calculated but not stored/displayed
-  return age >= 0 ? age : null
-}
-
-// Expose method to reset loading (can be called by parent component on API error)
-const resetLoading = () => {
-  loading.value = false
-  // Close loading overlay if it exists
-  if (loadingInstanceRef.value) {
-    try {
-      loadingInstanceRef.value.close()
-    } catch (e) {
-      // Ignore if already closed
-    }
-    loadingInstanceRef.value = null
-  }
-}
-
-// Expose methods for parent component
-defineExpose({
-  resetLoading
-})
 </script>
 
 <style scoped>
-.burial-service-dialog :deep(.el-dialog__body) {
-  padding: 24px;
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-.burial-service-dialog :deep(.el-form-item) {
-  margin-bottom: 20px;
-}
-
-.burial-service-dialog :deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #424242;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.required-text {
-  color: #ef4444;
-  font-size: 0.6rem;
-  font-weight: 500;
-  margin-left: 4px;
-}
-
-.optional-text {
-  color: #9ca3af;
-  font-size: 0.75rem;
-  font-weight: 400;
-  margin-left: 4px;
-}
-
-.burial-service-dialog :deep(.el-input__wrapper) {
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.burial-service-dialog :deep(.el-input__wrapper:hover) {
-  border-color: #bdbdbd;
-}
-
-.burial-service-dialog :deep(.el-input.is-focus .el-input__wrapper) {
-  border-color: #14b8a6;
-  box-shadow: 0 0 0 1px #14b8a6 inset;
-}
-
-.burial-service-dialog :deep(.el-textarea__inner) {
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-.burial-service-dialog :deep(.el-textarea__inner:hover) {
-  border-color: #bdbdbd;
-}
-
-.burial-service-dialog :deep(.el-textarea.is-focus .el-textarea__inner) {
-  border-color: #14b8a6;
-  box-shadow: 0 0 0 1px #14b8a6 inset;
-}
-
-.burial-service-dialog :deep(.el-select .el-input__wrapper) {
-  border-radius: 8px;
-}
-
-.burial-service-dialog :deep(.el-date-editor.el-input) {
-  width: 100%;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.dialog-footer .el-button {
-  border-radius: 8px;
-  font-weight: 500;
-  min-width: 100px;
-}
-
-.dialog-footer .el-button--primary {
-  background-color: #14b8a6;
-  border-color: #14b8a6;
-}
-
-.dialog-footer .el-button--primary:hover {
-  background-color: #0d9488;
-  border-color: #0d9488;
-}
-
-@media (max-width: 960px) {
-  .burial-service-dialog :deep(.el-dialog) {
-    width: 90% !important;
-    margin: 0 auto !important;
-    max-height: 90vh;
+.burial-service-dialog {
+  :deep(.el-dialog) {
+    border-radius: 8px;
   }
 
-  .burial-service-dialog :deep(.el-dialog__body) {
+  :deep(.el-dialog__header) {
+    margin-right: 0;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #dcdfe6;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px 24px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding-top: 20px;
+    border-top: 1px solid #dcdfe6;
+  }
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select .el-input__wrapper),
+  :deep(.el-date-editor .el-input__wrapper) {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &.is-focus {
+      box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+    }
+  }
+
+  .required-text {
+    color: #f56c6c;
+    margin-left: 4px;
+  }
+
+  .optional-text {
+    color: #909399;
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  .form-section {
+    background: #fafafa;
+    border-radius: 8px;
     padding: 16px;
-    max-height: calc(90vh - 120px);
-    overflow-y: auto;
-  }
-}
-
-@media (max-width: 640px) {
-  .burial-service-dialog :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 5vh auto !important;
-    max-height: 90vh;
-  }
-
-  .burial-service-dialog :deep(.el-dialog__header) {
-    padding: 16px;
-  }
-
-  .burial-service-dialog :deep(.el-dialog__title) {
-    font-size: 1rem;
-  }
-
-  .burial-service-dialog :deep(.el-dialog__body) {
-    padding: 12px;
-    max-height: calc(90vh - 140px);
-    overflow-y: auto;
-  }
-
-  .burial-service-dialog :deep(.el-form-item) {
     margin-bottom: 16px;
+    border: 1px solid #ebeef5;
   }
 
-  .burial-service-dialog :deep(.el-form-item__label) {
-    font-size: 0.875rem;
-    padding-bottom: 4px;
-    line-height: 1.4;
+  .section-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e4e7ed;
   }
 
-  .burial-service-dialog :deep(.el-input),
-  .burial-service-dialog :deep(.el-select),
-  .burial-service-dialog :deep(.el-date-editor) {
-    width: 100%;
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #303133;
+  }
+
+  .section-divider {
+    margin: 24px 0;
   }
 
   .dialog-footer {
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
   }
 
-  .dialog-footer .el-button {
-    width: 100%;
-    min-width: auto;
-    margin: 0;
+  :deep(.el-button--primary) {
+    background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+    border: none;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .burial-service-dialog {
+    :deep(.el-dialog) {
+      width: 95% !important;
+      margin: 10px auto;
+    }
+
+    :deep(.el-dialog__body) {
+      padding: 16px;
+    }
+
+    .dialog-footer {
+      flex-direction: column-reverse;
+
+      .el-button {
+        width: 100%;
+        margin-left: 0;
+      }
+    }
   }
 }
 </style>
