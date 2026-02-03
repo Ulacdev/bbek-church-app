@@ -18,15 +18,25 @@ function convertImageToBlob(imageInput) {
     if (imageInput.buffer && Buffer.isBuffer(imageInput.buffer)) {
       return imageInput.buffer;
     }
-    if (typeof imageInput === 'string' && (imageInput.startsWith('/') || imageInput.includes('\\') || imageInput.includes('/'))) {
-      if (fs.existsSync(imageInput)) {
-        return fs.readFileSync(imageInput);
-      }
-      return null;
-    }
     if (typeof imageInput === 'string') {
-      const base64Data = imageInput.includes(',') ? imageInput.split(',')[1] : imageInput;
-      return Buffer.from(base64Data, 'base64');
+      // Check if it's a data URL (starts with 'data:') or a raw base64 string
+      if (imageInput.startsWith('data:')) {
+        // Extract base64 data from data URL
+        const base64Data = imageInput.includes(',') ? imageInput.split(',')[1] : imageInput;
+        return Buffer.from(base64Data, 'base64');
+      } else if (imageInput.includes(',') && imageInput.split(',')[0].startsWith('data:')) {
+        // Handle case where it might be a partial data URL
+        const base64Data = imageInput.split(',')[1];
+        return Buffer.from(base64Data, 'base64');
+      } else if (!imageInput.includes(' ') && !imageInput.includes('/') && !imageInput.includes('\\')) {
+        // Check if it's a file path (not a base64 string)
+        if (fs.existsSync(imageInput)) {
+          return fs.readFileSync(imageInput);
+        }
+      } else {
+        // Treat as raw base64 string
+        return Buffer.from(imageInput, 'base64');
+      }
     }
     return null;
   } catch (error) {
