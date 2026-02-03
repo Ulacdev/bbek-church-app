@@ -354,7 +354,7 @@ const typeOptions = [
   'other'
 ]
 
-const statusOptions = ['All Statuses', 'Pending', 'Ongoing', 'Completed']
+const statusOptions = ['Ongoing', 'Completed']
 
 // Dialog state
 const eventRecordsDialog = ref(false)

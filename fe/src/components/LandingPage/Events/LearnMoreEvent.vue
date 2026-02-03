@@ -188,6 +188,9 @@ const fetchEventData = async () => {
 onMounted(async () => {
   await fetchEventData()
   
+  // Check if user already joined this event (always check fresh from server)
+  await checkIfAlreadyJoined()
+  
   // Load CMS data
   const cmsData = await loadPageData()
   if (cmsData) {
@@ -323,12 +326,11 @@ const checkIfAlreadyJoined = async () => {
     return
   }
 
-  if (approvalStatus.value !== null) {
-    return
-  }
-
+  // Always check fresh from server (remove cache)
+  const timestamp = new Date().getTime()
+  
   try {
-    const response = await axios.get('/church-records/approvals/checkMemberApprovalStatus', {
+    const response = await axios.get(`/church-records/approvals/checkMemberApprovalStatus?t=${timestamp}`, {
       params: {
         email: userInfo.value.account.email,
         type: 'event',
@@ -354,8 +356,8 @@ const learnMoreEventsData = reactive({
   noDescriptionText: 'No description available',
   detailsTitle: 'Event Details',
   joinButtonText: 'Join Us',
-  pendingText: 'Pending Request',
-  approvedText: 'You Already Join'
+  pendingText: 'Pending',
+  approvedText: 'You Already Joined'
 })
 
 // Load CMS data
@@ -368,7 +370,7 @@ const getButtonText = computed(() => {
   } else if (approvalStatus.value === 'pending') {
     return learnMoreEventsData.pendingText || 'Pending Request'
   } else if (approvalStatus.value === 'approved') {
-    return learnMoreEventsData.approvedText || 'You Already Join'
+    return learnMoreEventsData.approvedText || 'You Already Joined'
   } else if (approvalStatus.value === 'rejected') {
     return 'Request Rejected'
   }
@@ -397,23 +399,6 @@ const getButtonColor = computed(() => {
 
 const getButtonDisabled = computed(() => {
   return approvalStatus.value !== null || eventStatus.value === 'completed'
-})
-
-onMounted(async () => {
-  const eventId = eventModel.value?.event_id || eventModel.value?.id
-  if (userInfo.value?.member?.member_id && eventId) {
-    checkIfAlreadyJoined()
-  }
-  
-  // Load CMS data
-  const cmsData = await loadPageData()
-  if (cmsData) {
-    console.log('CMS data loaded:', cmsData)
-    Object.assign(learnMoreEventsData, cmsData)
-    console.log('Updated learnMoreEventsData:', learnMoreEventsData)
-  } else {
-    console.log('No CMS data found, using defaults')
-  }
 })
 </script>
 
