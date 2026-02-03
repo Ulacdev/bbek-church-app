@@ -491,6 +491,8 @@
                       />
                     </el-form-item>
 
+                    <el-divider content-position="left">Requester Information</el-divider>
+
                     <el-form-item>
                       <template #label>
                         <span>Relationship <span class="required-text">Required</span></span>
