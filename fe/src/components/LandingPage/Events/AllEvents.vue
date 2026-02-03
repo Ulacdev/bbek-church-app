@@ -19,8 +19,8 @@
       >
         <div class="hero-overlay"></div>
         <div class="hero-content">
-          <h1 class="hero-title fade-in-up">{{ eventsData.heroTitle || 'OUR EVENTS' }}</h1>
-          <p class="hero-subtitle fade-in-up-delay">
+          <h1 class="hero-title fade-in-up" style="color: white; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);">{{ eventsData.heroTitle || 'OUR EVENTS' }}</h1>
+          <p class="hero-subtitle fade-in-up-delay" style="color: white; text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);">
             {{ eventsData.heroSubtitle || 'Join us for exciting upcoming events that bring our community together in faith and fellowship.' }}
           </p>
         </div>
