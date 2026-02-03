@@ -189,8 +189,7 @@ export const useEventsRecordsStore = defineStore('eventsRecords', {
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.post('/church-records/events/createEvent', formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
           }
         })
         
@@ -260,8 +259,7 @@ export const useEventsRecordsStore = defineStore('eventsRecords', {
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.put(`/church-records/events/updateEvent/${id}`, formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
           }
         })
         
