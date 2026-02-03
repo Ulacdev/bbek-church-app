@@ -28,19 +28,21 @@
     <v-container>
       <div class="text-center mb-8">
         <h2
-          class="text-h3 text-md-h4 font-weight-bold text-black mb-4 fade-in-up"
+          class="text-h3 text-md-h4 font-weight-bold text-white mb-4 fade-in-up"
           style="
             font-family: 'Georgia', serif;
             font-style: italic;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
           "
         >
           {{ eventsTitle }}
         </h2>
         <p
-          class="text-h6 text-black fade-in-up-delay"
+          class="text-h6 text-white fade-in-up-delay"
           style="
             font-family: 'Georgia', serif;
             font-style: italic;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
           "
         >
           {{ eventsSubtitle }}
