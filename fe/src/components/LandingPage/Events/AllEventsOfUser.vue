@@ -284,7 +284,7 @@ const fetchEventData = async () => {
 const goToLearnMore = (event) => {
   router.push({
     name: 'LearnMoreEvent',
-    query: { eventModel: encodeURIComponent(JSON.stringify(event)) }
+    query: { eventId: event.event_id }
   })
 }
 
