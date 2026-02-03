@@ -445,11 +445,8 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
       }
     }
 
-    // Handle location for non-members in pending status
+    // Handle location for pending status - show details for all statuses
     let location = baptismDetails.location || 'To be determined';
-    if (status === 'pending' && !isMember) {
-      location = '';
-    }
 
     const mailOptions = {
       from: `"Bible Baptist Ekklesia of Kawit" <${process.env.EMAIL_USER}>`,
@@ -479,7 +476,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
               </p>
             </div>
             
-            ${status !== 'pending' ? `
+            ${status === 'pending' || status !== 'pending' ? `
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3 style="color: #2c3e50; margin-top: 0;">Baptism Service Details</h3>
               <table style="width: 100%; border-collapse: collapse;">
