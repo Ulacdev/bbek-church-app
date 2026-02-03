@@ -38,7 +38,7 @@
           <h2 class="text-h4 font-weight-bold text-center text-teal mb-8" style="font-family: 'Georgia', serif; font-style: italic;">
             {{ dept.name }}
           </h2>
-          <v-row>
+          <v-row class="officers-grid">
             <v-col
               v-for="(officer, index) in dept.officers"
               :key="index"
@@ -46,31 +46,32 @@
               sm="6"
               md="4"
               lg="3"
+              xl="2"
             >
-              <v-card class="text-center pa-6" elevation="2" hover style="border-left: 4px solid #14b8a6; background: linear-gradient(to bottom, rgba(15, 118, 110, 0.05), rgba(17, 94, 89, 0.1)); transition: all 0.3s ease;">
-                <v-avatar size="160" class="mb-4">
-                  <v-img
-                    :src="officer.image && officer.image.startsWith('data:') ? officer.image : getImageUrl(officer.image)"
-                    :alt="officer.name"
-                    cover
-                    @error="(event) => handleImageError(event, officer)"
-                  >
-                    <template v-slot:placeholder>
-                      <div class="d-flex align-center justify-center fill-height">
-                        <v-progress-circular
-                          indeterminate
-                          color="grey-lighten-5"
-                        ></v-progress-circular>
-                      </div>
-                    </template>
-                  </v-img>
-                </v-avatar>
-                <h3 class="text-h6 font-weight-bold text-grey-darken-3 mb-2" style="font-family: 'Georgia', serif; font-style: italic;">
-                  {{ officer.name }}
-                </h3>
-                <p class="text-body-2 text-teal font-weight-semibold" style="font-family: 'Georgia', serif; font-style: italic;">
-                  {{ officer.role }}
-                </p>
+              <v-card class="officer-card" elevation="2" hover>
+                <div class="officer-image-container">
+                  <v-avatar size="140" class="officer-avatar">
+                    <v-img
+                      :src="officer.image && officer.image.startsWith('data:') ? officer.image : getImageUrl(officer.image)"
+                      :alt="officer.name"
+                      cover
+                      @error="(event) => handleImageError(event, officer)"
+                    >
+                      <template v-slot:placeholder>
+                        <div class="d-flex align-center justify-center fill-height">
+                          <v-progress-circular
+                            indeterminate
+                            color="grey-lighten-5"
+                          ></v-progress-circular>
+                        </div>
+                      </template>
+                    </v-img>
+                  </v-avatar>
+                </div>
+                <v-card-text class="officer-content">
+                  <h3 class="officer-name" :title="officer.name">{{ officer.name }}</h3>
+                  <p class="officer-role" :title="officer.role">{{ officer.role }}</p>
+                </v-card-text>
               </v-card>
             </v-col>
           </v-row>
@@ -159,7 +160,7 @@ const defaultDepartments = [
   {
     name: "Adult Men Department",
     officers: [
-      { name: "Bro. Danny Delos santos", role: "President", image: "/img/officers/adult_men_president.jpg" },
+      { name: "Bro. Danny Delos Santos", role: "President", image: "/img/officers/adult_men_president.jpg" },
       { name: "Bro. Roland Santos", role: "Vice President", image: "/img/officers/adult_men_vice_president.jpg" },
       { name: "Bro. Robert Apelado", role: "Secretary", image: "/img/officers/adult_men_secretary.jpg" },
       { name: "Bro. Rowel Bucayan", role: "Treasurer", image: "/img/officers/adult_men_treasurer.png" }
@@ -400,6 +401,99 @@ onMounted(async () => {
 
   .hero-subtitle {
     font-size: 1rem;
+  }
+}
+
+/* Officer Card Styles - Uniform Size & Shape */
+.officers-grid {
+  justify-content: center;
+}
+
+.officer-card {
+  height: 320px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  border-left: 4px solid #14b8a6;
+  background: linear-gradient(to bottom, rgba(15, 118, 110, 0.05), rgba(17, 94, 89, 0.1));
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.officer-image-container {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 16px 16px 8px 16px;
+}
+
+.officer-avatar {
+  border: 3px solid #14b8a6;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+}
+
+.officer-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 8px 12px !important;
+  overflow: hidden;
+}
+
+.officer-name {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #37474f;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2.6em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.officer-role {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: #14b8a6;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2.2em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .officer-card {
+    height: 300px;
+  }
+
+  .officer-avatar {
+    size: 120px !important;
+  }
+
+  .officer-name {
+    font-size: 0.9rem;
+  }
+
+  .officer-role {
+    font-size: 0.8rem;
   }
 }
 </style>
