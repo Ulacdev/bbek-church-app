@@ -232,26 +232,9 @@ const getStatusText = (status) => {
   }
 }
 
-const getEventStatus = (event) => {
-  if (!event.start_date || !event.end_date) {
-    return 'unknown'
-  }
-  
-  const now = new Date()
-  const startDate = new Date(event.start_date)
-  const endDate = new Date(event.end_date)
-  
-  if (now > endDate) {
-    return 'completed'
-  } else if (now >= startDate && now <= endDate) {
-    return 'ongoing'
-  } else {
-    return 'upcoming'
-  }
-}
-
 const eventStatus = computed(() => {
-  return getEventStatus(eventModel.value)
+  // Use the admin-set status from the database, not calculated from dates
+  return eventModel.value?.status || 'unknown'
 })
 
 const eventStatusColor = computed(() => {
