@@ -384,6 +384,24 @@
                       </div>
                     </div>
 
+                    <!-- Reason of Death (Optional) -->
+                    <div class="form-group">
+                      <label for="reason-of-death">
+                        Reason of Death <span class="optional-text">(optional)</span>
+                      </label>
+                      <p class="field-note">Cause of death (if known)</p>
+                      <v-text-field
+                        id="reason-of-death"
+                        v-model="reasonOfDeath"
+                        placeholder="Enter cause of death"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        :disabled="burialServiceStore.loading"
+                        maxlength="255"
+                      ></v-text-field>
+                    </div>
+
                     <v-btn
                       type="submit"
                       color="teal"
@@ -452,6 +470,15 @@
                         placeholder="Select date and time of death"
                         format="YYYY-MM-DD HH:mm"
                         style="width: 100%"
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="Reason of Death (Optional)" class="form-item-with-label">
+                      <el-input
+                        v-model="memberFormData.reason_of_death"
+                        placeholder="Enter cause of death (if known)"
+                        clearable
+                        maxlength="255"
                       />
                     </el-form-item>
 
@@ -580,6 +607,7 @@ const deceasedName = ref('')
 const deceasedBirthDate = ref('')
 const deceasedAge = ref(0)
 const deceasedDeathDate = ref('')
+const reasonOfDeath = ref('')
 const civilStatus = ref('')
 const location = ref('')
 
@@ -589,7 +617,8 @@ const memberFormData = reactive({
   deceased_birthdate: '',
   date_death: '',
   relationship: '',
-  location: ''
+  location: '',
+  reason_of_death: ''
 })
 
 // Relationship options for dropdown
@@ -766,6 +795,7 @@ const handleSubmit = async (e) => {
       deceased_name: deceasedName.value.trim(),
       deceased_birthdate: deceasedBirthDate.value,
       date_death: deceasedDeathDate.value,
+      reason_of_death: reasonOfDeath.value.trim() || null,
       // Use member_id if logged in and has member record, otherwise null for non-member requests
       member_id: (isLoggedIn.value && userInfo.value.member && userInfo.value.member.member_id) ? userInfo.value.member.member_id : null
     }
@@ -812,6 +842,7 @@ const resetForm = () => {
   deceasedBirthDate.value = ''
   deceasedAge.value = 0
   deceasedDeathDate.value = ''
+  reasonOfDeath.value = ''
   location.value = ''
   submitMessage.value = ''
   submitError.value = ''
@@ -846,6 +877,7 @@ const handleMemberSubmit = async () => {
       deceased_name: memberFormData.deceased_name.trim(),
       deceased_birthdate: memberFormData.deceased_birthdate ? new Date(memberFormData.deceased_birthdate).toISOString().split('T')[0] : '',
       date_death: memberFormData.date_death ? new Date(memberFormData.date_death).toISOString() : '',
+      reason_of_death: memberFormData.reason_of_death.trim() || null,
       member_id: userInfo.value.member?.member_id || null
     }
 
@@ -860,6 +892,7 @@ const handleMemberSubmit = async () => {
       memberFormData.date_death = ''
       memberFormData.relationship = ''
       memberFormData.location = ''
+      memberFormData.reason_of_death = ''
     } else {
       submitError.value = result.error || 'An error occurred while submitting the request. Please try again.'
       ElMessage.error(submitError.value)
