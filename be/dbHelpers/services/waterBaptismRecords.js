@@ -1088,18 +1088,46 @@ async function updateWaterBaptism(baptismId, baptismData) {
       }
       
       if (recipientEmail) {
+        console.log('DEBUG: Sending water baptism update email to:', recipientEmail);
+        console.log('DEBUG: baptism_date from DB:', updatedBaptism.data.baptism_date);
+        console.log('DEBUG: preferred_baptism_time from DB:', updatedBaptism.data.preferred_baptism_time);
+        
+        // Get all registration fields from the baptism record
+        const baptism = updatedBaptism.data;
+        
         await sendWaterBaptismDetails({
           email: recipientEmail,
-          status: updatedBaptism.data.status,
+          status: baptism.status,
           recipientName: recipientName,
           memberName: recipientName,
-          baptismDate: updatedBaptism.data.baptism_date
-            ? moment(updatedBaptism.data.baptism_date).format('YYYY-MM-DD HH:mm:ss')
-            : 'To be determined',
-          location: updatedBaptism.data.location || 'To be determined',
-          pastorName: updatedBaptism.data.pastor_name,
-          isMember: updatedBaptism.data.is_member === 1 && !!updatedBaptism.data.member_id
+          // Registration Information
+          firstname: baptism.firstname || '',
+          middleName: baptism.middle_name || '',
+          lastname: baptism.lastname || '',
+          birthdate: baptism.birthdate || '',
+          age: baptism.age || '',
+          gender: baptism.gender || '',
+          address: baptism.address || '',
+          phoneNumber: baptism.phone_number || '',
+          civilStatus: baptism.civil_status || '',
+          profession: baptism.profession || '',
+          spouseName: baptism.spouse_name || '',
+          children: baptism.children || '',
+          guardianName: baptism.guardian_name || '',
+          guardianContact: baptism.guardian_contact || '',
+          guardianRelationship: baptism.guardian_relationship || '',
+          testimony: '',
+          desireMinistry: baptism.desire_ministry || '',
+          // Service Details
+          baptismDate: baptism.baptism_date || 'To be determined',
+          baptismTime: baptism.preferred_baptism_time || '',
+          location: baptism.location || 'To be determined',
+          pastorName: baptism.pastor_name || '',
+          isMember: baptism.is_member === 1 && !!baptism.member_id
         });
+        console.log('DEBUG: Email sendWaterBaptismDetails called successfully');
+      } else {
+        console.log('DEBUG: No recipient email found, skipping email');
       }
     } catch (emailError) {
       // Do not block update flow on email failure, just log for diagnostics

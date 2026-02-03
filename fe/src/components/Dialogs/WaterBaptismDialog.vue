@@ -380,8 +380,8 @@
         </el-select>
       </el-form-item>
 
-      <!-- Guardian Name -->
-      <el-form-item label="Guardian Name">
+      <!-- Guardian Name (shown only if single) -->
+      <el-form-item v-if="formData.civil_status === 'single'" label="Guardian Name">
         <el-input
           v-model="formData.guardian_name"
           placeholder="Enter guardian's full name"
@@ -390,8 +390,8 @@
         />
       </el-form-item>
 
-      <!-- Guardian Contact -->
-      <el-form-item label="Guardian Contact">
+      <!-- Guardian Contact (shown only if single) -->
+      <el-form-item v-if="formData.civil_status === 'single'" label="Guardian Contact">
         <el-input
           v-model="formData.guardian_contact"
           placeholder="Enter guardian's contact number"
@@ -402,8 +402,8 @@
         </el-input>
       </el-form-item>
 
-      <!-- Guardian Relationship -->
-      <el-form-item label="Guardian Relationship">
+      <!-- Guardian Relationship (shown only if single) -->
+      <el-form-item v-if="formData.civil_status === 'single'" label="Guardian Relationship">
         <el-select
           v-model="formData.guardian_relationship"
           placeholder="Select relationship"

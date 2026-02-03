@@ -13,10 +13,10 @@ class AuditTrailRecords {
     `;
 
     const values = [
-      logData.user_id,
-      logData.user_email,
-      logData.user_name,
-      logData.user_position,
+      logData.user_id || 0,  // Default to 0 if user_id is null/undefined
+      logData.user_email || 'unknown',
+      logData.user_name || 'Unknown User',
+      logData.user_position || 'unknown',
       logData.action_type,
       logData.module,
       logData.description,

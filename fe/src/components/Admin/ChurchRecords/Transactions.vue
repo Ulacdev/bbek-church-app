@@ -586,12 +586,27 @@ const handlePrint = () => {
           body {
             font-family: Arial, sans-serif;
             margin: 20px;
+            position: relative;
+          }
+          .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            opacity: 0.08;
+            z-index: -1;
+            pointer-events: none;
+          }
+          .watermark img {
+            width: 100%;
+            height: auto;
           }
           .header {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #333;
           }
@@ -608,6 +623,31 @@ const handlePrint = () => {
             font-size: 14px;
             color: #666;
             margin-top: 5px;
+          }
+          .church-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+          }
+          .church-header img {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+          }
+          .org-name {
+            text-align: center;
+            color: #1a365d;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 5px;
+          }
+          .report-title {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
           }
           table {
             width: 100%;
@@ -641,13 +681,14 @@ const handlePrint = () => {
         </style>
       </head>
       <body>
-        <div class="header">
-          <img src="/logo.png" alt="Church Logo" />
-          <div>
-            <h1>Transactions</h1>
-            <div class="subtitle">Biblical Bread Ministries</div>
-          </div>
+        <div class="watermark">
+          <img src="/logo.png" alt="Watermark" />
         </div>
+        <div class="church-header">
+          <img src="/logo.png" alt="Church Logo" />
+          <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
+        </div>
+        <div class="report-title">Biblical Bread Ministries - Transactions Report</div>
         <table>
           <thead>
             <tr>

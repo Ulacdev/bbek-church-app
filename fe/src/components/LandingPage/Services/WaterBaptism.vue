@@ -462,7 +462,7 @@
                       </el-button>
                     </div>
 
-                    <el-form-item label="Guardian Name" prop="guardianName" class="form-group">
+                    <el-form-item label="Guardian Name" prop="guardianName" class="form-group" v-if="formData.civilStatus === 'single'">
                       <template #label>
                         <span>Guardian Name (Optional)</span>
                       </template>
@@ -474,7 +474,7 @@
                       />
                     </el-form-item>
 
-                    <el-form-item label="Guardian Contact" prop="guardianContact" class="form-group">
+                    <el-form-item label="Guardian Contact" prop="guardianContact" class="form-group" v-if="formData.civilStatus === 'single'">
                       <template #label>
                         <span>Guardian Contact (Optional)</span>
                       </template>
@@ -490,7 +490,7 @@
                       </el-input>
                     </el-form-item>
 
-                    <el-form-item label="Guardian Relationship" prop="guardianRelationship" class="form-group">
+                    <el-form-item label="Guardian Relationship" prop="guardianRelationship" class="form-group" v-if="formData.civilStatus === 'single'">
                       <template #label>
                         <span>Guardian Relationship (Optional)</span>
                       </template>

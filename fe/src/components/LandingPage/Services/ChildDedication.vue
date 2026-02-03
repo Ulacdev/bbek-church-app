@@ -114,21 +114,352 @@
                 Request Child Dedication
               </h2>
               
-              <v-card class="registration-card fade-in-up" style="animation-delay: 800ms;">
-                <v-card-title class="registration-title">
-                  Child Dedication Request
+              <!-- Inline Form for Member Users - Full Width Scrollable Form -->
+              <v-card class="inline-form-card mt-4 fade-in-up" style="animation-delay: 900ms;">
+                <v-card-title class="form-title">
+                  Child Dedication Form
                 </v-card-title>
-                <v-card-subtitle class="registration-subtitle">
-                  You are signed in as a member. Use the dialog below to submit or update a child dedication request.
+                <v-card-subtitle class="mb-3">
+                  Please fill out the form below to submit a child dedication request.
                 </v-card-subtitle>
-                <v-card-text class="d-flex flex-column gap-4">
-                  <div class="d-flex flex-column gap-2">
-                    <strong>{{ userInfo.member?.firstname }} {{ userInfo.member?.lastname }}</strong>
-                    <span class="text-caption">Account: {{ userInfo.account?.email }}</span>
-                  </div>
-                  <v-btn color="teal" size="large" block @click="showChildDedicationDialog = true">
-                    Request Child Dedication Service
-                  </v-btn>
+                <v-card-text>
+                  <el-form
+                    ref="inlineFormRef"
+                    :model="inlineFormData"
+                    :rules="inlineFormRules"
+                    label-position="top"
+                    v-loading="inlineFormLoading"
+                  >
+                    <!-- Requested By (Auto-filled, disabled for members) -->
+                    <el-form-item label="Requested By">
+                      <el-input
+                        v-model="inlineRequesterDisplayName"
+                        size="large"
+                        disabled
+                        placeholder="Your name will appear here"
+                      />
+                    </el-form-item>
+
+                    <!-- Child's Information Section -->
+                    <div class="form-section mb-4">
+                      <div class="form-section-title">Child's Information</div>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item prop="child_firstname" label="First Name" class="mb-3">
+                            <el-input
+                              v-model="inlineFormData.child_firstname"
+                              placeholder="First name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item prop="child_lastname" label="Last Name" class="mb-3">
+                            <el-input
+                              v-model="inlineFormData.child_lastname"
+                              placeholder="Last name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item prop="date_of_birth" label="Date of Birth" class="mb-3">
+                            <el-date-picker
+                              v-model="inlineFormData.date_of_birth"
+                              type="date"
+                              placeholder="Select date"
+                              size="large"
+                              format="YYYY-MM-DD"
+                              value-format="YYYY-MM-DD"
+                              style="width: 100%"
+                              :disabled="inlineFormLoading"
+                              :disabled-date="(date) => date > new Date()"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item prop="place_of_birth" label="Place of Birth" class="mb-3">
+                            <el-input
+                              v-model="inlineFormData.place_of_birth"
+                              placeholder="Place of birth"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <el-form-item prop="gender" label="Gender">
+                        <el-radio-group v-model="inlineFormData.gender" size="large" :disabled="inlineFormLoading">
+                          <el-radio label="M">Male</el-radio>
+                          <el-radio label="F">Female</el-radio>
+                        </el-radio-group>
+                      </el-form-item>
+                    </div>
+
+                    <!-- Relationship Section -->
+                    <div class="form-section mb-4">
+                      <div class="form-section-title">Your Relationship to the Child</div>
+                      <el-form-item prop="requester_relationship" label="Relationship">
+                        <el-select
+                          v-model="inlineFormData.requester_relationship"
+                          placeholder="Select relationship"
+                          size="large"
+                          style="width: 100%"
+                          :disabled="inlineFormLoading"
+                          @change="onInlineRelationshipChange"
+                        >
+                          <el-option label="Father" value="father" />
+                          <el-option label="Mother" value="mother" />
+                          <el-option label="Grandparent" value="grandparent" />
+                          <el-option label="Guardian" value="guardian" />
+                          <el-option label="Other Family Member" value="other_family" />
+                          <el-option label="Other" value="other" />
+                        </el-select>
+                      </el-form-item>
+                    </div>
+
+                    <!-- Parents Information Section -->
+                    <div class="form-section mb-4">
+                      <div class="form-section-title">Parents Information (Optional)</div>
+                      <div class="text-subtitle-2 text-medium-emphasis mb-2">Father</div>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item label="First Name">
+                            <el-input
+                              v-model="inlineFormData.father_firstname"
+                              placeholder="First name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="Last Name">
+                            <el-input
+                              v-model="inlineFormData.father_lastname"
+                              placeholder="Last name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item label="Phone">
+                            <el-input
+                              v-model="inlineFormData.father_phone_number"
+                              placeholder="Phone"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="Email">
+                            <el-input
+                              v-model="inlineFormData.father_email"
+                              placeholder="Email"
+                              size="large"
+                              clearable
+                              type="email"
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <div class="text-subtitle-2 text-medium-emphasis mb-2 mt-3">Mother</div>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item label="First Name">
+                            <el-input
+                              v-model="inlineFormData.mother_firstname"
+                              placeholder="First name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="Last Name">
+                            <el-input
+                              v-model="inlineFormData.mother_lastname"
+                              placeholder="Last name"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item label="Phone">
+                            <el-input
+                              v-model="inlineFormData.mother_phone_number"
+                              placeholder="Phone"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="Email">
+                            <el-input
+                              v-model="inlineFormData.mother_email"
+                              placeholder="Email"
+                              size="large"
+                              clearable
+                              type="email"
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                    </div>
+
+                    <!-- Sponsors Section -->
+                    <div class="form-section mb-4">
+                      <div class="form-section-title">Sponsors (Optional)</div>
+                      <el-form-item>
+                        <div class="sponsors-table-wrapper">
+                          <el-table
+                            :data="inlineFormData.sponsors"
+                            border
+                            size="small"
+                            class="sponsors-table"
+                            max-height="200"
+                          >
+                            <el-table-column label="#" type="index" width="50" />
+                            <el-table-column label="First Name" min-width="100">
+                              <template #default="{ row }">
+                                <el-input
+                                  v-model="row.firstname"
+                                  placeholder="First"
+                                  size="small"
+                                  clearable
+                                  :disabled="inlineFormLoading"
+                                />
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="Last Name" min-width="100">
+                              <template #default="{ row }">
+                                <el-input
+                                  v-model="row.lastname"
+                                  placeholder="Last"
+                                  size="small"
+                                  clearable
+                                  :disabled="inlineFormLoading"
+                                />
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="Phone" min-width="100">
+                              <template #default="{ row }">
+                                <el-input
+                                  v-model="row.phone_number"
+                                  placeholder="Phone"
+                                  size="small"
+                                  clearable
+                                  :disabled="inlineFormLoading"
+                                />
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="Actions" width="70" align="center">
+                              <template #default="{ $index }">
+                                <el-button
+                                  v-if="inlineFormData.sponsors.length > 0"
+                                  type="danger"
+                                  circle
+                                  text
+                                  size="small"
+                                  :disabled="inlineFormLoading"
+                                  @click="removeInlineSponsor($index)"
+                                >
+                                  <el-icon><Delete /></el-icon>
+                                </el-button>
+                              </template>
+                            </el-table-column>
+                          </el-table>
+                          <div class="sponsor-add-row">
+                            <el-button
+                              type="primary"
+                              link
+                              size="small"
+                              :disabled="inlineFormLoading"
+                              @click="addInlineSponsor"
+                            >
+                              + Add Sponsor
+                            </el-button>
+                          </div>
+                        </div>
+                      </el-form-item>
+                    </div>
+
+                    <!-- Contact Details Section -->
+                    <div class="form-section mb-4">
+                      <div class="form-section-title">Contact Details</div>
+                      <el-row :gutter="16">
+                        <el-col :span="12">
+                          <el-form-item label="Phone">
+                            <el-input
+                              v-model="inlineFormData.contact_phone_number"
+                              placeholder="Phone"
+                              size="large"
+                              clearable
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                          <el-form-item label="Email">
+                            <el-input
+                              v-model="inlineFormData.contact_email"
+                              placeholder="Email"
+                              size="large"
+                              clearable
+                              type="email"
+                              :disabled="inlineFormLoading"
+                            />
+                          </el-form-item>
+                        </el-col>
+                      </el-row>
+                      <el-form-item label="Address">
+                        <el-input
+                          v-model="inlineFormData.contact_address"
+                          type="textarea"
+                          :rows="2"
+                          placeholder="Address"
+                          size="large"
+                          clearable
+                          :disabled="inlineFormLoading"
+                        />
+                      </el-form-item>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <v-btn
+                      color="teal"
+                      size="large"
+                      block
+                      :loading="inlineFormLoading"
+                      @click="handleInlineFormSubmit"
+                      class="mt-4"
+                    >
+                      Submit Child Dedication Request
+                    </v-btn>
+                  </el-form>
                 </v-card-text>
               </v-card>
             </div>
@@ -212,8 +543,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import { useChildDedicationStore } from '@/stores/ServicesRecords/childDedicationStore'
 import ChildDedicationDialog from '@/components/Dialogs/ChildDedicationDialog.vue'
 import LoginDialog from '@/components/Dialogs/LoginDialog.vue'
@@ -249,6 +581,339 @@ const showChildDedicationDialog = ref(false)
 const childDedicationDialogRef = ref(null)
 const selectedDedicationData = ref(null)
 
+// Inline form state for member users
+const inlineFormRef = ref(null)
+const inlineFormLoading = ref(false)
+
+// Inline form data
+const inlineFormData = reactive({
+  requested_by: '',
+  requester_relationship: '',
+  child_firstname: '',
+  child_lastname: '',
+  child_middle_name: '',
+  date_of_birth: '',
+  place_of_birth: '',
+  gender: '',
+  contact_phone_number: '',
+  contact_email: '',
+  contact_address: '',
+  father_firstname: '',
+  father_lastname: '',
+  father_middle_name: '',
+  father_phone_number: '',
+  father_email: '',
+  father_address: '',
+  mother_firstname: '',
+  mother_lastname: '',
+  mother_middle_name: '',
+  mother_phone_number: '',
+  mother_email: '',
+  mother_address: '',
+  sponsors: []
+})
+
+// Inline form validation rules
+const inlineFormRules = {
+  child_firstname: [
+    { required: true, message: "Child's first name is required", trigger: 'blur' },
+    { min: 1, max: 100, message: 'First name must be between 1 and 100 characters', trigger: 'blur' }
+  ],
+  child_lastname: [
+    { required: true, message: "Child's last name is required", trigger: 'blur' },
+    { min: 1, max: 100, message: 'Last name must be between 1 and 100 characters', trigger: 'blur' }
+  ],
+  date_of_birth: [
+    { required: true, message: 'Date of birth is required', trigger: 'change' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error('Date of birth is required'))
+          return
+        }
+        const birthDate = new Date(value)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        if (birthDate > today) {
+          callback(new Error('Date of birth cannot be in the future'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
+  ],
+  place_of_birth: [
+    { required: true, message: 'Place of birth is required', trigger: 'blur' },
+    { min: 1, max: 255, message: 'Place of birth must be between 1 and 255 characters', trigger: 'blur' }
+  ],
+  gender: [
+    { required: true, message: 'Gender is required', trigger: 'change' }
+  ],
+  requester_relationship: [
+    {
+      validator: (rule, value, callback) => {
+        if (!value || !value.trim()) {
+          callback(new Error('Relationship to the child is required'))
+          return
+        }
+        callback()
+      },
+      trigger: 'change'
+    }
+  ]
+}
+
+// Requester display name for inline form
+const inlineRequesterDisplayName = computed(() => {
+  if (userInfo.value?.member) {
+    const m = userInfo.value.member
+    return `${m.firstname || ''} ${m.middle_name ? m.middle_name + ' ' : ''}${m.lastname || ''}`.trim()
+  }
+  return ''
+})
+
+// Inline form sponsor helpers
+const addInlineSponsor = () => {
+  inlineFormData.sponsors.push({
+    firstname: '',
+    lastname: '',
+    middle_name: '',
+    phone_number: '',
+    address: ''
+  })
+  if (inlineFormRef.value) {
+    inlineFormRef.value.validateField('sponsors')
+  }
+}
+
+const removeInlineSponsor = (index) => {
+  if (inlineFormData.sponsors.length > 0) {
+    inlineFormData.sponsors.splice(index, 1)
+    if (inlineFormRef.value) {
+      inlineFormRef.value.validateField('sponsors')
+    }
+  }
+}
+
+// Handle relationship change for inline form
+const onInlineRelationshipChange = (relationship) => {
+  const memberData = userInfo.value?.member
+  
+  // Clear all parent fields first
+  inlineFormData.father_firstname = ''
+  inlineFormData.father_lastname = ''
+  inlineFormData.father_middle_name = ''
+  inlineFormData.father_phone_number = ''
+  inlineFormData.father_email = ''
+  inlineFormData.father_address = ''
+  
+  inlineFormData.mother_firstname = ''
+  inlineFormData.mother_lastname = ''
+  inlineFormData.mother_middle_name = ''
+  inlineFormData.mother_phone_number = ''
+  inlineFormData.mother_email = ''
+  inlineFormData.mother_address = ''
+  
+  // Clear contact fields if they were auto-populated from member data
+  const memberPhone = memberData?.phone_number
+  const memberEmail = userInfo.value?.account?.email || memberData?.email
+  const memberAddress = memberData?.address
+  
+  if (inlineFormData.contact_phone_number === memberPhone) {
+    inlineFormData.contact_phone_number = ''
+  }
+  if (inlineFormData.contact_email === memberEmail) {
+    inlineFormData.contact_email = ''
+  }
+  if (inlineFormData.contact_address === memberAddress) {
+    inlineFormData.contact_address = ''
+  }
+  
+  // Auto-populate based on relationship
+  if (relationship === 'father' && memberData) {
+    inlineFormData.father_firstname = memberData.firstname || ''
+    inlineFormData.father_lastname = memberData.lastname || ''
+    inlineFormData.father_middle_name = memberData.middle_name || ''
+    inlineFormData.father_phone_number = memberData.phone_number || ''
+    inlineFormData.father_email = memberData.email || userInfo.value?.account?.email || ''
+    inlineFormData.father_address = memberData.address || ''
+  } else if (relationship === 'mother' && memberData) {
+    inlineFormData.mother_firstname = memberData.firstname || ''
+    inlineFormData.mother_lastname = memberData.lastname || ''
+    inlineFormData.mother_middle_name = memberData.middle_name || ''
+    inlineFormData.mother_phone_number = memberData.phone_number || ''
+    inlineFormData.mother_email = memberData.email || userInfo.value?.account?.email || ''
+    inlineFormData.mother_address = memberData.address || ''
+  } else {
+    if (memberData) {
+      inlineFormData.contact_phone_number = memberData.phone_number || ''
+      inlineFormData.contact_email = memberData.email || userInfo.value?.account?.email || ''
+      inlineFormData.contact_address = memberData.address || ''
+    }
+  }
+}
+
+// Reset inline form
+const resetInlineForm = () => {
+  inlineFormData.requested_by = ''
+  inlineFormData.requester_relationship = ''
+  inlineFormData.child_firstname = ''
+  inlineFormData.child_lastname = ''
+  inlineFormData.child_middle_name = ''
+  inlineFormData.date_of_birth = ''
+  inlineFormData.place_of_birth = ''
+  inlineFormData.gender = ''
+  inlineFormData.contact_phone_number = ''
+  inlineFormData.contact_email = ''
+  inlineFormData.contact_address = ''
+  inlineFormData.father_firstname = ''
+  inlineFormData.father_lastname = ''
+  inlineFormData.father_middle_name = ''
+  inlineFormData.father_phone_number = ''
+  inlineFormData.father_email = ''
+  inlineFormData.father_address = ''
+  inlineFormData.mother_firstname = ''
+  inlineFormData.mother_lastname = ''
+  inlineFormData.mother_middle_name = ''
+  inlineFormData.mother_phone_number = ''
+  inlineFormData.mother_email = ''
+  inlineFormData.mother_address = ''
+  inlineFormData.sponsors = []
+  
+  if (inlineFormRef.value) {
+    inlineFormRef.value.clearValidate()
+  }
+}
+
+// Handle inline form submission
+const handleInlineFormSubmit = async () => {
+  // Check if user is logged in
+  if (!userInfo.value?.member?.member_id) {
+    ElMessage.warning('Please log in to submit a child dedication request.')
+    showLoginDialog.value = true
+    return
+  }
+  
+  if (!inlineFormRef.value) return
+  
+  try {
+    console.log('Starting inline child dedication submission...')
+    
+    // Check for duplicates
+    if (inlineFormData.requested_by && inlineFormData.child_firstname && inlineFormData.child_lastname && inlineFormData.date_of_birth) {
+      try {
+        const checkResponse = await axios.get('/church-records/child-dedications/check-duplicate', {
+          params: {
+            requested_by: inlineFormData.requested_by,
+            child_firstname: inlineFormData.child_firstname.trim(),
+            child_lastname: inlineFormData.child_lastname.trim(),
+            date_of_birth: inlineFormData.date_of_birth
+          }
+        })
+        
+        if (checkResponse.data.success && checkResponse.data.data && checkResponse.data.data.exists) {
+          ElMessage.error({
+            message: `Duplicate Found: A child dedication request for "${inlineFormData.child_firstname} ${inlineFormData.child_lastname}" (DOB: ${inlineFormData.date_of_birth}) already exists. Process stopped.`,
+            duration: 8000,
+            showClose: true
+          })
+          return
+        }
+      } catch (checkError) {
+        // Only show error if it's not a 404 or network error
+        if (!checkError.response?.status?.toString().startsWith('4') && checkError.code !== 'ECONNABORTED') {
+          if (checkError.response?.data?.message && checkError.response.data.message.includes('already exists')) {
+            ElMessage.error({
+              message: `Duplicate Error: ${checkError.response.data.message}`,
+              duration: 8000,
+              showClose: true
+            })
+            return
+          }
+        }
+        // Silently continue if check fails (duplicate check is optional)
+        console.warn('Duplicate check skipped:', checkError.message)
+      }
+    }
+    
+    // Form validation
+    await inlineFormRef.value.validate()
+    
+    // User confirmation
+    try {
+      await ElMessageBox.confirm(
+        'Are you sure you want to submit this child dedication request?',
+        'Confirm Child Dedication Request',
+        {
+          confirmButtonText: 'Submit',
+          cancelButtonText: 'Cancel',
+          type: 'warning',
+        }
+      )
+    } catch {
+      return
+    }
+    
+    // Submit form
+    inlineFormLoading.value = true
+    
+    const submitData = {
+      requested_by: inlineFormData.requested_by.trim(),
+      requester_relationship: inlineFormData.requester_relationship,
+      child_firstname: inlineFormData.child_firstname.trim(),
+      child_lastname: inlineFormData.child_lastname.trim(),
+      child_middle_name: inlineFormData.child_middle_name ? inlineFormData.child_middle_name.trim() : null,
+      date_of_birth: inlineFormData.date_of_birth,
+      place_of_birth: inlineFormData.place_of_birth.trim(),
+      gender: inlineFormData.gender,
+      contact_phone_number: inlineFormData.contact_phone_number.trim(),
+      contact_email: inlineFormData.contact_email ? inlineFormData.contact_email.trim() : null,
+      contact_address: inlineFormData.contact_address.trim(),
+      father_firstname: inlineFormData.father_firstname ? inlineFormData.father_firstname.trim() : null,
+      father_lastname: inlineFormData.father_lastname ? inlineFormData.father_lastname.trim() : null,
+      father_middle_name: inlineFormData.father_middle_name ? inlineFormData.father_middle_name.trim() : null,
+      father_phone_number: inlineFormData.father_phone_number ? inlineFormData.father_phone_number.trim() : null,
+      father_email: inlineFormData.father_email ? inlineFormData.father_email.trim() : null,
+      father_address: inlineFormData.father_address ? inlineFormData.father_address.trim() : null,
+      mother_firstname: inlineFormData.mother_firstname ? inlineFormData.mother_firstname.trim() : null,
+      mother_lastname: inlineFormData.mother_lastname ? inlineFormData.mother_lastname.trim() : null,
+      mother_middle_name: inlineFormData.mother_middle_name ? inlineFormData.mother_middle_name.trim() : null,
+      mother_phone_number: inlineFormData.mother_phone_number ? inlineFormData.mother_phone_number.trim() : null,
+      mother_email: inlineFormData.mother_email ? inlineFormData.mother_email.trim() : null,
+      mother_address: inlineFormData.mother_address ? inlineFormData.mother_address.trim() : null,
+      sponsors: inlineFormData.sponsors && inlineFormData.sponsors.length > 0
+        ? inlineFormData.sponsors.map(s => ({
+            firstname: s.firstname ? s.firstname.trim() : '',
+            lastname: s.lastname ? s.lastname.trim() : '',
+            middle_name: s.middle_name ? s.middle_name.trim() : '',
+            phone_number: s.phone_number ? s.phone_number.trim() : '',
+            address: s.address ? s.address.trim() : ''
+          })).filter(s => s.firstname && s.lastname && s.phone_number && s.address)
+        : []
+    }
+    
+    // Submit using store
+    const { success, error } = await childDedicationStore.createDedication(submitData)
+    
+    if (success) {
+      showSuccessDialog('Success!', 'Child dedication request submitted successfully. Our pastoral team will contact you soon.')
+      resetInlineForm()
+    } else {
+      ElMessage.error(error || 'Failed to submit child dedication request.')
+    }
+    
+  } catch (error) {
+    console.error('Error submitting inline form:', error)
+    // Only show error if it's not a cancellation or network error
+    if (error !== 'cancel' && !error.message?.includes('network') && !error.message?.includes('timeout')) {
+      ElMessage.error('Submission failed. Please try again.')
+    }
+  } finally {
+    inlineFormLoading.value = false
+  }
+}
+
 // Success dialog state
 const successDialog = ref({
   show: false,
@@ -272,6 +937,11 @@ onMounted(async () => {
   try {
     const storedUserInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
     userInfo.value = storedUserInfo
+    
+    // Initialize inline form with logged-in member's ID
+    if (userInfo.value?.member?.member_id) {
+      inlineFormData.requested_by = userInfo.value.member.member_id
+    }
   } catch (error) {
     console.error('Error loading user info:', error)
     userInfo.value = {}
@@ -700,6 +1370,167 @@ const handleSwitchToEdit = (dedication) => {
 .registration-subtitle {
   font-size: 0.875rem;
   color: #6b7280;
+}
+
+/* Inline Form Card */
+.inline-form-card {
+  border: 1px solid #5eead4;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.form-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: #14b8a6;
+}
+
+.form-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #14b8a6;
+}
+
+.inline-form-card :deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+.inline-form-card :deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #424242;
+  padding-bottom: 4px;
+}
+
+.inline-form-card :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.inline-form-card :deep(.el-input__wrapper:hover) {
+  border-color: #bdbdbd;
+}
+
+.inline-form-card :deep(.el-input.is-focus .el-input__wrapper) {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px #14b8a6 inset;
+}
+
+.inline-form-card :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.inline-form-card :deep(.el-textarea__inner:hover) {
+  border-color: #bdbdbd;
+}
+
+.inline-form-card :deep(.el-textarea.is-focus .el-textarea__inner) {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px #14b8a6 inset;
+}
+
+.inline-form-card :deep(.el-select .el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.inline-form-card :deep(.el-date-editor.el-input) {
+  width: 100%;
+}
+
+.inline-form-card :deep(.el-radio-group) {
+  display: flex;
+  gap: 24px;
+}
+
+.sponsors-table-wrapper {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.sponsors-table {
+  width: 100%;
+}
+
+.sponsors-table :deep(.el-table__body-wrapper) {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sponsors-table :deep(.el-table__header-wrapper) {
+  background-color: #f5f7fa;
+}
+
+.sponsors-table :deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+  text-align: left;
+}
+
+.sponsors-table :deep(.el-table td) {
+  padding: 8px 0;
+}
+
+.sponsors-table :deep(.el-table .el-input__wrapper) {
+  border-radius: 4px;
+}
+
+.sponsors-table :deep(.el-table .el-input__wrapper:hover) {
+  border-color: #bdbdbd;
+}
+
+.sponsors-table :deep(.el-table .el-input.is-focus .el-input__wrapper) {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px #14b8a6 inset;
+}
+
+.sponsor-add-row {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+  .inline-form-card :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 5vh auto !important;
+  }
+
+  .inline-form-card :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
+
+  .inline-form-card :deep(.el-form-item__label) {
+    font-size: 0.875rem;
+    padding-bottom: 4px;
+    line-height: 1.4;
+  }
+
+  .inline-form-card :deep(.el-input),
+  .inline-form-card :deep(.el-select),
+  .inline-form-card :deep(.el-date-editor) {
+    width: 100%;
+  }
+
+  .sponsors-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sponsors-table :deep(.el-table) {
+    font-size: 0.75rem;
+    min-width: 600px;
+  }
+
+  .sponsors-table :deep(.el-table th),
+  .sponsors-table :deep(.el-table td) {
+    padding: 4px 2px;
+    font-size: 0.75rem;
+  }
 }
 </style>
 

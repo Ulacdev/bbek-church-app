@@ -718,7 +718,7 @@ const handlePrint = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #333;
           }
@@ -737,12 +737,30 @@ const handlePrint = () => {
             color: #666;
             margin-top: 5px;
           }
+          .church-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+          }
+          .church-header img {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+          }
           .org-name {
             text-align: center;
             color: #1a365d;
             font-weight: bold;
             font-size: 18px;
             margin-bottom: 5px;
+          }
+          .report-title {
+            text-align: center;
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: bold;
           }
           table {
             width: 100%;
@@ -780,14 +798,11 @@ const handlePrint = () => {
         <div class="watermark">
           <img src="/logo.png" alt="Watermark" />
         </div>
-        <div class="header">
+        <div class="church-header">
           <img src="/logo.png" alt="Church Logo" />
-          <div>
-            <h1>Church Events</h1>
-            <div class="subtitle">Church Events Report</div>
-          </div>
+          <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
         </div>
-        <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
+        <div class="report-title">Church Events Report</div>
         <table>
           <thead>
             <tr>

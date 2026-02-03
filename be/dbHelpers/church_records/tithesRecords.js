@@ -62,11 +62,14 @@ async function createTithe(titheData) {
       payment_method = null,
       donation_items = null,
       notes = null,
-      date_created = new Date()
+      date_created = new Date(),
+      donation_date = null  // New field: actual date of donation (can be different from date_created)
     } = titheData;
 
-    // Format date
+    // Format dates
     const formattedDateCreated = moment(date_created).format('YYYY-MM-DD HH:mm:ss');
+    // If donation_date is provided, use it; otherwise use date_created
+    const formattedDonationDate = donation_date ? moment(donation_date).format('YYYY-MM-DD') : moment(date_created).format('YYYY-MM-DD');
 
     // Build insert query based on donation type
     let sql, params;
@@ -74,8 +77,8 @@ async function createTithe(titheData) {
     if (donation_type === 'money') {
       sql = `
         INSERT INTO tbl_tithes 
-          (member_id, donation_type, member_name, is_anonymous, amount, type, payment_method, notes, status, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (member_id, donation_type, member_name, is_anonymous, amount, type, payment_method, notes, status, date_created, donation_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         member_id ? String(member_id).trim() : null,
@@ -87,13 +90,14 @@ async function createTithe(titheData) {
         payment_method ? String(payment_method).trim() : null,
         notes ? String(notes).trim() : null,
         'pending',
-        formattedDateCreated
+        formattedDateCreated,
+        formattedDonationDate
       ];
     } else {
       sql = `
         INSERT INTO tbl_tithes 
-          (member_id, donation_type, member_name, is_anonymous, amount, type, payment_method, donation_items, notes, status, date_created)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (member_id, donation_type, member_name, is_anonymous, amount, type, payment_method, donation_items, notes, status, date_created, donation_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       params = [
         member_id ? String(member_id).trim() : null,
@@ -106,19 +110,34 @@ async function createTithe(titheData) {
         safeToString(donation_items, ''),
         notes ? String(notes).trim() : null,
         'pending',
-        formattedDateCreated
+        formattedDateCreated,
+        formattedDonationDate
       ];
     }
 
     const [result] = await query(sql, params);
     
-    // Fetch the created tithe using the auto-generated ID
-    const createdTithe = await getTitheById(result.insertId);
+    // Build the created tithe data from insert data (avoid extra query)
+    const createdTitheData = {
+      tithes_id: result.insertId,
+      member_id: member_id ? String(member_id).trim() : null,
+      donation_type: donation_type,
+      member_name: member_name || null,
+      is_anonymous: is_anonymous ? 1 : 0,
+      amount: parseFloat(amount) || 0,
+      type: String(type).trim() || 'donation',
+      payment_method: payment_method ? String(payment_method).trim() : null,
+      donation_items: donation_type === 'inkind' ? safeToString(donation_items, '') : null,
+      notes: notes ? String(notes).trim() : null,
+      status: 'pending',
+      date_created: formattedDateCreated,
+      donation_date: formattedDonationDate
+    };
 
     return {
       success: true,
       message: 'Donation created successfully',
-      data: createdTithe.data
+      data: createdTitheData
     };
   } catch (error) {
     console.error('Error creating donation:', error);
@@ -170,6 +189,7 @@ async function getAllTithes(options = {}) {
       t.notes,
       t.status,
       t.date_created,
+      t.donation_date,
       m.firstname,
       m.lastname,
       m.middle_name,
@@ -218,9 +238,9 @@ async function getAllTithes(options = {}) {
       hasWhere = true;
     }
 
-    // Add date range filter
+    // Add date range filter (using donation_date instead of date_created, fallback to date_created)
     if (dateRange && Array.isArray(dateRange) && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
-      whereConditions.push('DATE(t.date_created) BETWEEN ? AND ?');
+      whereConditions.push('DATE(COALESCE(t.donation_date, t.date_created)) BETWEEN ? AND ?');
       countParams.push(dateRange[0], dateRange[1]);
       params.push(dateRange[0], dateRange[1]);
       hasWhere = true;
@@ -291,16 +311,44 @@ async function getAllTithes(options = {}) {
     const [countResult] = await query(countSql, countParams);
     const totalCount = countResult[0]?.total || 0;
 
-    // Get summary statistics from ALL money donations
-    const [summaryStatsResult] = await query(`
+    // Get summary statistics with the same filters as the main query
+    let summarySql = `
       SELECT 
         COALESCE(SUM(amount), 0) as totalDonations,
         COALESCE(SUM(CASE WHEN type = 'tithe' THEN amount ELSE 0 END), 0) as totalTithes,
         COALESCE(SUM(CASE WHEN type = 'offering' THEN amount ELSE 0 END), 0) as totalOfferings,
         COALESCE(SUM(CASE WHEN type IN ('missions', 'love_gift', 'building_fund', 'donation', 'other') THEN amount ELSE 0 END), 0) as totalSpecialOfferings
       FROM tbl_tithes
-      WHERE donation_type = 'money'
-    `);
+    `;
+    const summaryParams = [];
+    
+    // Build WHERE conditions for summary stats (same as main query)
+    const summaryWhereConditions = [];
+    
+    // Add type filter to summary
+    if (type && type !== 'All Types') {
+      summaryWhereConditions.push('type = ?');
+      summaryParams.push(type);
+    }
+    
+    // Add donation_type filter to summary
+    if (donationType && donationType !== 'all') {
+      summaryWhereConditions.push('donation_type = ?');
+      summaryParams.push(donationType);
+    }
+    
+    // Add date range filter to summary (using donation_date, fallback to date_created)
+    if (dateRange && Array.isArray(dateRange) && dateRange.length === 2 && dateRange[0] && dateRange[1]) {
+      summaryWhereConditions.push('DATE(COALESCE(donation_date, date_created)) BETWEEN ? AND ?');
+      summaryParams.push(dateRange[0], dateRange[1]);
+    }
+    
+    // Apply WHERE clause to summary query
+    if (summaryWhereConditions.length > 0) {
+      summarySql += ' WHERE ' + summaryWhereConditions.join(' AND ');
+    }
+    
+    const [summaryStatsResult] = await query(summarySql, summaryParams);
     
     const summaryStats = {
       totalDonations: parseFloat(summaryStatsResult[0]?.totalDonations || 0),
@@ -396,15 +444,8 @@ async function updateTithe(tithesId, titheData) {
       throw new Error('Tithes ID is required');
     }
 
-    // Check if donation exists
-    const titheCheck = await getTitheById(tithesId);
-    if (!titheCheck.success) {
-      return {
-        success: false,
-        message: 'Donation not found',
-        data: null
-      };
-    }
+    // Skip initial existence check - UPDATE will tell us if row exists
+    // Middleware captures before state for audit trail
 
     const {
       member_id,
@@ -416,7 +457,8 @@ async function updateTithe(tithesId, titheData) {
       payment_method,
       donation_items,
       notes,
-      date_created
+      date_created,
+      donation_date
     } = titheData;
 
     // Build dynamic update query based on provided fields
@@ -473,6 +515,12 @@ async function updateTithe(tithesId, titheData) {
       const formattedDateCreated = moment(date_created).format('YYYY-MM-DD HH:mm:ss');
       fields.push('date_created = ?');
       params.push(formattedDateCreated);
+    }
+
+    if (donation_date !== undefined) {
+      const formattedDonationDate = moment(donation_date).format('YYYY-MM-DD');
+      fields.push('donation_date = ?');
+      params.push(formattedDonationDate);
     }
 
     if (fields.length === 0) {

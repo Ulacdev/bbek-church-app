@@ -301,6 +301,7 @@ const sendMarriageDetails = async (marriageDetails) => {
  * @param {string} baptismDetails.status - Status: 'pending', 'approved', 'disapproved', 'completed', or 'cancelled'
  * @param {string} [baptismDetails.memberName] - Member's name (optional)
  * @param {string} [baptismDetails.baptismDate] - Baptism date (optional)
+ * @param {string} [baptismDetails.baptismTime] - Baptism time (optional, separate from date)
  * @param {string} [baptismDetails.location] - Baptism location (optional)
  * @param {string} [baptismDetails.recipientName] - Recipient name (optional)
  * @param {string} [baptismDetails.pastorName] - Pastor name (optional)
@@ -338,19 +339,110 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
     const pastorName = baptismDetails.pastorName || 'N/A';
     const isMember = baptismDetails.isMember || false;
 
-    // Format baptism date
+    // Get all registration fields for the email - show empty instead of N/A for optional fields
+    const firstname = baptismDetails.firstname || '';
+    const middleName = baptismDetails.middleName || '';
+    const lastname = baptismDetails.lastname || '';
+    const fullName = `${firstname} ${middleName} ${lastname}`.replace(/\s+/g, ' ').trim() || 'N/A';
+    const birthdate = baptismDetails.birthdate || '';
+    const age = baptismDetails.age !== undefined && baptismDetails.age !== null ? baptismDetails.age : '';
+    const gender = baptismDetails.gender || '';
+    const address = baptismDetails.address || '';
+    const email = baptismDetails.email || '';
+    const phoneNumber = baptismDetails.phoneNumber || '';
+    const civilStatus = baptismDetails.civilStatus || '';
+    const profession = baptismDetails.profession || '';
+    const childrenInfo = baptismDetails.children || '';
+    const guardianName = baptismDetails.guardianName || '';
+    const guardianContact = baptismDetails.guardianContact || '';
+    const guardianRelationship = baptismDetails.guardianRelationship || '';
+    const testimony = baptismDetails.testimony || '';
+    const spouseName = baptismDetails.spouseName || '';
+
+    // Format baptism date with time (if available) for all statuses
     let baptismDate = baptismDetails.baptismDate || 'To be determined';
-    if (baptismDate !== 'To be determined' && status === 'approved') {
-      // Format with AM/PM for approved status
-      const date = new Date(baptismDate);
-      baptismDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+    let baptismTime = baptismDetails.baptismTime || '';
+    
+    console.log('EMAIL DEBUG: baptismDate input:', baptismDate);
+    console.log('EMAIL DEBUG: baptismTime input:', baptismTime);
+    
+    if (baptismDate !== 'To be determined' && baptismDate) {
+      // Try to parse the date with time
+      let date;
+      // Handle various date formats
+      if (baptismDate.includes(' at ')) {
+        // Format: "Feb 12, 2026 at 20:43:34"
+        const parts = baptismDate.split(' at ');
+        date = new Date(parts[0]);
+        if (parts[1]) {
+          const timeParts = parts[1].split(':');
+          if (timeParts.length >= 2) {
+            date.setHours(parseInt(timeParts[0]), parseInt(timeParts[1]), timeParts[2] ? parseInt(timeParts[2]) : 0);
+          }
+        }
+      } else {
+        date = new Date(baptismDate);
+      }
+      
+      if (!isNaN(date.getTime())) {
+        // Check if the original string has a time component
+        const hasTime = baptismDate.includes(':') && 
+          (baptismDate.match(/\d{2}:\d{2}:\d{2}/) || baptismDate.match(/\d{2}:\d{2}/));
+        console.log('EMAIL DEBUG: hasTime:', hasTime, 'date:', date);
+        
+        // Format the date part
+        const formattedDate = date.toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        
+        // PRIORITY 1: If baptismTime is provided, use it (it's the actual selected time)
+        if (baptismTime) {
+          let timeDate = new Date(`2000-01-01 ${baptismTime}`);
+          if (!isNaN(timeDate.getTime())) {
+            const formattedTime = timeDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+            baptismDate = `${formattedDate} at ${formattedTime}`;
+            console.log('EMAIL DEBUG: baptismDate with baptismTime:', baptismDate);
+          } else {
+            baptismDate = formattedDate;
+          }
+        }
+        // PRIORITY 2: Only use time from baptismDate if no baptismTime and has real time (not 00:00:00)
+        else if ((hasTime || baptismDate.includes(' at ')) && !isNaN(date.getTime())) {
+          // Check if the time is not the default midnight
+          const hours = date.getHours();
+          const minutes = date.getMinutes();
+          const seconds = date.getSeconds() || 0;
+          const isDefaultMidnight = hours === 0 && minutes === 0 && seconds === 0;
+          
+          if (!isDefaultMidnight) {
+            // Format with time including AM/PM
+            baptismDate = date.toLocaleString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            });
+            console.log('EMAIL DEBUG: baptismDate with time from baptismDate:', baptismDate);
+          } else {
+            // Default midnight - no time available
+            baptismDate = formattedDate;
+            console.log('EMAIL DEBUG: baptismDate (no time, default midnight):', baptismDate);
+          }
+        } else {
+          // No time available
+          baptismDate = formattedDate;
+          console.log('EMAIL DEBUG: baptismDate (no time):', baptismDate);
+        }
+      }
     }
 
     // Handle location for non-members in pending status
@@ -371,7 +463,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Water Baptism Service Update</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
             <h2 style="color: #2c3e50; margin-top: 0;">Water Baptism Service Update</h2>
             
@@ -387,20 +479,17 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
               </p>
             </div>
             
+            ${status !== 'pending' ? `
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3 style="color: #2c3e50; margin-top: 0;">Baptism Service Details</h3>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>${status === 'completed' ? 'Member Name:' : 'Name:'}</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${memberName}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Baptism Date:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${baptismDate}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Pastor:</strong></td>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${pastorName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Baptism Date:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${baptismDate}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0;"><strong>Location:</strong></td>
@@ -408,8 +497,90 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
                 </tr>
               </table>
             </div>
+            ` : ''}
             
-            <p>If you have any questions or need to make changes, please contact the church administration.</p>
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Registration Information</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Full Name:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${fullName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Birthdate:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${birthdate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Age:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${age} years old</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Gender:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${gender}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Address:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${address}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${email}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${phoneNumber}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Civil Status:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${civilStatus}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Profession:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${profession}</td>
+                </tr>
+                ${spouseName ? `
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Spouse Name:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${spouseName}</td>
+                </tr>
+                ` : ''}
+                ${childrenInfo ? `
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Children:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${childrenInfo}</td>
+                </tr>
+                ` : ''}
+                ${guardianName ? `
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Guardian Name:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${guardianName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Guardian Contact:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${guardianContact}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Guardian Relationship:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${guardianRelationship}</td>
+                </tr>
+                ` : ''}
+                ${testimony ? `
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Testimony:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${testimony}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+            
+            ${baptismDetails.desireMinistry ? `
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Ministry Interest</h3>
+              <p style="margin: 0;">${baptismDetails.desireMinistry}</p>
+            </div>
+            ` : ''}
+            
+            <p>If you have any questions or need to make changes to your water baptism registration, please contact the church administration.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
@@ -424,6 +595,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
+    console.log('EMAIL DEBUG: Water baptism email sent successfully to:', baptismDetails.email);
     
     return {
       success: true,
@@ -440,11 +612,11 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
  * Send child dedication service details email
  * @param {Object} dedicationDetails - Child dedication service details object
  * @param {string} dedicationDetails.email - Recipient email
- * @param {string} dedicationDetails.status - Status: 'pending', 'ongoing', or 'completed'
+ * @param {string} dedicationDetails.status - Status: 'pending', 'approved', 'disapproved', 'completed', or 'cancelled'
+ * @param {string} [dedicationDetails.memberName] - Member's name (optional)
  * @param {string} [dedicationDetails.childName] - Child's name (optional)
- * @param {string} [dedicationDetails.fatherName] - Father's name (optional)
- * @param {string} [dedicationDetails.motherName] - Mother's name (optional)
  * @param {string} [dedicationDetails.dedicationDate] - Dedication date (optional)
+ * @param {string} [dedicationDetails.dedicationTime] - Dedication time (optional)
  * @param {string} [dedicationDetails.location] - Dedication location (optional)
  * @param {string} [dedicationDetails.recipientName] - Recipient name (optional)
  * @param {string} [dedicationDetails.pastorName] - Pastor name (optional)
@@ -473,48 +645,48 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
       pending: 'Your child dedication request is currently pending approval.',
       approved: 'Your child dedication request has been approved.',
       disapproved: 'Your child dedication request has been disapproved.',
-      completed: 'Your child dedication has been completed successfully.',
+      completed: 'Your child dedication service has been completed successfully.',
       cancelled: 'Your child dedication request has been cancelled.',
     };
 
     const recipientName = dedicationDetails.recipientName || 'Valued Member';
+    const memberName = dedicationDetails.memberName || 'N/A';
     const childName = dedicationDetails.childName || 'N/A';
-    const fatherName = dedicationDetails.fatherName || '';
-    const motherName = dedicationDetails.motherName || '';
-
-    // Construct guardian information
-    let guardianInfo = 'N/A';
-    if (fatherName && motherName) {
-      guardianInfo = `${fatherName} & ${motherName}`;
-    } else if (fatherName) {
-      guardianInfo = fatherName;
-    } else if (motherName) {
-      guardianInfo = motherName;
-    }
-
     const pastorName = dedicationDetails.pastorName || 'N/A';
     const isMember = dedicationDetails.isMember || false;
-
-    // Format dedication date
-    let dedicationDate = dedicationDetails.dedicationDate || 'To be determined';
-    if (dedicationDate !== 'To be determined' && status === 'approved') {
-      // Format with AM/PM for approved status
-      const date = new Date(dedicationDate);
-      dedicationDate = date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+    
+    // Format the dedication date and time
+    let formattedDedicationDate = 'To be determined';
+    let formattedDedicationTime = '';
+    
+    if (dedicationDetails.dedicationDate) {
+      const date = new Date(dedicationDetails.dedicationDate);
+      if (!isNaN(date.getTime())) {
+        formattedDedicationDate = date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+        
+        // If dedicationTime is provided, use it to format the time
+        if (dedicationDetails.dedicationTime) {
+          const timeDate = new Date(`2000-01-01 ${dedicationDetails.dedicationTime}`);
+          if (!isNaN(timeDate.getTime())) {
+            formattedDedicationTime = timeDate.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+          }
+        }
+      }
     }
 
-    // Handle location for non-members in pending status
-    let location = dedicationDetails.location || 'To be determined';
-    if (status === 'pending' && !isMember) {
-      location = '';
-    }
+    const fullDedicationDateTime = (formattedDedicationTime && formattedDedicationDate !== 'To be determined') 
+      ? `${formattedDedicationDate} at ${formattedDedicationTime}` 
+      : (formattedDedicationDate !== 'To be determined' ? formattedDedicationDate : 'To be determined');
+
+    const location = dedicationDetails.location || 'To be determined';
 
     const mailOptions = {
       from: `"Bible Baptist Ekklesia of Kawit" <${process.env.EMAIL_USER}>`,
@@ -528,7 +700,7 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Child Dedication Service Update</title>
         </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 700px; margin: 0 auto; padding: 20px;">
           <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
             <h2 style="color: #2c3e50; margin-top: 0;">Child Dedication Service Update</h2>
             
@@ -544,26 +716,17 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
               </p>
             </div>
             
+            ${status !== 'pending' ? `
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">Dedication Service Details</h3>
+              <h3 style="color: #2c3e50; margin-top: 0;">Child Dedication Service Details</h3>
               <table style="width: 100%; border-collapse: collapse;">
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Child Name:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${childName}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Dedication Date:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${fullDedicationDateTime}</td>
                 </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Guardian:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${guardianInfo}</td>
-                </tr>
-                ${status === 'approved' ? `
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Pastor:</strong></td>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${pastorName}</td>
-                </tr>
-                ` : ''}
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Dedication Date:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDate}</td>
                 </tr>
                 <tr>
                   <td style="padding: 8px 0;"><strong>Location:</strong></td>
@@ -571,8 +734,66 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
                 </tr>
               </table>
             </div>
+            ` : ''}
             
-            <p>If you have any questions or need to make changes, please contact the church administration.</p>
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Child Information</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Child's Full Name:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${childName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Date of Birth:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.childBirthdate || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Gender:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.childGender || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Birth Certificate Number:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.birthCertificateNumber || 'N/A'}</td>
+                </tr>
+              </table>
+            </div>
+            
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Parent/Guardian Information</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Full Name:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${memberName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.email || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Phone:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.phoneNumber || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Address:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.address || 'N/A'}</td>
+                </tr>
+                ${dedicationDetails.requesterRelationship ? `
+                <tr>
+                  <td style="padding: 8px 0;"><strong>Relationship to Child:</strong></td>
+                  <td style="padding: 8px 0;">${dedicationDetails.requesterRelationship}</td>
+                </tr>
+                ` : ''}
+              </table>
+            </div>
+            
+            ${dedicationDetails.specialPrayerRequests ? `
+            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Special Prayer Requests</h3>
+              <p style="margin: 0;">${dedicationDetails.specialPrayerRequests}</p>
+            </div>
+            ` : ''}
+            
+            <p>If you have any questions or need to make changes to your child dedication registration, please contact the church administration.</p>
             
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             
@@ -600,87 +821,12 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
 };
 
 /**
- * Send burial service request notification email (for new requests)
- * @param {Object} requestDetails - Burial service request details object
- * @param {string} requestDetails.email - Recipient email
- * @param {string} requestDetails.recipientName - Recipient name (family member requesting service)
- * @param {string} requestDetails.deceasedName - Deceased person's name
- * @param {string} requestDetails.relationship - Relationship to deceased
- * @param {string} requestDetails.deceasedBirthDate - Deceased birth date
- * @param {string} requestDetails.dateOfDeath - Date of death
- * @param {string} requestDetails.burialServiceId - Burial service ID
- * @returns {Promise<Object>} - Result object with success status and message
- */
-const sendBurialServiceRequestNotification = async (requestDetails) => {
-  try {
-    if (!requestDetails || !requestDetails.email) {
-      return {
-        success: false,
-        message: 'Email is required',
-      };
-    }
-
-    const transporter = createTransporter();
-    const recipientName = requestDetails.recipientName || 'Valued Member';
-    const deceasedName = requestDetails.deceasedName || 'N/A';
-    const relationship = requestDetails.relationship || 'N/A';
-    const deceasedBirthDate = requestDetails.deceasedBirthDate 
-      ? new Date(requestDetails.deceasedBirthDate).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })
-      : 'N/A';
-    const dateOfDeath = requestDetails.dateOfDeath
-      ? new Date(requestDetails.dateOfDeath).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })
-      : 'N/A';
-
-    const mailOptions = {
-      from: `"Bible Baptist Ekklesia of Kawit" <${process.env.EMAIL_USER}>`,
-      to: requestDetails.email,
-      subject: 'Burial Service Request Received - Bible Baptist Ekklesia of Kawit',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Burial Service Request Received</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
-            <h2 style="color: #2c3e50; margin-top: 0;">Burial Service Request Received</h2>
-            
-            <p>Dear ${recipientName},</p>
-            
-            <p>We have received your burial service request. During this difficult time, we want to extend our deepest condolences and assure you that we are here to support you and your family.</p>
-            
-            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #3498db;">
-              <p style="margin: 0 0 10px 0;"><strong>Request Status:</strong> 
-                <span style="color: #f39c12; font-weight: bold; text-transform: uppercase;">
-                  Pending Review
-                </span>
-              </p>
-            </div>
-            
-            <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <h3 style="color: #2c3e50; margin-top: 0;">Burial Service Request Details</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Request ID:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${requestDetails.burialServiceId || 'N/A'}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Deceased Name:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${deceasedName}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Your Relationship:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${relationship}</td>
+ * Send burial service details email
+ * @param {Object} burialDetails - Burial service details object
+ * @param {string} burialDetails.email - Recipient email
+ * @param {string} burialDetails.status - Status: 'pending', 'approved', 'disapproved', 'completed', or 'cancelled'
+ * @param {string} [burialDetails.memberName] - Member's name (optional)
+ * @param {string} [burialDetails.deceasedName] - Deceased person's name (optional)
                 </tr>
                 <tr>
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Date of Birth:</strong></td>
@@ -782,7 +928,7 @@ const sendBurialDetails = async (burialDetails) => {
     if (burialDate !== 'To be determined' && status === 'approved') {
       // Format with AM/PM for approved status
       const date = new Date(burialDate);
-      burialDate = date.toLocaleDateString('en-US', {
+      burialDate = date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -1287,14 +1433,14 @@ const sendFormSubmissionNotification = async (formDetails) => {
       const serviceType = formDetails.formData.serviceType || 'N/A';
       const serviceTypeLabel = serviceTypeLabels[serviceType] || serviceType;
       const originalDate = formDetails.formData.originalDate 
-        ? new Date(formDetails.formData.originalDate).toLocaleDateString('en-US', { 
+        ? new Date(formDetails.formData.originalDate).toLocaleString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
           })
         : 'N/A';
       const requestedDate = formDetails.formData.requestedDate
-        ? new Date(formDetails.formData.requestedDate).toLocaleDateString('en-US', { 
+        ? new Date(formDetails.formData.requestedDate).toLocaleString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
@@ -1470,14 +1616,14 @@ const sendFormStatusUpdate = async (formDetails) => {
       const serviceType = formDetails.formData.serviceType || 'N/A';
       const serviceTypeLabel = serviceTypeLabels[serviceType] || serviceType;
       const originalDate = formDetails.formData.originalDate 
-        ? new Date(formDetails.formData.originalDate).toLocaleDateString('en-US', { 
+        ? new Date(formDetails.formData.originalDate).toLocaleString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
           })
         : 'N/A';
       const requestedDate = formDetails.formData.requestedDate
-        ? new Date(formDetails.formData.requestedDate).toLocaleDateString('en-US', { 
+        ? new Date(formDetails.formData.requestedDate).toLocaleString('en-US', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
@@ -1607,7 +1753,6 @@ module.exports = {
   sendMarriageDetails,
   sendWaterBaptismDetails,
   sendChildDedicationDetails,
-  sendBurialServiceRequestNotification,
   sendBurialDetails,
   sendApprovalRequestNotification,
   sendApprovalStatusUpdate,

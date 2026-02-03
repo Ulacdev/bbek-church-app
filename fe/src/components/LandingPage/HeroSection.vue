@@ -511,9 +511,7 @@ onUnmounted(() => {
   background-color: #14b8a6 !important;
 }
 
-.hero-buttons :deep(.hero-btn:not(.hero-btn-black):hover) {
-  /* background-color: #000000 !important; */
-}
+
 
 /* Reverse hover effects for hero buttons - start filled, become outlined on hover */
 .hero-buttons :deep(.hero-btn-reverse) {

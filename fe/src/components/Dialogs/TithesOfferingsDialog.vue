@@ -226,6 +226,22 @@
           show-word-limit
         />
       </el-form-item>
+
+      <!-- Donation Date (separate from date created) -->
+      <el-form-item label="Donation Date" prop="donation_date">
+        <el-date-picker
+          v-model="formData.donation_date"
+          type="date"
+          placeholder="Select donation date"
+          size="large"
+          style="width: 100%"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
+        <div class="form-hint">
+          The actual date the donation was made (different from record created date)
+        </div>
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -296,7 +312,8 @@ const formData = reactive({
   type: '',
   payment_method: '',
   donation_items: '',
-  notes: ''
+  notes: '',
+  donation_date: null // The actual date of the donation
 })
 
 // Validation rules
@@ -403,6 +420,7 @@ watch(
       formData.payment_method = newData.payment_method || ''
       formData.donation_items = newData.donation_items || ''
       formData.notes = newData.notes || ''
+      formData.donation_date = newData.donation_date || null
     }
   },
   { immediate: true }
@@ -425,6 +443,7 @@ watch(
       formData.payment_method = data.payment_method || ''
       formData.donation_items = data.donation_items || ''
       formData.notes = data.notes || ''
+      formData.donation_date = data.donation_date || null
     } else {
       resetForm()
     }
@@ -442,6 +461,7 @@ const resetForm = () => {
   formData.payment_method = ''
   formData.donation_items = ''
   formData.notes = ''
+  formData.donation_date = null
 
   if (formRef.value) {
     formRef.value.clearValidate()
@@ -495,7 +515,8 @@ const handleSubmit = async () => {
         type: formData.type || 'donation',
         payment_method: formData.donation_type === 'money' ? (formData.payment_method || null) : null,
         donation_items: formData.donation_type === 'inkind' ? (formData.donation_items || '').trim() : null,
-        notes: (formData.notes || '').trim()
+        notes: (formData.notes || '').trim(),
+        donation_date: formData.donation_date || null
       }
 
       emit('submit', submitData)

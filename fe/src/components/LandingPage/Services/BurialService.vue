@@ -137,6 +137,9 @@
                   Please fill out this form to request burial service support during this difficult time.
                 </v-card-subtitle>
                 <v-card-text>
+                  <p class="info-note" style="background-color: #f0f9ff; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem;">
+                    <strong>Note:</strong> Please provide your information as the requester/contact person for this burial service.
+                  </p>
                   <form @submit.prevent="handleSubmit" class="registration-form">
                     <div class="form-row">
                       <div class="form-group">
@@ -270,22 +273,6 @@
                         ></v-text-field>
                       </div>
                       <div class="form-group">
-                        <label for="civil_status">Civil Status</label>
-                        <el-select
-                        v-model="civilStatus"
-                        placeholder="Select civil status"
-                        size="large"
-                        style="width: 100%"
-                        :disabled="burialServiceStore.loading"
-                      >
-                        <el-option label="Single" value="single" />
-                        <el-option label="Married" value="married" />
-                        <el-option label="Widowed" value="widowed" />
-                        <el-option label="Divorced" value="divorced" />
-                        <el-option label="Separated" value="separated" />
-                      </el-select>
-                      </div>
-                      <div class="form-group">
                         <label for="phone">
                           Phone Number <span class="required-text">Required</span>
                         </label>
@@ -300,12 +287,9 @@
                         <template #prepend>+63</template>
                       </el-input>
                       </div>
-                    </div>
-
-                    <div class="form-row">
                       <div class="form-group">
                         <label for="relationship">
-                          Relationship to Deceased <span class="required-text">Required</span>
+                          Relationship to Deceased <span class="required-text">*</span>
                         </label>
                         <el-select
                           v-model="relationship"
@@ -322,14 +306,38 @@
                           />
                         </el-select>
                       </div>
+                    </div>
+
+                    <p class="section-note" style="background-color: #fef3c7; padding: 12px; border-radius: 8px; margin: 20px 0; font-size: 0.9rem;">
+                      <strong>Deceased Information:</strong> Please provide accurate details about the deceased.
+                    </p>
+
+                    <div class="form-row">
                       <div class="form-group">
                         <label for="deceased-name">
-                          Deceased Name <span class="required-text">Required</span>
+                          Deceased Name <span class="required-text">*</span>
                         </label>
+                        <p class="field-note">Full name of the deceased person</p>
                         <v-text-field
                           id="deceased-name"
                           v-model="deceasedName"
-                          placeholder="Enter deceased person's name"
+                          placeholder="Enter deceased person's full name"
+                          variant="outlined"
+                          density="compact"
+                          required
+                          hide-details
+                        :disabled="burialServiceStore.loading"
+                        ></v-text-field>
+                      </div>
+                      <div class="form-group">
+                        <label for="deceased-deathdate">
+                          Date of Death <span class="required-text">*</span>
+                        </label>
+                        <p class="field-note">When did the deceased pass away</p>
+                        <v-text-field
+                          id="deceased-deathdate"
+                          v-model="deceasedDeathDate"
+                          type="date"
                           variant="outlined"
                           density="compact"
                           required
@@ -339,11 +347,12 @@
                       </div>
                     </div>
 
-                    <div class="form-row form-row-3">
+                    <div class="form-row">
                       <div class="form-group">
                         <label for="deceased-birthdate">
-                          Deceased Birth Date <span class="required-text">Required</span>
+                          Deceased Birth Date <span class="required-text">*</span>
                         </label>
+                        <p class="field-note">When was the deceased born</p>
                         <v-text-field
                           id="deceased-birthdate"
                           v-model="deceasedBirthDate"
@@ -357,8 +366,9 @@
                       </div>
                       <div class="form-group">
                         <label for="deceased-age">
-                          Deceased Age <span class="required-text">Required</span>
+                          Deceased Age <span class="required-text">*</span>
                         </label>
+                        <p class="field-note">Auto-calculated from birth date</p>
                         <v-text-field
                           id="deceased-age"
                           v-model.number="deceasedAge"
@@ -368,21 +378,6 @@
                           density="compact"
                           required
                           readonly
-                          hide-details
-                        :disabled="burialServiceStore.loading"
-                        ></v-text-field>
-                      </div>
-                      <div class="form-group">
-                        <label for="deceased-deathdate">
-                          Date of Death <span class="required-text">Required</span>
-                        </label>
-                        <v-text-field
-                          id="deceased-deathdate"
-                          v-model="deceasedDeathDate"
-                          type="date"
-                          variant="outlined"
-                          density="compact"
-                          required
                           hide-details
                         :disabled="burialServiceStore.loading"
                         ></v-text-field>
@@ -409,16 +404,94 @@
                   Request Burial Service
                 </v-card-title>
                 <v-card-subtitle class="registration-subtitle">
-                  You are signed in as a member. Use the button below to submit a burial service request.
+                  Welcome back, <strong>{{ userInfo.member?.firstname }}!</strong> Please fill out the form below to request burial service support.
                 </v-card-subtitle>
-                <v-card-text class="d-flex flex-column gap-4">
-                  <div class="d-flex flex-column gap-2">
-                    <strong>{{ userInfo.member?.firstname }} {{ userInfo.member?.lastname }}</strong>
-                    <span class="text-caption">Account: {{ userInfo.account?.email }}</span>
-                  </div>
-                  <v-btn color="teal" size="large" block @click="showBurialDialog = true">
-                    Request Burial Service
-                  </v-btn>
+                <v-card-text>
+                  <el-form :model="memberFormData" label-position="top" size="large">
+                    <el-form-item label="Requester Name" class="form-item-with-label">
+                      <el-input
+                        :model-value="`${userInfo.member?.firstname || ''} ${userInfo.member?.middle_name || ''} ${userInfo.member?.lastname || ''}`.replace(/\s+/g, ' ').trim()"
+                        placeholder="Your full name"
+                        disabled
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="Requester Email" class="form-item-with-label">
+                      <el-input
+                        :model-value="userInfo.account?.email || ''"
+                        type="email"
+                        placeholder="Your email address"
+                        disabled
+                      />
+                    </el-form-item>
+
+                    <el-divider content-position="left">Deceased Information</el-divider>
+
+                    <el-form-item label="Deceased Name" class="form-item-with-label">
+                      <el-input
+                        v-model="memberFormData.deceased_name"
+                        placeholder="Enter deceased full name"
+                        clearable
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="Deceased Birthdate" class="form-item-with-label">
+                      <el-date-picker
+                        v-model="memberFormData.deceased_birthdate"
+                        type="date"
+                        placeholder="Select birthdate"
+                        format="YYYY-MM-DD"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="Date of Death" class="form-item-with-label">
+                      <el-date-picker
+                        v-model="memberFormData.date_death"
+                        type="datetime"
+                        placeholder="Select date and time of death"
+                        format="YYYY-MM-DD HH:mm"
+                        style="width: 100%"
+                      />
+                    </el-form-item>
+
+                    <el-form-item label="Relationship" class="form-item-with-label">
+                      <el-select
+                        v-model="memberFormData.relationship"
+                        placeholder="Select relationship"
+                        style="width: 100%"
+                        clearable
+                      >
+                        <el-option
+                          v-for="rel in relationshipOptions"
+                          :key="rel"
+                          :label="rel"
+                          :value="rel"
+                        />
+                      </el-select>
+                    </el-form-item>
+
+                    <el-form-item label="Location" class="form-item-with-label">
+                      <el-input
+                        v-model="memberFormData.location"
+                        placeholder="Enter service location"
+                        clearable
+                      />
+                    </el-form-item>
+
+                    <el-form-item>
+                      <el-button
+                        type="success"
+                        size="large"
+                        style="width: 100%;"
+                        :loading="isSubmitting"
+                        :disabled="isSubmitting"
+                        @click="handleMemberSubmit"
+                      >
+                        {{ isSubmitting ? 'Submitting...' : 'Submit Service Request' }}
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
                 </v-card-text>
               </v-card>
             </div>
@@ -457,7 +530,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useBurialServiceStore } from '@/stores/ServicesRecords/burialServiceStore'
@@ -508,6 +581,16 @@ const deceasedBirthDate = ref('')
 const deceasedAge = ref(0)
 const deceasedDeathDate = ref('')
 const civilStatus = ref('')
+const location = ref('')
+
+// Member form data (for inline member form)
+const memberFormData = reactive({
+  deceased_name: '',
+  deceased_birthdate: '',
+  date_death: '',
+  relationship: '',
+  location: ''
+})
 
 // Relationship options for dropdown
 const relationshipOptions = [
@@ -729,8 +812,65 @@ const resetForm = () => {
   deceasedBirthDate.value = ''
   deceasedAge.value = 0
   deceasedDeathDate.value = ''
+  location.value = ''
   submitMessage.value = ''
   submitError.value = ''
+}
+
+// Handle member form submission
+const handleMemberSubmit = async () => {
+  // Reset messages
+  submitMessage.value = ''
+  submitError.value = ''
+
+  // Basic validation
+  if (!memberFormData.deceased_name.trim() || !memberFormData.deceased_birthdate || 
+      !memberFormData.date_death || !memberFormData.relationship || !memberFormData.location.trim()) {
+    submitError.value = 'Please fill in all required fields.'
+    ElMessage.error('Please fill in all required fields.')
+    return
+  }
+
+  try {
+    isSubmitting.value = true
+
+    // Prepare payload for member
+    const payload = {
+      requester_name: `${userInfo.value.member?.firstname || ''} ${userInfo.value.member?.middle_name || ''} ${userInfo.value.member?.lastname || ''}`.replace(/\s+/g, ' ').trim(),
+      requester_email: userInfo.value.account?.email?.trim().toLowerCase() || '',
+      relationship: memberFormData.relationship,
+      location: memberFormData.location.trim(),
+      pastor_name: null,
+      service_date: null,
+      status: 'pending',
+      deceased_name: memberFormData.deceased_name.trim(),
+      deceased_birthdate: memberFormData.deceased_birthdate ? new Date(memberFormData.deceased_birthdate).toISOString().split('T')[0] : '',
+      date_death: memberFormData.date_death ? new Date(memberFormData.date_death).toISOString() : '',
+      member_id: userInfo.value.member?.member_id || null
+    }
+
+    const result = await burialServiceStore.createService(payload)
+    
+    if (result.success) {
+      showSuccessDialog('Success!', 'Burial service request submitted successfully! Our pastoral team will support you during this time.')
+      
+      // Clear form after successful submission
+      memberFormData.deceased_name = ''
+      memberFormData.deceased_birthdate = ''
+      memberFormData.date_death = ''
+      memberFormData.relationship = ''
+      memberFormData.location = ''
+    } else {
+      submitError.value = result.error || 'An error occurred while submitting the request. Please try again.'
+      ElMessage.error(submitError.value)
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error)
+    submitError.value = 'An error occurred while submitting the request. Please try again.'
+    ElMessage.error(submitError.value)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const handleBurialDialogSubmit = async (payload) => {
@@ -1175,5 +1315,26 @@ const handleBurialDialogSubmit = async (payload) => {
 
 .submit-btn {
   margin-top: 8px;
+}
+
+/* Form notes */
+.info-note {
+  background-color: #f0f9ff !important;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+}
+
+.section-note {
+  background-color: #fef3c7 !important;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.field-note {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: -4px;
+  margin-bottom: 8px;
+  font-style: italic;
 }
 </style>

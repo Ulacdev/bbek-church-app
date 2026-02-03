@@ -231,7 +231,8 @@
             <th class="text-left font-weight-bold">Member Name</th>
             <th class="text-left font-weight-bold">Donation Type</th>
             <th class="text-left font-weight-bold">Amount/Items</th>
-            <th class="text-left font-weight-bold">Date Created</th>
+            <th class="text-left font-weight-bold">Donation Date</th>
+            <th class="text-left font-weight-bold">Recorded Date</th>
             <th class="text-left font-weight-bold">Type</th>
             <th class="text-left font-weight-bold">Payment Method</th>
             <th class="text-left font-weight-bold">Actions</th>
@@ -239,12 +240,12 @@
         </thead>
         <tbody>
           <tr v-if="!loading && donations.length === 0">
-            <td colspan="8" class="text-center py-12">
+            <td colspan="9" class="text-center py-12">
               <div class="text-h6 font-weight-bold">No Record Found</div>
             </td>
           </tr>
           <tr v-if="loading">
-            <td colspan="8" class="text-center py-12">
+            <td colspan="9" class="text-center py-12">
               <v-progress-circular
                 indeterminate
                 color="primary"
@@ -289,6 +290,7 @@
                 </v-tooltip>
               </div>
             </td>
+            <td>{{ donation.donation_date || '-' }}</td>
             <td>{{ donation.date_created }}</td>
             <td>
               <v-chip :color="getTypeColor(donation.type)" size="small" variant="flat">
@@ -435,8 +437,8 @@ const sortByOptions = [
   'Tithes ID (High to Low)',
   'Amount (Low to High)',
   'Amount (High to Low)',
-  'Date Created (Newest)',
-  'Date Created (Oldest)',
+  'Donation Date (Newest)',
+  'Donation Date (Oldest)',
   'Type (A-Z)',
   'Name (A-Z)',
   'Name (Z-A)'
@@ -730,10 +732,16 @@ const handlePrint = () => {
     : userInfo?.account?.email || 'Admin'
   
   ElMessage.success('Print preview opened. Please check your browser tabs.')
-  const tableHeaders = ['Member Name', 'Donation Type', 'Amount/Items', 'Date Created', 'Type/Category']
+  const tableHeaders = ['Member Name', 'Donation Type', 'Amount/Items', 'Donation Date', 'Type/Category']
   
   let tableRows = ''
+  
+  // Calculate total for money donations only
+  let totalAmount = 0
   donations.value.forEach((donation) => {
+    if (donation.donation_type === 'money') {
+      totalAmount += parseFloat(donation.amount || 0)
+    }
     const memberName = donation.is_anonymous ? 'Anonymous' : (donation.fullname || 'N/A')
     const amountOrItems = donation.donation_type === 'money' 
       ? `P${parseFloat(donation.amount || 0).toLocaleString()}`
@@ -804,12 +812,31 @@ const handlePrint = () => {
             margin-top: 5px;
           }
           .org-name {
-            text-align: center;
-            color: #1a365d;
-            font-weight: bold;
-            font-size: 18px;
-            margin-bottom: 5px;
-          }
+             text-align: center;
+             color: #1a365d;
+             font-weight: bold;
+             font-size: 22px;
+             margin-bottom: 20px;
+             margin-top: 10px;
+           }
+           .church-header {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             margin-bottom: 15px;
+           }
+           .church-header img {
+             width: 50px;
+             height: 50px;
+             margin-right: 15px;
+           }
+           .report-title {
+             text-align: center;
+             font-size: 18px;
+             color: #333;
+             margin-bottom: 20px;
+             font-weight: bold;
+           }
           table {
             width: 100%;
             border-collapse: collapse;
@@ -846,14 +873,11 @@ const handlePrint = () => {
         <div class="watermark">
           <img src="/logo.png" alt="Watermark" />
         </div>
-        <div class="header">
+        <div class="church-header">
           <img src="/logo.png" alt="Church Logo" />
-          <div>
-            <h1>Tithes & Offerings</h1>
-            <div class="subtitle">Donations Report</div>
-          </div>
+          <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
         </div>
-        <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
+        <div class="report-title">Tithes & Offerings Report</div>
         <table>
           <thead>
             <tr>
@@ -862,10 +886,15 @@ const handlePrint = () => {
           </thead>
           <tbody>
             ${tableRows || '<tr><td colspan="' + tableHeaders.length + '" style="text-align: center;">No records found</td></tr>'}
+            <tr style="background-color: #e2e8f0; font-weight: bold;">
+              <td colspan="2" style="text-align: right;">TOTAL:</td>
+              <td>P${totalAmount.toLocaleString()}</td>
+              <td colspan="2"></td>
+            </tr>
           </tbody>
         </table>
         <div class="footer">
-          <div>Total Records: ${donations.value.length}</div>
+          <div>Total Records: ${donations.value.length} | Total Amount: P${totalAmount.toLocaleString()}</div>
           <div class="footer-info">
             <div>Printed on: ${currentDate}</div>
             <div>Printed by: ${printedBy}</div>

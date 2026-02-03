@@ -132,12 +132,27 @@ async function createEvent(eventData) {
     ];
 
     const [result] = await query(sql, params);
-    const createdEvent = await getEventById(result.insertId);
+
+    // Build the created event data from the insert data (avoid extra query)
+    const createdEventData = {
+      event_id: result.insertId,
+      title: title.trim(),
+      description: description.trim(),
+      start_date: formattedStartDate,
+      end_date: formattedEndDate,
+      location: location.trim(),
+      link: link ? link.trim() : null,
+      type: type.trim(),
+      status: status,
+      date_created: formattedDateCreated,
+      image: imageBlob ? convertBlobToBase64(imageBlob) : null,
+      joined_members: joinedMembersJson ? JSON.parse(joinedMembersJson) : []
+    };
 
     return {
       success: true,
       message: 'Event created successfully',
-      data: createdEvent.data
+      data: createdEventData
     };
   } catch (error) {
     console.error('Error creating event:', error);
@@ -317,17 +332,14 @@ async function getAllEvents(options = {}) {
 
     const processedRows = rows.map(event => {
       const processedEvent = { ...event };
-      let imageUrl = null;
+      
+      // Process image - convert blob to base64 only once
       if (event.image && Buffer.isBuffer(event.image)) {
         const base64String = convertBlobToBase64(event.image);
-        if (base64String) {
-          imageUrl = `data:image/jpeg;base64,${base64String}`;
-        }
-      }
-      processedEvent.imageUrl = imageUrl;
-      if (event.image && Buffer.isBuffer(event.image)) {
-        processedEvent.image = convertBlobToBase64(event.image);
+        processedEvent.imageUrl = base64String ? `data:image/jpeg;base64,${base64String}` : null;
+        processedEvent.image = base64String;
       } else {
+        processedEvent.imageUrl = null;
         processedEvent.image = null;
       }
       
@@ -429,14 +441,8 @@ async function updateEvent(eventId, eventData) {
       throw new Error('Event ID is required');
     }
 
-    const eventCheck = await getEventById(eventId);
-    if (!eventCheck.success) {
-      return {
-        success: false,
-        message: 'Event not found',
-        data: null
-      };
-    }
+    // Skip initial existence check - middleware captures before state
+    // UPDATE query will tell us if row exists
 
     const {
       title,
@@ -597,6 +603,7 @@ async function updateEvent(eventId, eventData) {
       };
     }
 
+    // Fetch the updated event (only one query needed)
     const updatedEvent = await getEventById(eventId);
 
     return {
