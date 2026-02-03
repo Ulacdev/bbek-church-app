@@ -443,10 +443,27 @@ async function createChildDedication(dedicationData) {
       );
 
       const childName = `${child_firstname} ${child_middle_name ? child_middle_name + ' ' : ''}${child_lastname}`.trim();
+      // Get member name for Parent/Guardian Information section
+      const memberName = memberRows && memberRows.length > 0
+        ? `${memberRows[0].firstname || ''} ${memberRows[0].middle_name ? memberRows[0].middle_name + ' ' : ''}${memberRows[0].lastname || ''}`.trim()
+        : '';
       const dedicationDate = createdDedication.data?.preferred_dedication_date
         ? moment(createdDedication.data.preferred_dedication_date).format('YYYY-MM-DD')
         : 'To be determined';
-
+      
+      // Format dedication time if available
+      const dedicationTime = createdDedication.data?.preferred_dedication_time || null;
+      
+      // Format child birthdate
+      const childBirthdate = createdDedication.data?.date_of_birth
+        ? moment(createdDedication.data.date_of_birth).format('YYYY-MM-DD')
+        : '';
+      
+      // Format child gender for display
+      const childGender = createdDedication.data?.gender
+        ? (createdDedication.data.gender.toUpperCase() === 'M' ? 'Male' : 'Female')
+        : '';
+      
       const dedicationStatus = createdDedication.data?.status || 'pending';
       const dedicationLocation = createdDedication.data?.location || 'Church';
 
@@ -464,12 +481,19 @@ async function createChildDedication(dedicationData) {
           email: member.email,
           status: dedicationStatus,
           recipientName: recipientName,
+          memberName: memberName,
           childName: childName,
+          childBirthdate: childBirthdate,
+          childGender: childGender,
+          placeOfBirth: createdDedication.data?.place_of_birth || '',
+          dedicationDate: dedicationDate,
+          dedicationTime: dedicationTime,
+          phoneNumber: createdDedication.data?.contact_phone_number || member.phone_number || '',
+          address: createdDedication.data?.contact_address || '',
           fatherName: createdDedication.data?.father_firstname ?
             `${createdDedication.data.father_firstname} ${createdDedication.data.father_lastname || ''}`.trim() : '',
           motherName: createdDedication.data?.mother_firstname ?
             `${createdDedication.data.mother_firstname} ${createdDedication.data.mother_lastname || ''}`.trim() : '',
-          dedicationDate: dedicationDate,
           location: dedicationLocation,
           pastorName: createdDedication.data?.pastor || null,
           isMember: true
@@ -485,12 +509,19 @@ async function createChildDedication(dedicationData) {
             email: contact_email.trim(),
             status: dedicationStatus,
             recipientName: 'Valued Member',
+            memberName: memberName,
             childName: childName,
+            childBirthdate: childBirthdate,
+            childGender: childGender,
+            placeOfBirth: createdDedication.data?.place_of_birth || '',
+            dedicationDate: dedicationDate,
+            dedicationTime: dedicationTime,
+            phoneNumber: createdDedication.data?.contact_phone_number || '',
+            address: createdDedication.data?.contact_address || '',
             fatherName: createdDedication.data?.father_firstname ?
               `${createdDedication.data.father_firstname} ${createdDedication.data.father_lastname || ''}`.trim() : '',
             motherName: createdDedication.data?.mother_firstname ?
               `${createdDedication.data.mother_firstname} ${createdDedication.data.mother_lastname || ''}`.trim() : '',
-            dedicationDate: dedicationDate,
             location: dedicationLocation,
             pastorName: createdDedication.data?.pastor || null,
             isMember: false
@@ -510,12 +541,19 @@ async function createChildDedication(dedicationData) {
             email: father_email.trim(),
             status: dedicationStatus,
             recipientName: fatherName,
+            memberName: memberName,
             childName: childName,
+            childBirthdate: childBirthdate,
+            childGender: childGender,
+            placeOfBirth: createdDedication.data?.place_of_birth || '',
+            dedicationDate: dedicationDate,
+            dedicationTime: dedicationTime,
+            phoneNumber: createdDedication.data?.father_phone_number || '',
+            address: createdDedication.data?.father_address || '',
             fatherName: createdDedication.data?.father_firstname ?
               `${createdDedication.data.father_firstname} ${createdDedication.data.father_lastname || ''}`.trim() : '',
             motherName: createdDedication.data?.mother_firstname ?
               `${createdDedication.data.mother_firstname} ${createdDedication.data.mother_lastname || ''}`.trim() : '',
-            dedicationDate: dedicationDate,
             location: dedicationLocation,
             pastorName: createdDedication.data?.pastor || null,
             isMember: false
@@ -535,12 +573,19 @@ async function createChildDedication(dedicationData) {
             email: mother_email.trim(),
             status: dedicationStatus,
             recipientName: motherName,
+            memberName: memberName,
             childName: childName,
+            childBirthdate: childBirthdate,
+            childGender: childGender,
+            placeOfBirth: createdDedication.data?.place_of_birth || '',
+            dedicationDate: dedicationDate,
+            dedicationTime: dedicationTime,
+            phoneNumber: createdDedication.data?.mother_phone_number || '',
+            address: createdDedication.data?.mother_address || '',
             fatherName: createdDedication.data?.father_firstname ?
               `${createdDedication.data.father_firstname} ${createdDedication.data.father_lastname || ''}`.trim() : '',
             motherName: createdDedication.data?.mother_firstname ?
               `${createdDedication.data.mother_firstname} ${createdDedication.data.mother_lastname || ''}`.trim() : '',
-            dedicationDate: dedicationDate,
             location: dedicationLocation,
             pastorName: createdDedication.data?.pastor || null,
             isMember: false

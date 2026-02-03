@@ -715,7 +715,8 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
               </p>
             </div>
             
-            ${status !== 'pending' ? `
+            </div>
+            
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3 style="color: #2c3e50; margin-top: 0;">Child Dedication Service Details</h3>
               <table style="width: 100%; border-collapse: collapse;">
@@ -733,7 +734,6 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
                 </tr>
               </table>
             </div>
-            ` : ''}
             
             <div style="background-color: white; padding: 15px; border-radius: 5px; margin: 20px 0;">
               <h3 style="color: #2c3e50; margin-top: 0;">Child Information</h3>
@@ -751,8 +751,8 @@ const sendChildDedicationDetails = async (dedicationDetails) => {
                   <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.childGender || 'N/A'}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Birth Certificate Number:</strong></td>
-                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.birthCertificateNumber || 'N/A'}</td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Place of Birth:</strong></td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${dedicationDetails.placeOfBirth || 'N/A'}</td>
                 </tr>
               </table>
             </div>
