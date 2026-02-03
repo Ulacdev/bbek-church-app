@@ -404,69 +404,61 @@ onMounted(async () => {
   }
 }
 
-/* Officer Card Styles - Uniform Size & Shape */
+/* Officer Card Styles - Image Highlighted */
 .officers-grid {
   justify-content: center;
 }
 
 .officer-card {
-  height: 320px;
+  height: 360px;
   display: flex;
   flex-direction: column;
   text-align: center;
-  border-left: 4px solid #14b8a6;
-  background: linear-gradient(to bottom, rgba(15, 118, 110, 0.05), rgba(17, 94, 89, 0.1));
+  border: none;
+  background: transparent;
+  box-shadow: none !important;
   transition: all 0.3s ease;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .officer-image-container {
   flex-shrink: 0;
   display: flex;
   justify-content: center;
-  padding: 16px 16px 8px 16px;
+  padding: 0;
+  margin-bottom: 12px;
 }
 
 .officer-avatar {
-  border: 3px solid #14b8a6;
-  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+  size: 180px !important;
+  border: 4px solid #14b8a6;
+  box-shadow: 0 8px 24px rgba(20, 184, 166, 0.4);
+  transition: all 0.3s ease;
+}
+
+.officer-card:hover .officer-avatar {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(20, 184, 166, 0.5);
+  border-color: #0d9488;
 }
 
 .officer-content {
-  flex-grow: 1;
+  flex-grow: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding: 8px 12px !important;
-  overflow: hidden;
+  padding: 8px 8px !important;
+  overflow: visible;
 }
 
 .officer-name {
   font-family: 'Georgia', serif;
   font-style: italic;
-  font-size: 1rem;
-  font-weight: bold;
-  color: #37474f;
-  margin: 0 0 4px 0;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 2.6em;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
-
-.officer-role {
-  font-family: 'Georgia', serif;
-  font-style: italic;
   font-size: 0.875rem;
-  color: #14b8a6;
   font-weight: 600;
-  margin: 0;
+  color: #4a5568;
+  margin: 0 0 2px 0;
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -478,22 +470,40 @@ onMounted(async () => {
   overflow-wrap: break-word;
 }
 
+.officer-role {
+  font-family: 'Georgia', serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #718096;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 2em;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
   .officer-card {
-    height: 300px;
+    height: 320px;
   }
 
   .officer-avatar {
-    size: 120px !important;
+    size: 150px !important;
   }
 
   .officer-name {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
   }
 
   .officer-role {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
   }
 }
 </style>
