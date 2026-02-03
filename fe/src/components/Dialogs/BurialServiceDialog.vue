@@ -43,6 +43,22 @@
         </el-select>
       </el-form-item>
 
+      <!-- Reason of Death (Optional) -->
+      <el-form-item prop="reason_of_death">
+        <template #label>
+          <span>Reason of Death <span class="optional-text">(optional)</span></span>
+        </template>
+        <el-input
+          v-model="formData.reason_of_death"
+          placeholder="Enter cause of death (if known)"
+          size="large"
+          clearable
+          :disabled="loading"
+          maxlength="255"
+        />
+      </el-form-item>
+
+
       <!-- Requester Name (Required for Admin/Staff when no member selected) -->
       <el-form-item label="Requester Name" prop="requester_name" v-if="userInfo?.account?.position === 'admin' || userInfo?.account?.position === 'staff'">
         <template #label>
@@ -487,6 +503,7 @@ const formData = reactive({
   deceased_name: '',
   deceased_birthdate: null,
   date_death: null,
+  reason_of_death: '',
   relationship: '',
   location: '',
   pastor_name: null,
@@ -706,6 +723,7 @@ watch(
         formData.deceased_name = data.deceased_name || ''
         formData.deceased_birthdate = data.deceased_birthdate || null
         formData.date_death = data.date_death ? new Date(data.date_death.replace(' ', 'T')) : null
+        formData.reason_of_death = data.reason_of_death || ''
         // Calculate age if both dates are available
         if (formData.deceased_birthdate && formData.date_death) {
           calculateDeceasedAge()
@@ -767,6 +785,7 @@ const resetForm = () => {
   formData.deceased_name = ''
   formData.deceased_birthdate = null
   formData.date_death = null
+  formData.reason_of_death = ''
   formData.relationship = ''
   formData.location = ''
   formData.pastor_name = null
@@ -921,6 +940,7 @@ const handleSubmit = async () => {
       submitData.date_death = formatDateForSubmission(formData.date_death, true)
       console.log('Formatted date_death:', submitData.date_death)
     }
+    if (formData.reason_of_death) submitData.reason_of_death = formData.reason_of_death.trim()
     if (formData.relationship) submitData.relationship = formData.relationship
     if (formData.location) submitData.location = formData.location.trim()
     if (formData.pastor_name) submitData.pastor_name = String(formData.pastor_name).trim()
@@ -1023,6 +1043,13 @@ defineExpose({
   color: #ef4444;
   font-size: 0.6rem;
   font-weight: 500;
+  margin-left: 4px;
+}
+
+.optional-text {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 400;
   margin-left: 4px;
 }
 

@@ -143,7 +143,8 @@ async function createBurialService(burialData) {
       date_created = new Date(),
       deceased_name = null,
       deceased_birthdate = null,
-      date_death = null
+      date_death = null,
+      reason_of_death = null
     } = burialData;
 
     // Member ID is now optional for non-member requests
@@ -225,8 +226,8 @@ async function createBurialService(burialData) {
 
     const sql = `
       INSERT INTO tbl_burialservice
-        (burial_id, member_id, requester_name, requester_email, relationship, location, pastor_name, service_date, status, date_created, deceased_name, deceased_birthdate, date_death)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (burial_id, member_id, requester_name, requester_email, relationship, location, pastor_name, service_date, status, date_created, deceased_name, deceased_birthdate, date_death, reason_of_death)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
@@ -242,7 +243,8 @@ async function createBurialService(burialData) {
       formattedDateCreated,
       deceased_name ? deceased_name.trim() : null,
       formattedBirthdate,
-      formattedDateDeath
+      formattedDateDeath,
+      reason_of_death || null
     ];
 
     console.log('Executing burial service INSERT with params:', {
@@ -667,7 +669,8 @@ async function updateBurialService(burialId, burialData, isAdmin = false) {
       date_created,
       deceased_name,
       deceased_birthdate,
-      date_death
+      date_death,
+      reason_of_death
     } = burialData;
 
     // Check current status and block updates if pending (except for admins or status changes)
@@ -797,6 +800,13 @@ async function updateBurialService(burialId, burialData, isAdmin = false) {
       params.push(formattedDateDeath);
     } else if (date_death === null || date_death === '') {
       fields.push('date_death = NULL');
+    }
+
+    if (reason_of_death !== undefined && reason_of_death !== null && reason_of_death !== '') {
+      fields.push('reason_of_death = ?');
+      params.push(reason_of_death.trim());
+    } else if (reason_of_death === null || reason_of_death === '') {
+      fields.push('reason_of_death = NULL');
     }
 
     if (fields.length === 0) {
