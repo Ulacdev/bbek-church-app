@@ -239,7 +239,7 @@
       <el-form-item label="Father's Phone Number" prop="father_phone_number">
         <el-input
           v-model="formData.father_phone_number"
-          placeholder="Enter father's phone number"
+          placeholder="Enter father's phone number (11 digits, optional)"
           size="large"
           clearable
           :disabled="loading"
@@ -311,7 +311,7 @@
       <el-form-item label="Mother's Phone Number" prop="mother_phone_number">
         <el-input
           v-model="formData.mother_phone_number"
-          placeholder="Enter mother's phone number"
+          placeholder="Enter mother's phone number (11 digits, optional)"
           size="large"
           clearable
           :disabled="loading"
@@ -1208,8 +1208,9 @@ const rules = {
   father_phone_number: [
     {
       validator: (rule, value, callback) => {
+        // Father phone is optional
         if (!value || !value.trim()) {
-          callback(new Error("Father's phone number is required"))
+          callback()
           return
         }
         // Remove any non-digit characters
@@ -1227,8 +1228,9 @@ const rules = {
   mother_phone_number: [
     {
       validator: (rule, value, callback) => {
+        // Mother phone is optional
         if (!value || !value.trim()) {
-          callback(new Error("Mother's phone number is required"))
+          callback()
           return
         }
         // Remove any non-digit characters
