@@ -445,7 +445,10 @@
 
                     <el-divider content-position="left">Deceased Information</el-divider>
 
-                    <el-form-item label="Deceased Name *" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Deceased Name <span class="required-text">Required</span></span>
+                      </template>
                       <el-input
                         v-model="memberFormData.deceased_name"
                         placeholder="Enter deceased full name"
@@ -453,7 +456,10 @@
                       />
                     </el-form-item>
 
-                    <el-form-item label="Deceased Birthdate *" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Deceased Birthdate <span class="required-text">Required</span></span>
+                      </template>
                       <el-date-picker
                         v-model="memberFormData.deceased_birthdate"
                         type="date"
@@ -463,7 +469,10 @@
                       />
                     </el-form-item>
 
-                    <el-form-item label="Date of Death *" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Date of Death <span class="required-text">Required</span></span>
+                      </template>
                       <el-date-picker
                         v-model="memberFormData.date_death"
                         type="datetime"
@@ -482,7 +491,10 @@
                       />
                     </el-form-item>
 
-                    <el-form-item label="Relationship *" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Relationship <span class="required-text">Required</span></span>
+                      </template>
                       <el-select
                         v-model="memberFormData.relationship"
                         placeholder="Select relationship"
@@ -498,7 +510,10 @@
                       </el-select>
                     </el-form-item>
 
-                    <el-form-item label="Location *" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Location <span class="required-text">Required</span></span>
+                      </template>
                       <el-input
                         v-model="memberFormData.location"
                         placeholder="Enter service location"
