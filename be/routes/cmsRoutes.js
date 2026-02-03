@@ -397,131 +397,46 @@ router.post('/:pageName/save', async (req, res) => {
       });
     }
 
-    // Save images if provided
+    // Save images in PARALLEL for faster performance
     const imageResults = [];
     if (images && typeof images === 'object') {
-      for (const [fieldName, imageBase64] of Object.entries(images)) {
+      const imagePromises = Object.entries(images).map(async ([fieldName, imageBase64]) => {
         // Handle deletion: if imageBase64 is null, delete the image
         if (imageBase64 === null) {
           console.log(`Deleting ${fieldName} for page ${pageName}`);
           try {
             const deleteResult = await deleteCmsImage(pageName, fieldName);
-            imageResults.push({
-              fieldName,
-              success: deleteResult.success,
-              message: deleteResult.message || 'Image deleted successfully'
-            });
             console.log(`Successfully deleted ${fieldName}:`, deleteResult.message);
-            continue;
+            return { fieldName, success: deleteResult.success, message: deleteResult.message || 'Image deleted successfully' };
           } catch (deleteError) {
             console.error(`Error deleting ${fieldName}:`, deleteError);
-            imageResults.push({
-              fieldName,
-              success: false,
-              message: deleteError.message || 'Failed to delete image'
-            });
-            continue;
+            return { fieldName, success: false, message: deleteError.message || 'Failed to delete image' };
           }
         }
         
         if (imageBase64) {
           const isVideo = typeof imageBase64 === 'string' && imageBase64.startsWith('data:video/');
-          console.log(`Processing ${isVideo ? 'video' : 'image'} ${fieldName} for page ${pageName}`, {
-            dataLength: imageBase64.length,
-            mimeType: imageBase64.substring(0, 50),
-            isString: typeof imageBase64 === 'string',
-            startsWithData: imageBase64.startsWith('data:')
-          });
-          
           const imageData = base64ToBuffer(imageBase64);
-          if (!imageData) {
-            console.error(`Failed to convert ${fieldName} to buffer - base64ToBuffer returned null`);
-            imageResults.push({
-              fieldName,
-              success: false,
-              message: 'Failed to convert to buffer'
-            });
-            continue;
+          
+          if (!imageData || !imageData.buffer) {
+            console.error(`Failed to convert ${fieldName} to buffer`);
+            return { fieldName, success: false, message: 'Failed to convert to buffer' };
           }
           
-          if (imageData && imageData.buffer) {
-            console.log(`Converted ${fieldName} to buffer:`, {
-              bufferLength: imageData.buffer.length,
-              mimeType: imageData.mimeType,
-              isBuffer: Buffer.isBuffer(imageData.buffer)
-            });
-            try {
-              console.log(`Calling saveCmsImage for ${fieldName} with buffer length: ${imageData.buffer.length}`);
-              const imgResult = await saveCmsImage(
-                pageName,
-                fieldName,
-                imageData.buffer,
-                imageData.mimeType
-              );
-              
-              console.log(`saveCmsImage result for ${fieldName}:`, {
-                success: imgResult.success,
-                message: imgResult.message,
-                imageId: imgResult.imageId
-              });
-              
-              // Verify the save by immediately retrieving it
-              if (imgResult.success) {
-                // Small delay to ensure database commit
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                const verifyResult = await getCmsImage(pageName, fieldName);
-                if (verifyResult.success && verifyResult.data) {
-                  const savedSize = verifyResult.data.blobSize || (verifyResult.data.imageBuffer ? verifyResult.data.imageBuffer.length : 0);
-                  const expectedSize = imageData.buffer.length;
-                  const sizeMatch = savedSize === expectedSize;
-                  
-                  console.log(`Verification for ${fieldName}:`, {
-                    expectedSize,
-                    savedSize,
-                    sizeMatch,
-                    imageId: imgResult.imageId
-                  });
-                  
-                  if (!sizeMatch) {
-                    console.error(`WARNING: Size mismatch for ${fieldName}! Expected ${expectedSize} bytes, got ${savedSize} bytes`);
-                    imageResults.push({
-                      fieldName,
-                      success: false,
-                      message: `Size mismatch: expected ${expectedSize} bytes, got ${savedSize} bytes`
-                    });
-                    continue;
-                  }
-                }
-              }
-              
-              imageResults.push({
-                fieldName,
-                success: imgResult.success,
-                message: imgResult.message
-              });
-              console.log(`Successfully saved ${isVideo ? 'video' : 'image'} ${fieldName}:`, imgResult.message);
-            } catch (imgError) {
-              console.error(`Error saving ${isVideo ? 'video' : 'image'} ${fieldName}:`, imgError);
-              imageResults.push({
-                fieldName,
-                success: false,
-                message: imgError.message || `Failed to save ${isVideo ? 'video' : 'image'}`
-              });
-            }
-          } else {
-            console.error(`Failed to convert ${isVideo ? 'video' : 'image'} ${fieldName} to buffer`, {
-              hasImageData: !!imageData,
-              hasBuffer: imageData?.buffer ? true : false
-            });
-            imageResults.push({
-              fieldName,
-              success: false,
-              message: `Failed to convert ${isVideo ? 'video' : 'image'} to buffer`
-            });
+          try {
+            const imgResult = await saveCmsImage(pageName, fieldName, imageData.buffer, imageData.mimeType);
+            return { fieldName, success: imgResult.success, message: imgResult.message };
+          } catch (imgError) {
+            console.error(`Error saving ${fieldName}:`, imgError);
+            return { fieldName, success: false, message: imgError.message || 'Failed to save image' };
           }
         }
-      }
+        
+        return { fieldName, success: true, message: 'No image to process' };
+      });
+      
+      // Execute all image operations in parallel
+      imageResults.push(...(await Promise.all(imagePromises)));
     }
 
     res.status(200).json({
