@@ -278,6 +278,20 @@
           </p>
         </div>
 
+        <!-- Sort Buttons -->
+        <div v-if="allSermons.length > 0" class="text-center mb-8">
+          <v-btn-toggle v-model="sortOrder" mandatory @update:modelValue="applySermonSorting">
+            <v-btn value="recent" color="teal-darken-1">
+              <v-icon left>mdi-calendar-clock</v-icon>
+              Recent
+            </v-btn>
+            <v-btn value="oldest" color="teal-darken-1" variant="outlined">
+              <v-icon left>mdi-calendar-remove</v-icon>
+              Oldest
+            </v-btn>
+          </v-btn-toggle>
+        </div>
+
         <v-row class="sermons-grid" v-if="sermons.length > 0">
           <v-col
             v-for="(sermon, index) in sermons"
@@ -312,6 +326,19 @@
             </v-card>
           </v-col>
         </v-row>
+
+        <!-- View All Archive Button -->
+        <div v-if="allSermons.length > 6" class="text-center mt-8">
+          <v-btn
+            color="teal-darken-1"
+            size="large"
+            variant="outlined"
+            @click="toggleShowAllSermons"
+          >
+            <v-icon left>{{ showAllSermons ? 'mdi-chevron-up' : 'mdi-format-list-bulleted' }}</v-icon>
+            {{ showAllSermons ? 'Show Less' : 'View All Archive (' + allSermons.length + ' Sermons)' }}
+          </v-btn>
+        </div>
       </v-container>
     </section>
   </div>
@@ -415,6 +442,9 @@ const floatingElements = ref([
 
 const ongoingEvent = ref(null);
 const sermons = ref([]);
+const allSermons = ref([]); // Store all sermons for archive view
+const showAllSermons = ref(false); // Toggle to show all sermons on same page
+const sortOrder = ref('recent'); // 'recent' for newest first, 'oldest' for oldest first
 const loading = ref(false);
 const iframeError = ref(false);
 const embedUrl = ref(null);
@@ -422,8 +452,13 @@ const selectedSermon = ref(null);
 
 // Format date for display
 const formatDate = (dateString) => {
-  if (!dateString) return "";
+  if (!dateString || dateString === '0000-00-00 00:00:00') return "TBA";
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "TBA";
+  // Check if time is midnight (00:00) - likely means no time was set
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  if (hours === 0 && minutes === 0) return "TBA";
   return date.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
@@ -636,19 +671,46 @@ const fetchSermonEvents = async () => {
   }
 };
 
+// Apply sorting to sermons based on sortOrder
+const applySermonSorting = () => {
+  const sortedEvents = [...allSermons.value].sort((a, b) => {
+    const dateA = new Date(a.end_date || a.start_date);
+    const dateB = new Date(b.end_date || b.start_date);
+    if (sortOrder.value === 'recent') {
+      return dateB - dateA; // Descending (newest first)
+    } else {
+      return dateA - dateB; // Ascending (oldest first)
+    }
+  });
+  sermons.value = showAllSermons.value ? sortedEvents : sortedEvents.slice(0, 6);
+};
+
+// Toggle sort order
+const toggleSortOrder = () => {
+  sortOrder.value = sortOrder.value === 'recent' ? 'oldest' : 'recent';
+  applySermonSorting();
+};
+
 // Fetch completed sermon events for archive
 const fetchCompletedSermonEvents = async () => {
   try {
     const response = await axios.get("/church-records/events/getCompletedSermonEvents");
 
     if (response.data.success && response.data.data) {
-      // Add completed events to the sermons list (up to 6 total)
-      const completedEvents = response.data.data.slice(0, 6);
-      sermons.value = completedEvents;
+      // Store all sermons
+      allSermons.value = response.data.data;
+      // Apply sorting and display
+      applySermonSorting();
     }
   } catch (error) {
     console.error("Error fetching completed sermon events:", error);
   }
+};
+
+// Toggle to show all sermons on the same page
+const toggleShowAllSermons = () => {
+  showAllSermons.value = !showAllSermons.value;
+  applySermonSorting();
 };
 
 // Watch for embed URL changes to reset error state

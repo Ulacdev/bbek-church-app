@@ -130,7 +130,6 @@ const routes = [
       //encodeURIComponent(JSON.stringify(event))
       {
         path: 'learn-more-event',
-        query: { eventModel: encodeURIComponent(JSON.stringify(event)) },
         name: 'LearnMoreEvent',
         component: LearnMoreEvent
       },

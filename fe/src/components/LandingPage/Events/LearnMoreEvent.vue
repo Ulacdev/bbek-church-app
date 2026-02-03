@@ -38,11 +38,11 @@
                         Event Status
                       </h3>
                       <v-chip
-                        :color="getStatusColor(eventModel?.status)"
+                        :color="eventStatusColor"
                         size="small"
                         variant="flat"
                       >
-                        {{ getStatusText(eventModel?.status) }}
+                        {{ eventStatusText }}
                       </v-chip>
                     </div>
                   </div>
@@ -158,11 +158,46 @@ import { useCms } from '@/composables/useCms'
 const route = useRoute()
 const router = useRouter()
 const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || '{}'))
-const eventModel = ref(route.query?.eventModel ? JSON.parse(decodeURIComponent(route.query.eventModel)) : {})
-
+const eventModel = ref({})
+const loading = ref(true)
 const showJoinEvent = ref(false)
 const approvalStatus = ref(null)
-const loading = ref(false)
+
+const fetchEventData = async () => {
+  try {
+    const eventId = route.query?.eventId
+    if (!eventId) {
+      ElMessage.error('Event ID is required')
+      return
+    }
+    
+    const response = await axios.get(`/church-records/events/getEventById/${eventId}`)
+    if (response.data.success && response.data.data) {
+      eventModel.value = response.data.data
+    } else {
+      ElMessage.error(response.data.message || 'Failed to fetch event details')
+    }
+  } catch (error) {
+    console.error('Error fetching event:', error)
+    ElMessage.error('An error occurred while loading the event')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  await fetchEventData()
+  
+  // Load CMS data
+  const cmsData = await loadPageData()
+  if (cmsData) {
+    console.log('CMS data loaded:', cmsData)
+    Object.assign(learnMoreEventsData, cmsData)
+    console.log('Updated learnMoreEventsData:', learnMoreEventsData)
+  } else {
+    console.log('No CMS data found, using defaults')
+  }
+})
 
 const formatDate = (date) => {
   return dayjs(date).format('MMMM D, YYYY - h:mm A')
@@ -194,9 +229,39 @@ const getStatusText = (status) => {
   }
 }
 
+const getEventStatus = (event) => {
+  if (!event.start_date || !event.end_date) {
+    return 'unknown'
+  }
+  
+  const now = new Date()
+  const startDate = new Date(event.start_date)
+  const endDate = new Date(event.end_date)
+  
+  if (now > endDate) {
+    return 'completed'
+  } else if (now >= startDate && now <= endDate) {
+    return 'ongoing'
+  } else {
+    return 'upcoming'
+  }
+}
+
+const eventStatus = computed(() => {
+  return getEventStatus(eventModel.value)
+})
+
+const eventStatusColor = computed(() => {
+  return getStatusColor(eventStatus.value)
+})
+
+const eventStatusText = computed(() => {
+  return getStatusText(eventStatus.value)
+})
+
 const handleJoinEvent = async () => {
   // Check if event is completed
-  if (eventModel.value?.status === 'completed') {
+  if (eventStatus.value === 'completed') {
     ElMessage.warning('This event has already been completed and is no longer accepting new registrations.')
     return
   }
@@ -298,7 +363,7 @@ const { loading: cmsLoading, loadPageData } = useCms('learnmoreevents')
 
 // Computed properties for button states
 const getButtonText = computed(() => {
-  if (eventModel.value?.status === 'completed') {
+  if (eventStatus.value === 'completed') {
     return 'Event Completed'
   } else if (approvalStatus.value === 'pending') {
     return learnMoreEventsData.pendingText || 'Pending Request'
@@ -318,7 +383,7 @@ const getButtonClass = computed(() => {
 })
 
 const getButtonColor = computed(() => {
-  if (eventModel.value?.status === 'completed') {
+  if (eventStatus.value === 'completed') {
     return '#6b7280' // Gray color for completed events
   } else if (approvalStatus.value === 'pending') {
     return '#f59e0b'
@@ -331,7 +396,7 @@ const getButtonColor = computed(() => {
 })
 
 const getButtonDisabled = computed(() => {
-  return approvalStatus.value !== null || eventModel.value?.status === 'completed'
+  return approvalStatus.value !== null || eventStatus.value === 'completed'
 })
 
 onMounted(async () => {

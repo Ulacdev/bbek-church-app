@@ -187,7 +187,7 @@ const checkingStatus = ref(false)
 
 // In Vue Router, state is accessed via query params
 const ministryModelFromState = ref(
-  route.query?.ministryModel ? JSON.parse(decodeURIComponent(route.query.ministryModel)) : null
+  route.query?.ministryId ? { ministry_id: route.query.ministryId } : null
 )
 
 const formatTime = (time) => {
@@ -204,16 +204,11 @@ const fetchMinistryData = async () => {
   try {
     loading.value = true
     
-    // Try to get ministry from state first
-    if (ministryModelFromState.value) {
-      console.log('✅ Ministry found in route state:', ministryModelFromState.value)
-      model.value = ministryModelFromState.value
-      loading.value = false
-      return
-    }
+    // Try to get ministry ID from query params first
+    const ministryIdFromQuery = route.query?.ministryId
+    const ministryIdFromParams = route.params?.id
+    const ministryId = ministryIdFromQuery || ministryIdFromParams
     
-    // If no ministry in state, try to fetch from API using ministry ID from route params
-    const ministryId = route.params?.id
     console.log('📍 Looking for ministry with ID:', ministryId)
     
     if (ministryId) {
@@ -353,8 +348,9 @@ const checkIfAlreadyJoined = async () => {
   }
 }
 
-watch(() => route.params.id, () => {
-  if (!ministryModelFromState.value && route.params.id) {
+watch(() => route.query.ministryId || route.params.id, () => {
+  const ministryId = route.query?.ministryId || route.params?.id
+  if (ministryId) {
     fetchMinistryData()
   }
 })
@@ -424,10 +420,8 @@ onMounted(async () => {
   const isMember = sessionStorage.getItem('isMember') === 'true'
   isMemberLandPage.value = isMember
 
-  if (ministryModelFromState.value) {
-    model.value = ministryModelFromState.value
-    loading.value = false
-  } else if (route.params.id) {
+  const ministryId = route.query?.ministryId || route.params?.id
+  if (ministryId) {
     await fetchMinistryData()
   } else {
     loading.value = false

@@ -344,7 +344,7 @@ const goToLearnMore = (ministry) => {
   router.push({
     name: 'LearnMoreMinistry',
     params: { id: ministry.ministry_id },
-    query: { ministryModel: encodeURIComponent(JSON.stringify(ministry)) }
+    query: { ministryId: ministry.ministry_id }
   })
 }
 

@@ -584,12 +584,19 @@ async function getMinistryById(ministryId) {
       row.members = [];
     }
     
-    // Convert image blob to base64 for JSON response
+    // Convert image blob to base64 and create imageUrl field for JSON response
+    let imageUrl = null;
     if (row.image && Buffer.isBuffer(row.image)) {
-      row.image = convertBlobToBase64(row.image);
+      const base64String = convertBlobToBase64(row.image);
+      if (base64String) {
+        // Create data URL format for frontend use
+        imageUrl = `data:image/jpeg;base64,${base64String}`;
+        row.image = base64String; // Keep base64 image for backward compatibility
+      }
     } else {
       row.image = null;
     }
+    row.imageUrl = imageUrl;
 
     return {
       success: true,
