@@ -534,8 +534,8 @@ const handleClose = () => {
   emit('update:modelValue', false)
 }
 
-// Handle image file change
-const handleImageChange = (file) => {
+// Handle image file change with compression
+const handleImageChange = async (file) => {
   // Get the actual File object from the upload component
   const actualFile = file.raw || file
   
@@ -563,20 +563,86 @@ const handleImageChange = (file) => {
     return
   }
   
-  // Store the actual File object
-  imageFile.value = actualFile
-  
-  // Create preview
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    imagePreview.value = e.target.result
+  try {
+    // Compress image before storing
+    const compressedFile = await compressImage(actualFile)
+    imageFile.value = compressedFile
+    
+    // Create preview
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result
+    }
+    reader.readAsDataURL(compressedFile)
+  } catch (error) {
+    console.error('Error compressing image:', error)
+    // Fallback to original file if compression fails
+    imageFile.value = actualFile
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result
+    }
+    reader.readAsDataURL(actualFile)
   }
-  reader.readAsDataURL(actualFile)
   
   // Trigger validation
   if (formRef.value) {
     formRef.value.validateField('image')
   }
+}
+
+// Compress image to reduce upload time
+const compressImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(file)
+    reader.onload = (event) => {
+      const img = new Image()
+      img.src = event.target.result
+      img.onload = () => {
+        // Calculate new dimensions (max 800px width/height for event images)
+        const maxDimension = 800
+        let width = img.width
+        let height = img.height
+        
+        if (width > height && width > maxDimension) {
+          height = Math.round((height * maxDimension) / width)
+          width = maxDimension
+        } else if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height)
+          height = maxDimension
+        }
+        
+        // Create canvas and draw compressed image
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Compress to JPEG with 0.7 quality (70% quality)
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7)
+        
+        // Convert back to File object
+        const byteString = atob(compressedDataUrl.split(',')[1])
+        const mimeType = 'image/jpeg'
+        const ab = new ArrayBuffer(byteString.length)
+        const ia = new Uint8Array(ab)
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i)
+        }
+        
+        const compressedFile = new File([ab], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+          type: mimeType,
+          lastModified: Date.now()
+        })
+        
+        resolve(compressedFile)
+      }
+      img.onerror = (error) => reject(error)
+    }
+    reader.onerror = (error) => reject(error)
+  })
 }
 
 // Before image upload validation

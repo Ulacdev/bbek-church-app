@@ -173,9 +173,19 @@
             >
               <div class="d-flex align-center justify-space-between">
                 <div class="text-body-2">
-                  <strong>{{ selectedApprovals.length }}</strong> approval{{ selectedApprovals.length > 1 ? 's' : '' }} selected
+                  <strong>{{ pendingSelectedCount }}</strong> pending approval{{ pendingSelectedCount > 1 ? 's' : '' }} selected
                 </div>
                 <div class="d-flex gap-2">
+                  <v-btn
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    :disabled="loading"
+                    @click="bulkApproveApprovals"
+                  >
+                    <v-icon left>mdi-check-all</v-icon>
+                    Approve Selected
+                  </v-btn>
                   <v-btn
                     color="error"
                     variant="flat"
@@ -393,6 +403,10 @@ const filters = computed({
 })
 
 // Selection computed properties
+const pendingSelectedCount = computed(() => {
+  return selectedApprovals.value.filter(a => a.status === 'pending').length
+})
+
 const isAllSelected = computed(() => {
   return approvals.value.length > 0 && selectedApprovals.value.length === approvals.value.length
 })
@@ -617,6 +631,59 @@ const toggleSelectAll = () => {
 
 const clearSelection = () => {
   selectedApprovals.value = []
+}
+
+const bulkApproveApprovals = async () => {
+  try {
+    // Filter to only pending approvals
+    const pendingOnly = selectedApprovals.value.filter(a => a.status === 'pending')
+    
+    if (pendingOnly.length === 0) {
+      ElMessage.warning('No pending approvals selected')
+      clearSelection()
+      return
+    }
+
+    await ElMessageBox.confirm(
+      `Are you sure you want to approve ${pendingOnly.length} pending approval${pendingOnly.length > 1 ? 's' : ''}?`,
+      'Confirm Bulk Approve',
+      {
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        type: 'info',
+      }
+    )
+
+    // Approve each pending approval one by one
+    let approved = 0
+    let failed = 0
+    
+    for (const approval of pendingOnly) {
+      try {
+        await approvalsStore.updateApprovalStatus(approval.approval_id, 'approved')
+        approved++
+      } catch (error) {
+        console.error(`Failed to approve ${approval.approval_id}:`, error)
+        failed++
+      }
+    }
+
+    if (approved > 0) {
+      ElMessage.success(`Successfully approved ${approved} approval${approved > 1 ? 's' : ''}`)
+    }
+
+    if (failed > 0) {
+      ElMessage.warning(`Failed to approve ${failed} approval${failed > 1 ? 's' : ''}`)
+    }
+
+    clearSelection()
+    await approvalsStore.fetchApprovals()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error bulk approving approvals:', error)
+      ElMessage.error('An error occurred while bulk approving approvals')
+    }
+  }
 }
 
 const bulkDeleteApprovals = async () => {
