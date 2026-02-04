@@ -160,6 +160,9 @@ async function createBurialService(burialData) {
     if (!location) {
       throw new Error('Missing required field: location');
     }
+    if (!reason_of_death) {
+      throw new Error('Missing required field: reason_of_death');
+    }
 
     // For non-member requests, check by requester_email instead of member_id
     const duplicateCheckSql = `

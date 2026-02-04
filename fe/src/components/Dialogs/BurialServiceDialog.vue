@@ -191,10 +191,10 @@
           />
         </el-form-item>
 
-        <!-- Reason of Death (Optional) -->
+        <!-- Reason of Death -->
         <el-form-item prop="reason_of_death">
           <template #label>
-            <span>Reason of Death <span class="optional-text">(optional)</span></span>
+            <span>Reason of Death <span class="required-text">required</span></span>
           </template>
           <el-input
             v-model="formData.reason_of_death"
@@ -557,6 +557,9 @@ const rules = computed(() => {
     ],
     date_death: [
       { required: true, message: 'Date of death is required', trigger: 'change' }
+    ],
+    reason_of_death: [
+      { required: true, message: 'Reason of death is required', trigger: 'blur' }
     ],
     relationship: [
       { required: true, message: 'Relationship is required', trigger: 'change' }
