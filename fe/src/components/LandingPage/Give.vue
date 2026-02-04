@@ -87,6 +87,8 @@
                   :gcash-logo-image="giveData.gcashLogoImage"
                   :gcash-qr-image="giveData.gcashQrImage"
                   :gcash-instruction-text="giveData.gcashInstructionText"
+                  :maya-logo-image="giveData.mayaLogoImage"
+                  :maya-qr-image="giveData.mayaQrImage"
                 />
               </v-col>
               <v-col cols="12" md="6" class="give-in-person-col">
@@ -138,6 +140,10 @@ const giveData = ref({
   gcashLogoImage: '/img/gcash.png',
   gcashQrImage: '/img/gcash-qr.png',
   gcashInstructionText: 'Send your donation to this GCash account',
+  mayaText: 'Maya',
+  mayaNumber: '',
+  mayaLogoImage: '',
+  mayaQrImage: '',
   backButtonText: 'Back to Home',
   backButtonColor: '#00bcd4'
 })
@@ -189,6 +195,8 @@ const fetchGiveData = async () => {
       if (content.gcashText) giveData.value.gcashText = content.gcashText
       if (content.gcashNumber) giveData.value.gcashNumber = content.gcashNumber
       if (content.gcashInstructionText) giveData.value.gcashInstructionText = content.gcashInstructionText
+      if (content.mayaText) giveData.value.mayaText = content.mayaText
+      if (content.mayaNumber) giveData.value.mayaNumber = content.mayaNumber
       if (content.backButtonText) giveData.value.backButtonText = content.backButtonText
       if (content.backButtonColor) {
         giveData.value.backButtonColor = content.backButtonColor
@@ -220,6 +228,22 @@ const fetchGiveData = async () => {
           if (qrBase64 && typeof qrBase64 === 'string' && qrBase64.startsWith('data:image/')) {
             giveData.value.gcashQrImage = qrBase64
             console.log('✅ GCash QR code loaded from CMS')
+          }
+        }
+        // Handle Maya Logo
+        if (cmsImages.mayaLogoImage) {
+          const logoBase64 = cmsImages.mayaLogoImage
+          if (logoBase64 && typeof logoBase64 === 'string' && logoBase64.startsWith('data:image/')) {
+            giveData.value.mayaLogoImage = logoBase64
+            console.log('✅ Maya logo loaded from CMS')
+          }
+        }
+        // Handle Maya QR Code
+        if (cmsImages.mayaQrImage) {
+          const qrBase64 = cmsImages.mayaQrImage
+          if (qrBase64 && typeof qrBase64 === 'string' && qrBase64.startsWith('data:image/')) {
+            giveData.value.mayaQrImage = qrBase64
+            console.log('✅ Maya QR code loaded from CMS')
           }
         }
         // Handle hero image

@@ -437,6 +437,104 @@
         <span v-if="!giveData.gcashQrImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
+    <el-divider />
+
+    <!-- Maya Text -->
+    <div class="list-item">
+      <div class="item-label">Maya Text</div>
+      <div class="item-preview">
+        <span class="text-bold">{{ giveData.mayaText }}</span>
+      </div>
+      <div class="item-action">
+        <el-input
+          v-model="giveData.mayaText"
+          size="small"
+          placeholder="Enter Maya text"
+          style="max-width: 400px;"
+        ></el-input>
+      </div>
+    </div>
+    <el-divider />
+
+    <!-- Maya Number -->
+    <div class="list-item">
+      <div class="item-label">Maya Number</div>
+      <div class="item-preview">
+        <span>{{ giveData.mayaNumber }}</span>
+      </div>
+      <div class="item-action">
+        <el-input
+          v-model="giveData.mayaNumber"
+          size="small"
+          placeholder="Enter Maya number"
+          style="max-width: 400px;"
+        ></el-input>
+      </div>
+    </div>
+    <el-divider />
+
+    <!-- Maya Logo -->
+    <div class="list-item">
+      <div class="item-label">Maya Logo</div>
+      <div class="item-preview">
+        <el-image
+          v-if="giveData.mayaLogoImage"
+          :src="giveData.mayaLogoImage"
+          fit="contain"
+          class="preview-image"
+          style="max-width: 100px; max-height: 100px;"
+        />
+        <span v-else class="text-grey">No file chosen</span>
+      </div>
+      <div class="item-action">
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/*"
+          @change="handleMayaLogoChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Choose File
+            </el-button>
+          </template>
+        </el-upload>
+        <span v-if="!giveData.mayaLogoImage" class="text-grey ml-2">No file chosen</span>
+      </div>
+    </div>
+    <el-divider />
+
+    <!-- Maya QR Code -->
+    <div class="list-item">
+      <div class="item-label">Maya QR Code</div>
+      <div class="item-preview">
+        <el-image
+          v-if="giveData.mayaQrImage"
+          :src="giveData.mayaQrImage"
+          fit="contain"
+          class="preview-image"
+          style="max-width: 150px; max-height: 150px;"
+        />
+        <span v-else class="text-grey">No file chosen</span>
+      </div>
+      <div class="item-action">
+        <el-upload
+          :auto-upload="false"
+          :show-file-list="false"
+          accept="image/*"
+          @change="handleMayaQrChange"
+        >
+          <template #trigger>
+            <el-button size="small" type="primary">
+              <el-icon><Upload /></el-icon>
+              Choose File
+            </el-button>
+          </template>
+        </el-upload>
+        <span v-if="!giveData.mayaQrImage" class="text-grey ml-2">No file chosen</span>
+      </div>
+    </div>
   </div>
 
   <!-- Fixed Actions Bar -->
@@ -490,6 +588,10 @@ const defaultGiveData = {
   gcashLogoImage: '/img/gcash.png',
   gcashQrImage: '/img/gcash-qr.png',
   gcashInstructionText: 'Send your donation to this GCash account',
+  mayaText: 'Maya',
+  mayaNumber: '',
+  mayaLogoImage: '',
+  mayaQrImage: '',
   backButtonText: 'Back to Home',
   backButtonColor: '#00bcd4',
   // Give In Person Card fields
@@ -602,6 +704,28 @@ const handleGcashQrChange = (file) => {
   const reader = new FileReader()
   reader.onload = (e) => {
     giveData.gcashQrImage = e.target.result
+  }
+  reader.readAsDataURL(fileObj)
+}
+
+// Handle Maya logo change
+const handleMayaLogoChange = (file) => {
+  if (!file || !file.raw) return
+  const fileObj = file.raw
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    giveData.mayaLogoImage = e.target.result
+  }
+  reader.readAsDataURL(fileObj)
+}
+
+// Handle Maya QR code change
+const handleMayaQrChange = (file) => {
+  if (!file || !file.raw) return
+  const fileObj = file.raw
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    giveData.mayaQrImage = e.target.result
   }
   reader.readAsDataURL(fileObj)
 }
