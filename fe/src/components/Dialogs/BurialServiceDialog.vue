@@ -194,7 +194,7 @@
         <!-- Reason of Death -->
         <el-form-item prop="reason_of_death">
           <template #label>
-            <span>Reason of Death <span class="required-text">required</span></span>
+            <span>Reason of Death <span class="required-text">*</span></span>
           </template>
           <el-input
             v-model="formData.reason_of_death"

@@ -384,10 +384,10 @@
                       </div>
                     </div>
 
-                    <!-- Reason of Death (Optional) -->
+                    <!-- Reason of Death -->
                     <div class="form-group">
                       <label for="reason-of-death">
-                        Reason of Death <span class="optional-text">(optional)</span>
+                        Reason of Death <span class="required-text">Required</span>
                       </label>
                       <p class="field-note">Cause of death (if known)</p>
                       <v-text-field
@@ -396,6 +396,7 @@
                         placeholder="Enter cause of death"
                         variant="outlined"
                         density="compact"
+                        required
                         hide-details
                         :disabled="burialServiceStore.loading"
                         maxlength="255"
@@ -514,10 +515,13 @@
                       />
                     </el-form-item>
 
-                    <el-form-item label="Reason of Death (Optional)" class="form-item-with-label">
+                    <el-form-item>
+                      <template #label>
+                        <span>Reason of Death <span class="required-text">Required</span></span>
+                      </template>
                       <el-input
                         v-model="memberFormData.reason_of_death"
-                        placeholder="Enter cause of death (if known)"
+                        placeholder="Enter cause of death"
                         clearable
                         maxlength="255"
                       />
@@ -767,7 +771,7 @@ const handleSubmit = async (e) => {
   if (!firstname.value.trim() || !lastname.value.trim() || !birthdate.value || 
       !age.value || !gender.value || !address.value.trim() || !email.value.trim() ||
       !phoneNumber.value || !relationship.value || !deceasedName.value.trim() ||
-      !deceasedBirthDate.value || !deceasedDeathDate.value) {
+      !deceasedBirthDate.value || !deceasedDeathDate.value || !reasonOfDeath.value.trim()) {
     submitError.value = 'Please fill in all required fields.'
     ElMessage.error('Please fill in all required fields.')
     return
@@ -873,7 +877,8 @@ const handleMemberSubmit = async () => {
 
   // Basic validation
   if (!memberFormData.deceased_name.trim() || !memberFormData.deceased_birthdate || 
-      !memberFormData.date_death || !memberFormData.relationship || !memberFormData.location.trim()) {
+      !memberFormData.date_death || !memberFormData.relationship || !memberFormData.location.trim() ||
+      !memberFormData.reason_of_death.trim()) {
     submitError.value = 'Please fill in all required fields.'
     ElMessage.error('Please fill in all required fields.')
     return
