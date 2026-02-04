@@ -313,7 +313,7 @@ const formData = reactive({
   payment_method: '',
   donation_items: '',
   notes: '',
-  donation_date: null // The actual date of the donation
+  donation_date: new Date().toISOString().split('T')[0] // Default to today's date
 })
 
 // Validation rules
@@ -461,7 +461,7 @@ const resetForm = () => {
   formData.payment_method = ''
   formData.donation_items = ''
   formData.notes = ''
-  formData.donation_date = null
+  formData.donation_date = new Date().toISOString().split('T')[0] // Reset to today's date
 
   if (formRef.value) {
     formRef.value.clearValidate()
