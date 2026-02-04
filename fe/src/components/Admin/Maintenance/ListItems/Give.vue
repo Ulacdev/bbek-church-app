@@ -402,6 +402,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.gcashLogoImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteGcashLogo"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.gcashLogoImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -434,6 +445,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.gcashQrImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteGcashQr"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.gcashQrImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -500,6 +522,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.mayaLogoImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteMayaLogo"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.mayaLogoImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -532,6 +565,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.mayaQrImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteMayaQr"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.mayaQrImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -552,7 +596,7 @@
 
 <script setup>
 import { reactive, ref, watch, onMounted } from 'vue'
-import { Upload } from '@element-plus/icons-vue'
+import { Upload, Delete } from '@element-plus/icons-vue'
 import { useCms } from '@/composables/useCms'
 import Loader from './Loader.vue'
 
@@ -728,6 +772,23 @@ const handleMayaQrChange = (file) => {
     giveData.mayaQrImage = e.target.result
   }
   reader.readAsDataURL(fileObj)
+}
+
+// Delete functions for images
+const deleteGcashLogo = () => {
+  giveData.gcashLogoImage = ''
+}
+
+const deleteGcashQr = () => {
+  giveData.gcashQrImage = ''
+}
+
+const deleteMayaLogo = () => {
+  giveData.mayaLogoImage = ''
+}
+
+const deleteMayaQr = () => {
+  giveData.mayaQrImage = ''
 }
 
 // Save changes to CMS
