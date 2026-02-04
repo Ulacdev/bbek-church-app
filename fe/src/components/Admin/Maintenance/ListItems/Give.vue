@@ -823,15 +823,23 @@ const saveChanges = async () => {
       console.log('Reloaded data after save:', loadedData)
       
       if (loadedData && typeof loadedData === 'object') {
-        // Merge reloaded data
+        // Merge reloaded data - accept all values including empty strings
         Object.keys(defaultGiveData).forEach(key => {
           if (loadedData.hasOwnProperty(key)) {
-            // Special handling for heroImage
-            if (key === 'heroImage' && loadedData[key] && typeof loadedData[key] === 'string' && loadedData[key].startsWith('data:image/')) {
-              giveData[key] = loadedData[key]
-            } else if (key !== 'heroImage') {
-              giveData[key] = loadedData[key]
+            const newValue = loadedData[key]
+            // Always merge - this ensures empty strings from delete are reflected
+            if (key === 'heroImage') {
+              // Special handling for heroImage - only set if it's base64
+              if (newValue && typeof newValue === 'string' && newValue.startsWith('data:image/')) {
+                giveData[key] = newValue
+              }
+              // If heroImage is empty, keep existing (hero shouldn't be deleted)
+            } else {
+              giveData[key] = newValue
+              console.log(`Updated ${key} from reload:`, newValue)
             }
+          } else {
+            console.log(`Key ${key} not in loadedData, keeping current value:`, giveData[key])
           }
         })
         
