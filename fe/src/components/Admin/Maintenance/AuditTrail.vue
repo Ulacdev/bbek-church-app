@@ -509,6 +509,39 @@ const printLogs = () => {
             border-radius: 4px;
             font-size: 12px;
           }
+          /* Table Styles with Cell Borders */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 11px;
+          }
+          th, td {
+            border: 1px solid #333;
+            padding: 6px 10px;
+            text-align: left;
+          }
+          th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #fafafa;
+          }
+          .print-info {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+          }
+          .print-footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #999;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+          }
         </style>
       </head>
       <body>
@@ -536,6 +569,9 @@ const printLogs = () => {
             ${rows || '<tr><td colspan="7" style="text-align:center">No records found</td></tr>'}
           </tbody>
         </table>
+        <div class="print-footer">
+          Bible Baptist Ekklesia of Kawit - Audit Trail Report
+        </div>
       </body>
     </html>
   `)
