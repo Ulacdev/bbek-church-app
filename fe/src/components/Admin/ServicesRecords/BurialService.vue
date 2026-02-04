@@ -447,6 +447,7 @@ const editService = async (service) => {
         deceased_name: fullService.deceased_name,
         deceased_birthdate: fullService.deceased_birthdate,
         date_death: fullService.date_death,
+        reason_of_death: fullService.reason_of_death,
         relationship: fullService.relationship,
         location: fullService.location,
         pastor_name: fullService.pastor_name,
