@@ -323,8 +323,8 @@
             v-model="formData.baptism_time"
             placeholder="Select baptism time"
             size="large"
-            format="HH:mm:ss"
-            value-format="HH:mm:ss"
+            format="HH:mm"
+            value-format="HH:mm"
             style="width: 100%"
             :disabled="loading"
             clearable

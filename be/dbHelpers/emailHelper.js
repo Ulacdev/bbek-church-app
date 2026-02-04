@@ -350,7 +350,7 @@ const sendWaterBaptismDetails = async (baptismDetails) => {
     const address = baptismDetails.address || '';
     const email = baptismDetails.email || '';
     const phoneNumber = baptismDetails.phoneNumber || '';
-    const civilStatus = baptismDetails.civilStatus || '';
+    const civilStatus = baptismDetails.civilStatus ? baptismDetails.civilStatus.charAt(0).toUpperCase() + baptismDetails.civilStatus.slice(1) : '';
     const profession = baptismDetails.profession || '';
     const childrenInfo = baptismDetails.children || '';
     const guardianName = baptismDetails.guardianName || '';
