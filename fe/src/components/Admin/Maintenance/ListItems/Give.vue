@@ -776,19 +776,19 @@ const handleMayaQrChange = (file) => {
 
 // Delete functions for images
 const deleteGcashLogo = () => {
-  giveData.gcashLogoImage = ''
+  giveData.gcashLogoImage = null
 }
 
 const deleteGcashQr = () => {
-  giveData.gcashQrImage = ''
+  giveData.gcashQrImage = null
 }
 
 const deleteMayaLogo = () => {
-  giveData.mayaLogoImage = ''
+  giveData.mayaLogoImage = null
 }
 
 const deleteMayaQr = () => {
-  giveData.mayaQrImage = ''
+  giveData.mayaQrImage = null
 }
 
 // Save changes to CMS

@@ -154,6 +154,7 @@ export function useCms(pageName) {
 
   /**
    * Helper to extract images and videos from content recursively
+   * Also handles null values as deletion markers
    */
   const extractImagesFromContent = (content, imagesObj, prefix = '') => {
     if (!content || typeof content !== 'object') return
@@ -161,6 +162,13 @@ export function useCms(pageName) {
     Object.keys(content).forEach(key => {
       const value = content[key]
       const fieldPath = prefix ? `${prefix}.${key}` : key
+
+      // Handle null values as deletion markers
+      if (value === null) {
+        imagesObj[fieldPath] = null
+        delete content[key]
+        return
+      }
 
       if (typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/'))) {
         // This is a base64 image or video
@@ -177,6 +185,9 @@ export function useCms(pageName) {
             imagesObj[`${fieldPath}[${index}]`] = item
             // Mark for removal from array (will be filtered later)
             value[index] = null
+          } else if (item === null) {
+            // Handle null values in arrays
+            imagesObj[`${fieldPath}[${index}]`] = null
           }
         })
         // Remove null entries from array
