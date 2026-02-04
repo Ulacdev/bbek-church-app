@@ -760,6 +760,14 @@ const handlePrint = () => {
   
   const currentDate = new Date().toLocaleString()
   
+  // Format date range for display
+  let dateRangeDisplay = ''
+  if (filters.value.dateRange && filters.value.dateRange[0] && filters.value.dateRange[1]) {
+    const startDate = new Date(filters.value.dateRange[0]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    const endDate = new Date(filters.value.dateRange[1]).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    dateRangeDisplay = `From ${startDate} to ${endDate}`
+  }
+  
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -878,6 +886,7 @@ const handlePrint = () => {
           <div class="org-name">Bible Baptist Ekklesia of Kawit</div>
         </div>
         <div class="report-title">Tithes & Offerings Report</div>
+        ${dateRangeDisplay ? `<div class="date-range" style="text-align: center; font-size: 14px; color: #666; margin-bottom: 20px;">${dateRangeDisplay}</div>` : ''}
         <table>
           <thead>
             <tr>
