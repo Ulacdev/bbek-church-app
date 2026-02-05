@@ -41,6 +41,32 @@ function convertImageToBlob(imageInput) {
       return imageInput.buffer;
     }
 
+    // If it's a base64 DATA URL (starts with 'data:') - check this BEFORE file path check
+    if (typeof imageInput === 'string' && imageInput.startsWith('data:')) {
+      // Extract the base64 part from data URL
+      const hasPrefix = imageInput.includes(',');
+      const base64Data = hasPrefix 
+        ? imageInput.split(',')[1] 
+        : imageInput;
+      
+      console.log('convertImageToBlob - data URL - base64Data length:', base64Data.length);
+      console.log('convertImageToBlob - data URL - first 50 chars:', base64Data.substring(0, 50));
+      
+      // Check if base64Data is valid
+      const isValidBase64 = /^[A-Za-z0-9+/=]+$/.test(base64Data.trim());
+      console.log('convertImageToBlob - isValidBase64:', isValidBase64);
+      
+      try {
+        // Convert base64 to Buffer
+        const buffer = Buffer.from(base64Data, 'base64');
+        console.log('convertImageToBlob - buffer length:', buffer.length);
+        return buffer;
+      } catch (error) {
+        console.error('convertImageToBlob - error:', error.message);
+        throw new Error('Failed to convert base64 to buffer: ' + error.message);
+      }
+    }
+
     // If it's a file path (string starting with / or containing path separators)
     if (typeof imageInput === 'string' && (imageInput.startsWith('/') || imageInput.includes('\\') || imageInput.includes('/'))) {
       // Check if file exists
@@ -50,15 +76,15 @@ function convertImageToBlob(imageInput) {
       return null;
     }
 
-    // If it's a base64 string
+    // If it's a plain base64 string (no data URL prefix, no path separators)
     if (typeof imageInput === 'string') {
-      // Remove data URL prefix if present (e.g., "data:image/png;base64,")
+      // Remove any data URL prefix if present
       const hasPrefix = imageInput.includes(',');
       const base64Data = hasPrefix 
         ? imageInput.split(',')[1] 
         : imageInput;
       
-      console.log('convertImageToBlob - base64Data length:', base64Data.length);
+      console.log('convertImageToBlob - plain base64 - length:', base64Data.length);
       console.log('convertImageToBlob - first 50 chars:', base64Data.substring(0, 50));
       
       // Check if base64Data is valid
