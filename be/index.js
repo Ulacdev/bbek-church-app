@@ -329,13 +329,16 @@ app.use((err, req, res, next) => {
   // Log error details (more detailed in development, sanitized in production)
   const errorLog = {
     message: err.message,
+    stack: err.stack,
     path: req.path,
     method: req.method,
-    timestamp: new Date().toISOString(),
-    ...(IS_DEVELOPMENT && { stack: err.stack, body: req.body, query: req.query })
+    contentType: req.headers['content-type'],
+    status: err.status,
+    type: err.type,
+    timestamp: new Date().toISOString()
   };
   
-  console.error('Error occurred:', errorLog);
+  console.error('Error occurred:', JSON.stringify(errorLog, null, 2));
   
   // Handle CORS errors
   if (err.message === 'Not allowed by CORS') {
@@ -360,6 +363,15 @@ app.use((err, req, res, next) => {
     return res.status(401).json({ 
       error: 'Authentication Error', 
       message: 'Invalid or expired token' 
+    });
+  }
+  
+  // Handle body-parser errors (JSON parsing errors, etc.)
+  if (err.type === 'entity.parse.failed' || err.status === 400) {
+    console.error('Body parsing error:', err.message);
+    return res.status(400).json({ 
+      error: 'Bad Request', 
+      message: 'Invalid request body. Please check your input.' 
     });
   }
   
