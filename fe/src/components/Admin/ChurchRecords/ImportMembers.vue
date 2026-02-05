@@ -157,14 +157,14 @@ const previewHeaders = ref([])
 const importResults = ref(null)
 
 // Methods
-const handleFileSelect = (file) => {
-  // Handle both raw File objects and Vuetify wrapper objects
-  const fileObj = file?.raw || file;
-  if (fileObj && fileObj.name) {
+const handleFileSelect = () => {
+  // Use selectedFile.value directly (set by v-model)
+  const file = selectedFile.value;
+  if (file && file.name) {
     // Validate file type
     const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-    const fileName = fileObj.name.toLowerCase();
-    if (!allowedTypes.includes(fileObj.type) && !fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
+    const fileName = file.name.toLowerCase();
+    if (!allowedTypes.includes(file.type) && !fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
       errorMessage.value = 'Invalid file type. Please select a CSV or Excel file.'
       selectedFile.value = null
       return
@@ -172,7 +172,7 @@ const handleFileSelect = (file) => {
 
     // Validate file size (5MB limit)
     const maxSize = 5 * 1024 * 1024 // 5MB in bytes
-    if (fileObj.size > maxSize) {
+    if (file.size > maxSize) {
       errorMessage.value = 'File size exceeds 5MB limit. Please select a smaller file.'
       selectedFile.value = null
       return
@@ -181,12 +181,7 @@ const handleFileSelect = (file) => {
     errorMessage.value = ''
   } else {
     // Allow empty selection (user cleared the file input)
-    if (file === null || file === undefined) {
-      errorMessage.value = ''
-    } else {
-      errorMessage.value = 'Invalid file selected'
-      selectedFile.value = null
-    }
+    errorMessage.value = ''
   }
 }
 
