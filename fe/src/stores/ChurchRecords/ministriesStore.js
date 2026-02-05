@@ -188,6 +188,14 @@ export const useMinistriesStore = defineStore('ministries', {
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
+        // Debug: Check what was received
+        console.log('store.createMinistry received:', {
+          hasImageFile: !!ministryData.imageFile,
+          imageFileName: ministryData.imageFile?.name,
+          hasImage: !!ministryData.image,
+          imageLength: ministryData.image?.length
+        });
+        
         // Prepare data for JSON upload (Vercel compatible)
         const payload = {
           ministry_name: ministryData.ministry_name || '',

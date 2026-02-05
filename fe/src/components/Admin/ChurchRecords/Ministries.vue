@@ -534,6 +534,14 @@ const deleteMinistry = async (id) => {
 }
 
 const handleSubmit = async (data) => {
+  console.log('handleSubmit received data:', {
+    hasImageFile: !!data.imageFile,
+    imageFileName: data.imageFile?.name,
+    hasImage: !!data.image,
+    imageLength: data.image?.length,
+    ministryName: data.ministry_name
+  });
+  
   try {
     let result
     if (ministryData.value && ministryData.value.ministry_id) {
