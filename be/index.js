@@ -38,7 +38,8 @@ process.env.TZ = 'UTC';
 
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
+// Using express built-in body parser instead of body-parser package
+// Express 4.16+ has built-in body parsing that works better with multer
 const path = require('path');
 const { authenticateToken } = require('./middleware/authMiddleware');
 const memberRouter = require('./routes/church_records/memberRoutes');
@@ -152,57 +153,19 @@ app.use(cors(corsOptions));
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
 
-// Use body-parser's type option to exclude multipart/form-data requests
-// This prevents body-parser from corrupting multipart requests before multer processes them
-app.use(bodyParser.json({ 
-  limit: '500mb',
-  type: (req) => {
-    // Skip parsing if content-type is multipart/form-data
-    const contentType = req.headers['content-type'];
-    if (contentType && contentType.startsWith('multipart/form-data')) {
-      return false;
-    }
-    return 'application/json';
-  }
-}));
-app.use(
-  bodyParser.urlencoded({
-    extended: true,
-    limit: '500mb',
-    type: (req) => {
-      // Skip parsing if content-type is multipart/form-data
-      const contentType = req.headers['content-type'];
-      if (contentType && contentType.startsWith('multipart/form-data')) {
-        return false;
-      }
-      return 'application/x-www-form-urlencoded';
-    }
-  })
-);
+// IMPORTANT: For multipart/form-data requests, skip body-parser entirely
+// Multer will handle parsing for routes that use upload.single()
+// If body-parser tries to parse multipart data, it will fail with "Unexpected token '-'",
+// so we use a type check function to skip parsing for multipart requests
+
+// Remove default body-parser entirely and use express built-in
+// Express 4.16+ has built-in body parsing that works better with multer
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ extended: true, limit: '500mb' }));
 
 // Additional body parser specifically for CMS routes with even higher limits
-// Also exclude multipart/form-data for CMS routes
-app.use('/api/cms', bodyParser.json({ 
-  limit: '500mb',
-  type: (req) => {
-    const contentType = req.headers['content-type'];
-    if (contentType && contentType.startsWith('multipart/form-data')) {
-      return false;
-    }
-    return 'application/json';
-  }
-}));
-app.use('/api/cms', bodyParser.urlencoded({ 
-  extended: true, 
-  limit: '500mb',
-  type: (req) => {
-    const contentType = req.headers['content-type'];
-    if (contentType && contentType.startsWith('multipart/form-data')) {
-      return false;
-    }
-    return 'application/x-www-form-urlencoded';
-  }
-}));
+app.use('/api/cms', express.json({ limit: '500mb' }));
+app.use('/api/cms', express.urlencoded({ extended: true, limit: '500mb' }));
 
 // Request logging middleware
 // In development: log all requests
