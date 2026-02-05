@@ -95,6 +95,10 @@ const publicRoutes = [
   '/api/cms/marriageservice',
   '/api/cms/info',
   '/api/cms/info/full',
+  '/api/cms/departmentcategories',
+  '/api/cms/departmentcategories/full',
+  '/api/cms/pastEvents',
+  '/api/cms/pastEvents/full',
   '/api/cms/upload-image',
   // CMS save routes (temporarily public for testing)
   '/api/cms/header/save',

@@ -74,9 +74,7 @@
               :style="{
                 backgroundImage: event.imageUrl
                   ? `url(${event.imageUrl})`
-                  : `url(http://localhost:8081/bbek/event_image?eventName=${encodeURIComponent(
-                      event.eventName
-                    )})`,
+                  : `url(${getEventImageUrl(event.eventName)})`,
               }"
             ></div>
             <div class="event-overlay"></div>
@@ -136,6 +134,7 @@ import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useCmsStore } from "@/stores/cmsStore";
 import { useEventsRecordsStore } from "@/stores/ChurchRecords/eventsRecordsStore";
+import axiosInstance from "@/api/axios";
 
 const router = useRouter();
 const eventsStore = useEventsRecordsStore();
@@ -213,6 +212,12 @@ const eventsSubtitle = ref(
 const allEventsButtonText = ref("All Events");
 const allEventsButtonColor = ref("#14b8a6");
 
+// Helper to get event image URL based on environment
+const getEventImageUrl = (eventName) => {
+  const apiBase = axiosInstance.defaults.baseURL || '/api';
+  return `${apiBase}/church-records/events/event_image?eventName=${encodeURIComponent(eventName)}`;
+};
+
 // Fetch home data from CMS using shared store
 const fetchHomeData = async () => {
   try {
@@ -255,7 +260,7 @@ const preloadImages = async (eventList) => {
           console.warn(`Failed to load image for event: ${event.eventName}`);
           // Try fallback endpoint if primary fails
           if (!event.imageUrl.includes('event_image')) {
-            const fallbackUrl = `http://localhost:8081/bbek/event_image?eventName=${encodeURIComponent(event.eventName)}`;
+            const fallbackUrl = getEventImageUrl(event.eventName);
             const fallbackImg = new Image();
             fallbackImg.onload = () => {
               event.imageUrl = fallbackUrl;
