@@ -265,7 +265,12 @@ const formData = reactive({
 const rules = {
   ministry_name: [
     { required: true, message: 'Ministry name is required', trigger: 'blur' },
-    { min: 2, max: 100, message: 'Ministry name must be between 2 and 100 characters', trigger: 'blur' }
+    { min: 2, max: 100, message: 'Ministry name must be between 2 and 100 characters', trigger: 'blur' },
+    { 
+      pattern: /^[a-zA-Z][a-zA-Z\s]*$/,
+      message: 'Ministry name must contain only letters and spaces',
+      trigger: 'blur'
+    }
   ],
   schedule: [
     // Schedule is optional (nullable in schema)
