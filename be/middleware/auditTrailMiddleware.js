@@ -86,17 +86,18 @@ const auditTrailMiddleware = async (req, res, next) => {
   // For DELETE and UPDATE operations, try to capture the record data before it's modified/deleted
   if (req.method === 'DELETE' || req.method === 'PUT') {
     // Extract ID from URL path for routes like /api/church-records/members/deleteMember/123 or /updateMember/123
-    const pathParts = req.path.split('/');
+    const path = req.path || '';
+    const pathParts = path.split('/');
     const lastPart = pathParts[pathParts.length - 1];
 
     // Check if last part looks like an ID (numeric)
     const id = req.params.id || (lastPart && /^\d+$/.test(lastPart) ? lastPart : null);
 
     if (id) {
-      console.log('DEBUG: Capturing data for', req.method, req.path, 'ID:', id);
+      console.log('DEBUG: Capturing data for', req.method, path, 'ID:', id);
       try {
         const { query } = require('../database/db');
-        const module = determineModule(req.path);
+        const module = determineModule(path);
         console.log('DEBUG: Determined module:', module);
 
         if (module !== 'Archives') {

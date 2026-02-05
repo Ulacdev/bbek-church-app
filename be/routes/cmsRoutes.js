@@ -15,7 +15,11 @@ const {
 
 const router = express.Router();
 
+// Check if running on Vercel serverless environment
+const IS_VERCEL = process.env.VERCEL || process.env.VERCEL_ENV;
+
 // Configure multer for file uploads (memory storage)
+// On Vercel, multer may not work properly with streaming
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -27,41 +31,84 @@ const upload = multer({
  * POST - Upload image to public folder
  * POST /api/cms/upload-image
  * MUST be before /:pageName routes to avoid being matched as a pageName
+ * Supports both multipart/form-data (file upload) and base64 image in JSON body
  */
 router.post('/upload-image', upload.single('image'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, error: 'No image file provided' });
-    }
-    
-    const imageFile = req.file;
     const type = req.body.type || 'info';
     
     // Generate unique filename
     const timestamp = Date.now();
     const randomNum = Math.floor(Math.random() * 10000);
-    const ext = path.extname(imageFile.originalname) || '.jpg';
-    const filename = `cms_${type}_${timestamp}_${randomNum}${ext}`;
     
-    // Save to frontend public/img folder (for Vite dev server and production)
-    // Navigate from be/ to fe/public/img/
-    const uploadDir = path.resolve(__dirname, '../../fe/public/img');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    let imageFile;
+    let imageBuffer;
+    
+    // Check if file was uploaded via multer (multipart/form-data)
+    if (req.file) {
+      imageFile = req.file;
+      imageBuffer = imageFile.buffer;
+      console.log('File uploaded via multer:', imageFile.originalname, imageFile.size, 'bytes');
+    } else if (req.body.image && typeof req.body.image === 'string') {
+      // Check if image is provided as base64 string
+      if (req.body.image.startsWith('data:')) {
+        // Extract base64 data from data URL
+        const matches = req.body.image.match(/^data:image\/([a-zA-Z]+);base64,(.+)$/);
+        if (matches) {
+          const ext = matches[1];
+          const base64Data = matches[2];
+          imageBuffer = Buffer.from(base64Data, 'base64');
+          const extWithDot = '.' + ext;
+          const filename = `cms_${type}_${timestamp}_${randomNum}${extWithDot}`;
+          
+          // Save to frontend public/img folder
+          const uploadDir = path.resolve(__dirname, '../../fe/public/img');
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+          
+          const filePath = path.join(uploadDir, filename);
+          fs.writeFileSync(filePath, imageBuffer);
+          
+          const imagePath = `/img/${filename}`;
+          
+          return res.status(200).json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imagePath: imagePath
+          });
+        }
+      }
+      
+      // Try to decode base64 directly
+      try {
+        imageBuffer = Buffer.from(req.body.image, 'base64');
+        const filename = `cms_${type}_${timestamp}_${randomNum}.jpg`;
+        
+        const uploadDir = path.resolve(__dirname, '../../fe/public/img');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        const filePath = path.join(uploadDir, filename);
+        fs.writeFileSync(filePath, imageBuffer);
+        
+        const imagePath = `/img/${filename}`;
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Image uploaded successfully',
+          imagePath: imagePath
+        });
+      } catch (base64Error) {
+        console.error('Error decoding base64 image:', base64Error);
+        return res.status(400).json({ success: false, error: 'Invalid base64 image data' });
+      }
     }
     
-    const filePath = path.join(uploadDir, filename);
+    // No file or image provided
+    return res.status(400).json({ success: false, error: 'No image file or base64 data provided' });
     
-    // Write file from memory buffer
-    fs.writeFileSync(filePath, imageFile.buffer);
-    
-    const imagePath = `/img/${filename}`;
-    
-    res.status(200).json({
-      success: true,
-      message: 'Image uploaded successfully',
-      imagePath: imagePath
-    });
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ success: false, error: error.message || 'Failed to upload image' });

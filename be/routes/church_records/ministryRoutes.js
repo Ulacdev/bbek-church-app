@@ -16,7 +16,11 @@ const {
 
 const router = express.Router();
 
+// Check if running on Vercel serverless environment
+const IS_VERCEL = process.env.VERCEL || process.env.VERCEL_ENV;
+
 // Configure multer for file uploads (memory storage)
+// On Vercel, multer may not work properly with streaming
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -27,7 +31,7 @@ const upload = multer({
     if (!file) {
       // No file uploaded - this is okay, allow the request to continue
       cb(null, true);
-    } else if (file.mimetype.startsWith('image/')) {
+    } else if (file && file.mimetype && file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'), false);
@@ -46,13 +50,14 @@ const upload = multer({
 router.post('/createMinistry', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     // Prepare ministry data from request
-    let ministryData = { ...req.body };
+    // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
+    let ministryData = req.body ? { ...req.body } : {};
 
     // If file was uploaded via multer (multipart/form-data), use it
     if (req.file) {
       console.log('File uploaded via multer:', req.file.originalname, req.file.size, 'bytes');
       ministryData.image = req.file;
-    } else if (req.body.image) {
+    } else if (req.body && req.body.image) {
       // If image is provided as base64 string in JSON body
       console.log('Image provided as base64 string');
       ministryData.image = req.body.image;
@@ -256,13 +261,14 @@ router.put('/updateMinistry/:id', authenticateToken, upload.single('image'), asy
     }
 
     // Prepare ministry data from request
-    let ministryData = { ...req.body };
+    // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
+    let ministryData = req.body ? { ...req.body } : {};
 
     // If file was uploaded via multer (multipart/form-data), use it
     if (req.file) {
       console.log('File uploaded via multer for update:', req.file.originalname, req.file.size, 'bytes');
       ministryData.image = req.file;
-    } else if (req.body.image) {
+    } else if (req.body && req.body.image) {
       // If image is provided as base64 string in JSON body
       console.log('Image provided as base64 string for update');
       ministryData.image = req.body.image;

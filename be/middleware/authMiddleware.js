@@ -143,9 +143,11 @@ const publicRoutes = [
  */
 const isPublicRoute = (path, originalUrl) => {
   // Use originalUrl if available, otherwise use path
-  const checkPath = originalUrl || path;
+  const checkPath = originalUrl || path || '';
   
   return publicRoutes.some(route => {
+    if (!route || typeof route !== 'string') return false;
+    
     // Exact match
     if (checkPath === route || path === route) return true;
     // Wildcard match for routes starting with the public route
@@ -167,9 +169,9 @@ const authenticateToken = (req, res, next) => {
   // Check if route is public (check both path and originalUrl for reliability)
   const isPublic = isPublicRoute(req.path, req.originalUrl);
 
-  // Get token from Authorization header
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  // Get token from Authorization header - safely handle undefined headers
+  const authHeader = req.headers && req.headers['authorization'];
+  const token = authHeader && typeof authHeader === 'string' ? authHeader.split(' ')[1] : null; // Bearer TOKEN
 
   // For public routes, validate token if provided but don't require it
   if (isPublic) {
