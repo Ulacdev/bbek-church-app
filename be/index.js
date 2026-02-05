@@ -38,8 +38,7 @@ process.env.TZ = 'UTC';
 
 const express = require('express');
 const cors = require('cors');
-// Using express built-in body parser instead of body-parser package
-// Express 4.16+ has built-in body parsing that works better with multer
+const bodyParser = require('body-parser');
 const path = require('path');
 const { authenticateToken } = require('./middleware/authMiddleware');
 const memberRouter = require('./routes/church_records/memberRoutes');
@@ -152,20 +151,18 @@ app.use(cors(corsOptions));
 // Body parsers - Increased limit to handle base64 image/video uploads
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
-
-// IMPORTANT: For multipart/form-data requests, skip body-parser entirely
-// Multer will handle parsing for routes that use upload.single()
-// If body-parser tries to parse multipart data, it will fail with "Unexpected token '-'",
-// so we use a type check function to skip parsing for multipart requests
-
-// Remove default body-parser entirely and use express built-in
-// Express 4.16+ has built-in body parsing that works better with multer
-app.use(express.json({ limit: '500mb' }));
-app.use(express.urlencoded({ extended: true, limit: '500mb' }));
+app.use(bodyParser.json({ limit: '500mb' }));
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+    limit: '500mb'
+  })
+);
 
 // Additional body parser specifically for CMS routes with even higher limits
-app.use('/api/cms', express.json({ limit: '500mb' }));
-app.use('/api/cms', express.urlencoded({ extended: true, limit: '500mb' }));
+// This handles cases where multiple large images/videos are sent together
+app.use('/api/cms', bodyParser.json({ limit: '500mb' }));
+app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb' }));
 
 // Request logging middleware
 // In development: log all requests
@@ -292,16 +289,13 @@ app.use((err, req, res, next) => {
   // Log error details (more detailed in development, sanitized in production)
   const errorLog = {
     message: err.message,
-    stack: err.stack,
     path: req.path,
     method: req.method,
-    contentType: req.headers['content-type'],
-    status: err.status,
-    type: err.type,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    ...(IS_DEVELOPMENT && { stack: err.stack, body: req.body, query: req.query })
   };
   
-  console.error('Error occurred:', JSON.stringify(errorLog, null, 2));
+  console.error('Error occurred:', errorLog);
   
   // Handle CORS errors
   if (err.message === 'Not allowed by CORS') {
@@ -326,15 +320,6 @@ app.use((err, req, res, next) => {
     return res.status(401).json({ 
       error: 'Authentication Error', 
       message: 'Invalid or expired token' 
-    });
-  }
-  
-  // Handle body-parser errors (JSON parsing errors, etc.)
-  if (err.type === 'entity.parse.failed' || err.status === 400) {
-    console.error('Body parsing error:', err.message);
-    return res.status(400).json({ 
-      error: 'Bad Request', 
-      message: 'Invalid request body. Please check your input.' 
     });
   }
   

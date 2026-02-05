@@ -39,16 +39,6 @@
           {{ successMessage }}
         </v-alert>
 
-        <!-- Upload Progress Bar -->
-        <v-progress-linear
-          v-if="uploading && uploadProgress > 0"
-          :value="uploadProgress"
-          :label="`${uploadProgress}%`"
-          color="primary"
-          class="mb-4"
-          height="24"
-        ></v-progress-linear>
-
         <div class="upload-section">
           <v-file-input
             v-model="selectedFile"
@@ -154,14 +144,12 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
-import { uploadFileWithChunking } from '@/utils/fileChunkUpload'
 import { ElMessage } from 'element-plus'
 
 // Component state
 const router = useRouter()
 const selectedFile = ref(null)
 const uploading = ref(false)
-const uploadProgress = ref(0)
 const errorMessage = ref('')
 const successMessage = ref('')
 const previewData = ref([])
@@ -169,14 +157,11 @@ const previewHeaders = ref([])
 const importResults = ref(null)
 
 // Methods
-const handleFileSelect = () => {
-  // Use selectedFile.value directly (set by v-model)
-  const file = selectedFile.value;
-  if (file && file.name) {
+const handleFileSelect = (file) => {
+  if (file) {
     // Validate file type
     const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-    const fileName = file.name.toLowerCase();
-    if (!allowedTypes.includes(file.type) && !fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
       errorMessage.value = 'Invalid file type. Please select a CSV or Excel file.'
       selectedFile.value = null
       return
@@ -191,9 +176,8 @@ const handleFileSelect = () => {
     }
 
     errorMessage.value = ''
-  } else {
-    // Allow empty selection (user cleared the file input)
-    errorMessage.value = ''
+    // TODO: Implement preview functionality
+    // previewFile(file)
   }
 }
 
@@ -206,43 +190,38 @@ const uploadFile = async () => {
   uploading.value = true
   errorMessage.value = ''
   successMessage.value = ''
-  uploadProgress.value = 0
 
   try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+
     const accessToken = localStorage.getItem('accessToken')
     if (!accessToken) {
       throw new Error('No access token found. Please log in again.')
     }
 
-    // Use chunked upload utility which handles both small and large files
-    const result = await uploadFileWithChunking(selectedFile.value, accessToken, (progress) => {
-      // Update progress bar
-      uploadProgress.value = progress.percentComplete
-      console.log(`Upload progress: ${progress.chunksUploaded}/${progress.totalChunks} chunks`)
+    const response = await axios.post('/church-records/members/import', formData, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'multipart/form-data'
+      }
     })
 
-    if (result) {
-      importResults.value = result
-      successMessage.value = `Import completed successfully! ${result.imported || 0} new records added, ${result.updated || 0} records updated.`
+    if (response.data.success) {
+      importResults.value = response.data.data
+      successMessage.value = `Import completed successfully! ${response.data.data.imported || 0} new records added, ${response.data.data.updated || 0} records updated.`
       selectedFile.value = null
       previewData.value = []
       previewHeaders.value = []
-      uploadProgress.value = 0
     } else {
-      errorMessage.value = 'Import failed: No results received'
+      errorMessage.value = response.data.message || 'Import failed.'
     }
   } catch (error) {
     console.error('Upload error:', error)
     const errorMsg = error.response?.data?.message || error.message || 'Upload failed. Please try again.'
     errorMessage.value = errorMsg
-    
-    // Handle specific Vercel/payload errors
-    if (error.response?.status === 413 || error.message?.includes('too large')) {
-      errorMessage.value = 'File is too large. The system will automatically split it into chunks for upload. Please try again.'
-    }
   } finally {
     uploading.value = false
-    uploadProgress.value = 0
   }
 }
 

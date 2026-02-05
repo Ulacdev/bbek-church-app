@@ -69,14 +69,11 @@ export const useCmsStore = defineStore('cms', {
           if (response.data.success && response.data.data) {
             const { page, images } = response.data.data
             
-            // Safely extract content
-            const content = page?.content || {}
-            
             // Cache the full response
             const cachedData = {
               page,
-              images: images || {},
-              content
+              images,
+              content: page?.content || {}
             }
             
             this.pageCache[pageName] = cachedData
@@ -95,10 +92,8 @@ export const useCmsStore = defineStore('cms', {
             return null
           }
           
-          // Log error but don't throw - return null instead
-          console.warn(`CMS page ${pageName} not available:`, error.message || error)
-          this.pageCache[pageName] = null
-          return null
+          console.error(`Error fetching CMS page ${pageName}:`, error)
+          throw error
         } finally {
           // Remove from pending requests
           delete this.pendingRequests[pageName]

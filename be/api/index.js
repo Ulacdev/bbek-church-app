@@ -5,7 +5,6 @@ if (!IS_VERCEL) {
 }
 
 // System Logs Module Integration - Trigger nodemon restart
-// Force Vercel rebuild - member import-chunk endpoint fix
 
 /**
  * Church Management System Backend API
@@ -103,7 +102,6 @@ const IS_DEVELOPMENT = NODE_ENV === 'development';
 //   - CLIENT_ORIGIN (comma-separated list): "https://app1.com,https://app2.com"
 //   - FRONTEND_URL (single URL): "https://app.com"
 //   - Default (development): localhost ports
-// [FORCE REDEPLOY - Member import chunked upload endpoint fix]
 const getAllowedOrigins = () => {
   // Check for FRONTEND_URL (single URL) - cloud production
   if (process.env.FRONTEND_URL1 || process.env.FRONTEND_URL2 ) {

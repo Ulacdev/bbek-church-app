@@ -154,7 +154,6 @@ export function useCms(pageName) {
 
   /**
    * Helper to extract images and videos from content recursively
-   * Also handles null values as deletion markers
    */
   const extractImagesFromContent = (content, imagesObj, prefix = '') => {
     if (!content || typeof content !== 'object') return
@@ -163,42 +162,25 @@ export function useCms(pageName) {
       const value = content[key]
       const fieldPath = prefix ? `${prefix}.${key}` : key
 
-      // Skip undefined values
-      if (value === undefined) return
-
-      // Handle null values as deletion markers
-      if (value === null) {
-        imagesObj[fieldPath] = null
+      if (typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/'))) {
+        // This is a base64 image or video
+        imagesObj[fieldPath] = value
+        // Remove from content (or keep a placeholder)
         delete content[key]
-        return
-      }
-
-      // Only process strings for base64 check
-      if (typeof value === 'string') {
-        if (value.startsWith('data:image/') || value.startsWith('data:video/')) {
-          // This is a base64 image or video
-          imagesObj[fieldPath] = value
-          // Remove from content
-          delete content[key]
-        }
       } else if (Array.isArray(value)) {
         // Handle arrays (e.g., services array, carouselImages array)
         value.forEach((item, index) => {
-          if (item === undefined) return
-          if (typeof item === 'object' && item !== null) {
+          if (typeof item === 'object') {
             extractImagesFromContent(item, imagesObj, `${fieldPath}[${index}]`)
           } else if (typeof item === 'string' && (item.startsWith('data:image/') || item.startsWith('data:video/'))) {
             // Handle arrays of base64 images (e.g., carouselImages)
             imagesObj[`${fieldPath}[${index}]`] = item
             // Mark for removal from array (will be filtered later)
             value[index] = null
-          } else if (item === null) {
-            // Handle null values in arrays
-            imagesObj[`${fieldPath}[${index}]`] = null
           }
         })
         // Remove null entries from array
-        const newArray = value.filter(item => item !== null && item !== undefined)
+        const newArray = value.filter(item => item !== null)
         if (newArray.length === 0) {
           delete content[key]
         } else if (newArray.length !== value.length) {

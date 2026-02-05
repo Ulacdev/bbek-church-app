@@ -289,7 +289,7 @@ const handleSectionAction = (section) => {
 
 // Header data (from React initial state)
 const headerData = reactive({
-  logo: '/api/cms/view_logo',
+  logo: 'http://localhost:8081/bbek/view_logo',
   logoFile: null,
   acronym: 'BBEK',
   fullName: 'Bible Baptist Eklessia of Kawit',

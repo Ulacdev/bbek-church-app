@@ -1,51 +1,45 @@
 <template>
   <div class="give-online-form">
-    <v-row>
-      <!-- GCash Card -->
-      <v-col cols="12" md="6">
-        <v-card class="payment-card" elevation="0" variant="flat">
-          <div class="payment-content">
-            <!-- GCash Logo -->
-            <div class="logo-container">
-              <img :src="gcashLogoSrc" alt="GCash Logo" class="logo-img" />
-            </div>
-            
-            <!-- GCash Text -->
-            <div class="payment-text gcash-text">{{ gcashText }}</div>
-            
-            <!-- Instruction Text -->
-            <p class="instruction">
-              {{ gcashInstruction }}
-            </p>
-            
-            <!-- GCash QR Code -->
-            <div class="qr-container">
-              <img :src="gcashQrSrc" alt="GCash QR Code" class="qr-img" />
-            </div>
-          </div>
-        </v-card>
-      </v-col>
+    <!-- GCash Card -->
+    <v-card class="gcash-card" elevation="0" variant="flat">
+      <div class="gcash-content">
+        <!-- GCash Logo -->
+        <div class="gcash-logo-container">
+          <img :src="gcashLogoSrc" alt="GCash Logo" class="gcash-logo-img" />
+        </div>
+        
+        <!-- GCash Text -->
+        <div class="gcash-text">{{ gcashText }}</div>
+        
+        <!-- Instruction Text -->
+        <p class="gcash-instruction">
+          {{ gcashInstruction }}
+        </p>
+        
+        <!-- GCash QR Code -->
+        <div class="gcash-qr-container">
+          <img :src="gcashQrSrc" alt="GCash QR Code" class="gcash-qr-img" />
+        </div>
+      </div>
+    </v-card>
 
-      <!-- Maya Card -->
-      <v-col v-if="mayaQrSrc" cols="12" md="6">
-        <v-card class="payment-card" elevation="0" variant="flat">
-          <div class="payment-content">
-            <!-- Maya Logo -->
-            <div class="logo-container">
-              <img :src="mayaLogoSrc" alt="Maya Logo" class="logo-img" />
-            </div>
-            
-            <!-- Maya Text -->
-            <div class="payment-text maya-text">{{ mayaText }}</div>
-            
-            <!-- Maya QR Code -->
-            <div class="qr-container">
-              <img :src="mayaQrSrc" alt="Maya QR Code" class="qr-img" />
-            </div>
-          </div>
-        </v-card>
-      </v-col>
-    </v-row>
+    <!-- Maya Card -->
+    <v-card v-if="mayaQrSrc" class="maya-card" elevation="0" variant="flat">
+      <div class="maya-content">
+        <!-- Maya Logo -->
+        <div class="maya-logo-container">
+          <img :src="mayaLogoSrc" alt="Maya Logo" class="maya-logo-img" />
+        </div>
+        
+        <!-- Maya Text -->
+        <div class="maya-text">{{ mayaText }}</div>
+        
+        <!-- Maya QR Code -->
+        <div class="maya-qr-container">
+          <img :src="mayaQrSrc" alt="Maya QR Code" class="maya-qr-img" />
+        </div>
+      </div>
+    </v-card>
   </div>
 </template>
 
@@ -118,50 +112,55 @@ onMounted(async () => {
 <style scoped>
 .give-online-form {
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.payment-card {
+.gcash-card, .maya-card {
   background: white;
   border-radius: 8px;
-  padding: 24px 16px;
-  height: 100%;
+  padding: 32px 24px;
 }
 
-.payment-content {
+.gcash-content, .maya-content {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
 }
 
-.logo-container {
-  margin-bottom: 12px;
+.gcash-logo-container, .maya-logo-container {
+  margin-bottom: 16px;
 }
 
-.logo-img {
-  width: 64px;
-  height: 64px;
+.gcash-logo-img, .maya-logo-img {
+  width: 80px;
+  height: 80px;
   object-fit: contain;
 }
 
-.payment-text {
-  font-size: 20px;
+.gcash-text {
+  font-size: 24px;
   font-weight: 700;
+  color: #0070BA;
   margin-bottom: 12px;
   letter-spacing: 0.5px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   text-transform: uppercase;
 }
 
-.gcash-text {
-  color: #0070BA;
-}
-
 .maya-text {
+  font-size: 24px;
+  font-weight: 700;
   color: #E03C31;
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  text-transform: uppercase;
 }
 
-.instruction {
+.gcash-instruction {
   font-size: 14px;
   color: #666;
   margin-bottom: 16px;
@@ -170,33 +169,33 @@ onMounted(async () => {
   font-weight: 400;
 }
 
-.qr-container {
-  margin-top: 12px;
+.gcash-qr-container, .maya-qr-container {
+  margin-top: 16px;
 }
 
-.qr-img {
-  width: 140px;
-  height: 140px;
+.gcash-qr-img, .maya-qr-img {
+  width: 150px;
+  height: 150px;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 600px) {
-  .payment-card {
-    padding: 20px 12px;
+  .gcash-card, .maya-card {
+    padding: 24px 16px;
   }
   
-  .logo-img {
-    width: 56px;
-    height: 56px;
+  .gcash-logo-img, .maya-logo-img {
+    width: 64px;
+    height: 64px;
   }
   
-  .payment-text {
-    font-size: 18px;
+  .gcash-text, .maya-text {
+    font-size: 20px;
   }
   
-  .qr-img {
+  .gcash-qr-img, .maya-qr-img {
     width: 120px;
     height: 120px;
   }

@@ -265,12 +265,7 @@ const formData = reactive({
 const rules = {
   ministry_name: [
     { required: true, message: 'Ministry name is required', trigger: 'blur' },
-    { min: 2, max: 100, message: 'Ministry name must be between 2 and 100 characters', trigger: 'blur' },
-    { 
-      pattern: /^[a-zA-Z][a-zA-Z\s]*$/,
-      message: 'Ministry name must contain only letters and spaces',
-      trigger: 'blur'
-    }
+    { min: 2, max: 100, message: 'Ministry name must be between 2 and 100 characters', trigger: 'blur' }
   ],
   schedule: [
     // Schedule is optional (nullable in schema)
@@ -592,12 +587,12 @@ const handleSubmit = async () => {
     } else if (imagePreview.value && !imageFile.value && isEditMode.value) {
       // Existing image (from edit mode) - extract base64 string for FormData
       let imageBase64 = null
-      if (imagePreview.value && typeof imagePreview.value === 'string' && imagePreview.value.startsWith('data:')) {
+      if (imagePreview.value.startsWith('data:')) {
         // Extract base64 string from data URL
         imageBase64 = imagePreview.value.includes(',') 
           ? imagePreview.value.split(',')[1] 
           : imagePreview.value.replace('data:image/jpeg;base64,', '').replace('data:image/png;base64,', '').replace('data:image/gif;base64,', '').replace('data:image/webp;base64,', '')
-      } else if (imagePreview.value && typeof imagePreview.value === 'string') {
+      } else {
         // Already a base64 string (shouldn't happen, but handle it)
         imageBase64 = imagePreview.value
       }
