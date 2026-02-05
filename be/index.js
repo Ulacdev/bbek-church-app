@@ -151,6 +151,18 @@ app.use(cors(corsOptions));
 // Body parsers - Increased limit to handle base64 image/video uploads
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
+
+// Skip body parsing for multipart/form-data requests (let multer handle them)
+// This prevents body-parser from corrupting multipart requests before multer processes them
+app.use((req, res, next) => {
+  if (req.headers['content-type'] && req.headers['content-type'].startsWith('multipart/form-data')) {
+    // Skip body parsing for multipart requests - multer will handle them
+    return next();
+  }
+  // Continue with regular body parsing for other content types
+  next();
+});
+
 app.use(bodyParser.json({ limit: '500mb' }));
 app.use(
   bodyParser.urlencoded({
