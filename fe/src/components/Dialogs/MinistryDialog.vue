@@ -485,6 +485,7 @@ const handleImageChange = (file) => {
   
   // Store the actual File object
   imageFile.value = actualFile
+  console.log('handleImageChange - imageFile set:', imageFile.value?.name, imageFile.value?.size, 'bytes')
   
   // Create preview
   const reader = new FileReader()
@@ -581,9 +582,11 @@ const handleSubmit = async () => {
     }
 
     // Include image file if a new file is selected (for FormData)
+    console.log('submitForm - imageFile.value:', imageFile.value?.name, 'imagePreview.value:', imagePreview.value ? 'set' : 'null')
     if (imageFile.value) {
       // imageFile.value is already the actual File object (set in handleImageChange)
       submitData.imageFile = imageFile.value
+      console.log('submitForm - added imageFile to submitData')
     } else if (imagePreview.value && !imageFile.value && isEditMode.value) {
       // Existing image (from edit mode) - extract base64 string for FormData
       let imageBase64 = null
