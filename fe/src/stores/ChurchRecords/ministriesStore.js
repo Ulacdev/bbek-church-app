@@ -188,52 +188,39 @@ export const useMinistriesStore = defineStore('ministries', {
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
-        // Create FormData for file upload
-        const formData = new FormData()
-        
-        // Add all fields to FormData
-        formData.append('ministry_name', ministryData.ministry_name || '')
-        if (ministryData.schedule) {
-          formData.append('schedule', ministryData.schedule)
-        }
-        formData.append('leader_id', ministryData.leader_id || '')
-        formData.append('department_id', ministryData.department_id || '')
-        formData.append('members', JSON.stringify(ministryData.members || []))
-        formData.append('status', ministryData.status || 'active')
-        if (ministryData.description) {
-          formData.append('description', ministryData.description)
+        // Prepare data for JSON upload (Vercel compatible)
+        const payload = {
+          ministry_name: ministryData.ministry_name || '',
+          schedule: ministryData.schedule || '',
+          leader_id: ministryData.leader_id || '',
+          department_id: ministryData.department_id || '',
+          members: ministryData.members || [],
+          status: ministryData.status || 'active',
+          description: ministryData.description || ''
         }
         
-        // Add image file if provided
+        // Add image as base64 if provided (Vercel compatible - no multipart)
         if (ministryData.imageFile) {
-          // imageFile is already a File object
-          console.log('Adding image file to FormData:', ministryData.imageFile.name, ministryData.imageFile.size, 'bytes')
-          formData.append('image', ministryData.imageFile)
-        } else if (ministryData.image) {
-          // If image is base64, convert to blob and add as file
-          console.log('Converting base64 image to file for FormData')
-          const blob = base64ToBlob(ministryData.image)
-          const file = new File([blob], 'ministry-image.jpg', { type: blob.type })
-          formData.append('image', file)
-        } else {
-          console.log('No image provided for create')
+          // Convert File to base64
+          console.log('Converting image file to base64 for Vercel upload:', ministryData.imageFile.name)
+          const reader = new FileReader()
+          const base64 = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result)
+            reader.onerror = reject
+            reader.readAsDataURL(ministryData.imageFile)
+          })
+          payload.image = base64
+        } else if (ministryData.image && typeof ministryData.image === 'string') {
+          // Already base64
+          payload.image = ministryData.image
         }
         
-        // Debug: Log FormData contents
-        console.log('FormData entries:')
-        for (const [key, value] of formData.entries()) {
-          if (value instanceof File) {
-            console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`)
-          } else {
-            console.log(`  ${key}: ${value}`)
-          }
-        }
+        console.log('Sending ministry data as JSON to Vercel-compatible endpoint')
         
-        // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-        const response = await axios.post('/church-records/ministries/createMinistry', formData, {
+        const response = await axios.post('/church-records/ministries/createMinistry', payload, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
-            // Note: Don't set Content-Type for FormData - axios will set it with boundary
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
           }
         })
         
@@ -262,52 +249,42 @@ export const useMinistriesStore = defineStore('ministries', {
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
-        // Create FormData for file upload
-        const formData = new FormData()
+        // Prepare data for JSON upload (Vercel compatible)
+        const payload = {}
         
-        // Add all fields to FormData (only include defined fields)
-        if (ministryData.ministry_name !== undefined) formData.append('ministry_name', ministryData.ministry_name)
-        if (ministryData.schedule !== undefined) formData.append('schedule', ministryData.schedule || '')
-        if (ministryData.leader_id !== undefined) formData.append('leader_id', ministryData.leader_id)
-        if (ministryData.department_id !== undefined) formData.append('department_id', ministryData.department_id)
-        if (ministryData.members !== undefined) formData.append('members', JSON.stringify(ministryData.members))
-        if (ministryData.status !== undefined) formData.append('status', ministryData.status)
-        if (ministryData.description !== undefined) {
-          formData.append('description', ministryData.description || '')
-        }
+        // Add all fields to payload (only include defined fields)
+        if (ministryData.ministry_name !== undefined) payload.ministry_name = ministryData.ministry_name
+        if (ministryData.schedule !== undefined) payload.schedule = ministryData.schedule || ''
+        if (ministryData.leader_id !== undefined) payload.leader_id = ministryData.leader_id
+        if (ministryData.department_id !== undefined) payload.department_id = ministryData.department_id
+        if (ministryData.members !== undefined) payload.members = ministryData.members
+        if (ministryData.status !== undefined) payload.status = ministryData.status
+        if (ministryData.description !== undefined) payload.description = ministryData.description || ''
         
-        // Add image file if provided (new file or base64)
+        // Add image as base64 if provided (Vercel compatible - no multipart)
         if (ministryData.imageFile) {
-          // imageFile is already a File object
-          console.log('Adding image file to FormData for update:', ministryData.imageFile.name, ministryData.imageFile.size, 'bytes')
-          formData.append('image', ministryData.imageFile)
-        } else if (ministryData.image !== undefined && ministryData.image) {
-          // If image is base64, convert to blob and add as file
-          console.log('Converting base64 image to file for FormData update')
-          const blob = base64ToBlob(ministryData.image)
-          if (blob) {
-            const file = new File([blob], 'ministry-image.jpg', { type: blob.type })
-            formData.append('image', file)
-          }
+          // Convert File to base64
+          console.log('Converting image file to base64 for Vercel update:', ministryData.imageFile.name)
+          const reader = new FileReader()
+          const base64 = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result)
+            reader.onerror = reject
+            reader.readAsDataURL(ministryData.imageFile)
+          })
+          payload.image = base64
+        } else if (ministryData.image !== undefined && typeof ministryData.image === 'string') {
+          // Already base64
+          payload.image = ministryData.image
         } else {
           console.log('No image provided for update - keeping existing image')
         }
         
-        // Debug: Log FormData contents
-        console.log('FormData entries for update:')
-        for (const [key, value] of formData.entries()) {
-          if (value instanceof File) {
-            console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`)
-          } else {
-            console.log(`  ${key}: ${value}`)
-          }
-        }
+        console.log('Sending ministry update data as JSON to Vercel-compatible endpoint')
         
-        // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-        const response = await axios.put(`/church-records/ministries/updateMinistry/${id}`, formData, {
+        const response = await axios.put(`/church-records/ministries/updateMinistry/${id}`, payload, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
-            // Note: Don't set Content-Type for FormData - axios will set it with boundary
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
           }
         })
         

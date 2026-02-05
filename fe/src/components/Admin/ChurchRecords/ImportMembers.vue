@@ -200,17 +200,36 @@ const uploadFile = async () => {
   successMessage.value = ''
 
   try {
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-
     const accessToken = localStorage.getItem('accessToken')
     if (!accessToken) {
       throw new Error('No access token found. Please log in again.')
     }
 
-    const response = await axios.post('/church-records/members/import', formData, {
+    // Convert file to base64 for Vercel compatibility
+    console.log('Converting file to base64 for Vercel import:', selectedFile.value.name)
+    const reader = new FileReader()
+    
+    const fileData = await new Promise((resolve, reject) => {
+      reader.onload = () => {
+        // Get file extension
+        const fileName = selectedFile.value.name
+        const lastDotIndex = fileName.lastIndexOf('.')
+        const extension = lastDotIndex > 0 ? fileName.substring(lastDotIndex + 1) : ''
+        
+        resolve({
+          filename: fileName,
+          extension: extension,
+          data: reader.result
+        })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(selectedFile.value)
+    })
+
+    const response = await axios.post('/church-records/members/import', fileData, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
     })
 

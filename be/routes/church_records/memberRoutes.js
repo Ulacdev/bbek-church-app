@@ -85,18 +85,50 @@ router.post('/createMember', async (req, res) => {
 /**
  * IMPORT - Import member records from CSV/Excel file
  * POST /api/church-records/members/import
+ * Supports both multipart/form-data (file upload) and base64 JSON body
  */
 router.post('/import', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
+    let fileBuffer;
+    let fileExtension;
+    
+    // Check if file was uploaded via multer (multipart/form-data)
+    if (req.file) {
+      fileBuffer = req.file.buffer;
+      fileExtension = path.extname(req.file.originalname).toLowerCase();
+      console.log('File uploaded via multer:', req.file.originalname);
+    } else if (req.body && req.body.data) {
+      // Base64 file data from JSON body
+      console.log('File provided as base64 data');
+      const fileData = req.body;
+      
+      // Extract extension from filename
+      fileExtension = (fileData.extension || '').toLowerCase();
+      if (!fileExtension && fileData.filename) {
+        fileExtension = path.extname(fileData.filename).toLowerCase();
+      }
+      
+      // Decode base64 to buffer
+      if (fileData.data && typeof fileData.data === 'string') {
+        // Remove data URL prefix if present
+        let base64Data = fileData.data;
+        if (base64Data.includes(',')) {
+          base64Data = base64Data.split(',')[1];
+        }
+        fileBuffer = Buffer.from(base64Data, 'base64');
+        console.log('Decoded base64 file:', fileData.filename, fileBuffer.length, 'bytes');
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file data provided'
+        });
+      }
+    } else {
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
       });
     }
-
-    const fileBuffer = req.file.buffer;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
 
     let memberDataArray = [];
 
@@ -108,7 +140,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: 'Unsupported file type'
+        message: 'Unsupported file type: ' + fileExtension
       });
     }
 
