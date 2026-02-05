@@ -1,9 +1,9 @@
 const auditTrailRecords = require('../dbHelpers/auditTrailRecords');
 
 // Helper function to determine module from path
-function determineModule(path) {
+function determineModule(reqPath, reqBaseUrl) {
   // Check the full path including baseUrl for mounted routes
-  const fullPath = (req.baseUrl || '') + path;
+  const fullPath = (reqBaseUrl || '') + (reqPath || '');
 
   if (fullPath.includes('/members') || fullPath.includes('/church-records/members')) {
     return 'Members';
@@ -97,7 +97,7 @@ const auditTrailMiddleware = async (req, res, next) => {
       console.log('DEBUG: Capturing data for', req.method, path, 'ID:', id);
       try {
         const { query } = require('../database/db');
-        const module = determineModule(path);
+        const module = determineModule(req.path, req.baseUrl);
         console.log('DEBUG: Determined module:', module);
 
         if (module !== 'Archives') {
