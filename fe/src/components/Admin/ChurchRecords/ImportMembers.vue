@@ -209,10 +209,10 @@ const uploadFile = async () => {
       throw new Error('No access token found. Please log in again.')
     }
 
+    // Don't set Content-Type header - let axios set it automatically with boundary for FormData
     const response = await axios.post('/church-records/members/import', formData, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'multipart/form-data'
+        'Authorization': `Bearer ${accessToken}`
       }
     })
 
