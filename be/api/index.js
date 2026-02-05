@@ -5,6 +5,7 @@ if (!IS_VERCEL) {
 }
 
 // System Logs Module Integration - Trigger nodemon restart
+// Force Vercel rebuild - member import-chunk endpoint fix
 
 /**
  * Church Management System Backend API
