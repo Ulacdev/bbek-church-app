@@ -154,9 +154,15 @@ export const uploadFileWithChunking = async (file, accessToken, onProgress) => {
 
     // Large file - use chunked upload
     console.log(`[Upload] File size ${fileSizeInMB.toFixed(2)}MB - using chunked upload`);
+    console.log(`[Upload] File: ${file.name} (${file.size} bytes)`);
     return uploadFileChunked(file, accessToken, onProgress);
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[Upload] Upload error:', error.message);
+    // If it's a file parsing error or other non-network error, don't retry
+    if (error.message.includes('parsing') || error.message.includes('data')) {
+      throw error;
+    }
+    // For network errors, could potentially retry with fallback, but for now just throw
     throw error;
   }
 };
@@ -229,7 +235,14 @@ const uploadFileChunked = async (file, accessToken, onProgress) => {
           fileExtension: file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv'
         };
 
-        console.log(`[Upload] Chunk payload size: ${(JSON.stringify(chunkPayload).length / 1024).toFixed(2)}KB`);
+        // Validate that payload is JSON serializable
+        const payloadJSON = JSON.stringify(chunkPayload);
+        const payloadSizeKB = (payloadJSON.length / 1024).toFixed(2);
+        console.log(`[Upload] Chunk payload size: ${payloadSizeKB}KB`);
+        
+        if (payloadSizeKB > 4000) {
+          console.warn(`[Upload] ⚠️ Chunk payload is large (${payloadSizeKB}KB) - may exceed serverless limits`);
+        }
 
         const response = await axios.post(
           '/church-records/members/import-chunk',
