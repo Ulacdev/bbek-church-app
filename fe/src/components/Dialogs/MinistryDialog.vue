@@ -587,12 +587,12 @@ const handleSubmit = async () => {
     } else if (imagePreview.value && !imageFile.value && isEditMode.value) {
       // Existing image (from edit mode) - extract base64 string for FormData
       let imageBase64 = null
-      if (imagePreview.value.startsWith('data:')) {
+      if (imagePreview.value && typeof imagePreview.value === 'string' && imagePreview.value.startsWith('data:')) {
         // Extract base64 string from data URL
         imageBase64 = imagePreview.value.includes(',') 
           ? imagePreview.value.split(',')[1] 
           : imagePreview.value.replace('data:image/jpeg;base64,', '').replace('data:image/png;base64,', '').replace('data:image/gif;base64,', '').replace('data:image/webp;base64,', '')
-      } else {
+      } else if (imagePreview.value && typeof imagePreview.value === 'string') {
         // Already a base64 string (shouldn't happen, but handle it)
         imageBase64 = imagePreview.value
       }

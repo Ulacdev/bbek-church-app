@@ -14,7 +14,7 @@ function base64ToBlob(base64String, contentType = 'image/jpeg') {
       contentType = mimeMatch[1]
     }
   }
-  
+
   // Convert base64 to binary
   const byteCharacters = atob(base64)
   const byteNumbers = new Array(byteCharacters.length)
@@ -22,7 +22,7 @@ function base64ToBlob(base64String, contentType = 'image/jpeg') {
     byteNumbers[i] = byteCharacters.charCodeAt(i)
   }
   const byteArray = new Uint8Array(byteNumbers)
-  
+
   return new Blob([byteArray], { type: contentType })
 }
 
@@ -68,7 +68,7 @@ export const useMinistriesStore = defineStore('ministries', {
       this.error = null
       try {
         const response = await axios.get('/church-records/ministries/getPublicMinistries')
-        console.log(response , response.data , 'response.data')
+        console.log(response, response.data, 'response.data')
         if (response.status === 200) {
           // Ensure response.data is an array
           const data = response.data
@@ -185,7 +185,7 @@ export const useMinistriesStore = defineStore('ministries', {
       try {
         // Create FormData for file upload
         const formData = new FormData()
-        
+
         // Add all fields to FormData
         formData.append('ministry_name', ministryData.ministry_name || '')
         if (ministryData.schedule) {
@@ -198,7 +198,7 @@ export const useMinistriesStore = defineStore('ministries', {
         if (ministryData.description) {
           formData.append('description', ministryData.description)
         }
-        
+
         // Add image file if provided
         if (ministryData.imageFile) {
           // imageFile is already a File object
@@ -213,7 +213,7 @@ export const useMinistriesStore = defineStore('ministries', {
         } else {
           console.log('No image provided for create')
         }
-        
+
         // Debug: Log FormData contents
         console.log('FormData entries:')
         for (const [key, value] of formData.entries()) {
@@ -223,15 +223,14 @@ export const useMinistriesStore = defineStore('ministries', {
             console.log(`  ${key}: ${value}`)
           }
         }
-        
+
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.post('/church-records/ministries/createMinistry', formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
           }
         })
-        
+
         if (response.data.success) {
           await this.fetchMinistries({
             page: this.currentPage,
@@ -259,7 +258,7 @@ export const useMinistriesStore = defineStore('ministries', {
       try {
         // Create FormData for file upload
         const formData = new FormData()
-        
+
         // Add all fields to FormData (only include defined fields)
         if (ministryData.ministry_name !== undefined) formData.append('ministry_name', ministryData.ministry_name)
         if (ministryData.schedule !== undefined) formData.append('schedule', ministryData.schedule || '')
@@ -270,7 +269,7 @@ export const useMinistriesStore = defineStore('ministries', {
         if (ministryData.description !== undefined) {
           formData.append('description', ministryData.description || '')
         }
-        
+
         // Add image file if provided (new file or base64)
         if (ministryData.imageFile) {
           // imageFile is already a File object
@@ -290,7 +289,7 @@ export const useMinistriesStore = defineStore('ministries', {
         } else {
           console.log('No image provided for update - keeping existing image')
         }
-        
+
         // Debug: Log FormData contents
         console.log('FormData entries for update:')
         for (const [key, value] of formData.entries()) {
@@ -300,15 +299,14 @@ export const useMinistriesStore = defineStore('ministries', {
             console.log(`  ${key}: ${value}`)
           }
         }
-        
+
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.put(`/church-records/ministries/updateMinistry/${id}`, formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
           }
         })
-        
+
         if (response.data.success) {
           await this.fetchMinistries({
             page: this.currentPage,
@@ -405,10 +403,10 @@ export const useMinistriesStore = defineStore('ministries', {
      */
     async fetchUserMinistries(memberId, options = {}) {
       const { page = 1, pageSize = 10, search = '', status = '', sortBy = 'Date Created (Newest)' } = options
-      
+
       this.loading = true
       this.error = null
-      
+
       try {
         if (!memberId) {
           throw new Error('Member ID is required')
@@ -418,35 +416,35 @@ export const useMinistriesStore = defineStore('ministries', {
         const params = new URLSearchParams()
         params.append('page', page.toString())
         params.append('pageSize', pageSize.toString())
-        
+
         if (search && search.trim()) {
           params.append('search', search.trim())
         }
-        
+
         if (status && status !== 'All Statuses') {
           params.append('status', status)
         }
-        
+
         if (sortBy) {
           params.append('sortBy', sortBy)
         }
-        
+
         // Call backend API
         const response = await axios.get(`/church-records/ministries/getMinistriesByMemberId/${memberId}?${params.toString()}`)
-        
+
         if (response.data.success) {
           // Map backend response to frontend format
           const ministries = response.data.data || []
           const formattedMinistries = ministries.map(ministry => {
             // Use imageUrl from backend if available, otherwise convert base64 image to data URL
             let imageUrl = ministry.imageUrl || null
-            if (!imageUrl && ministry.image) {
+            if (!imageUrl && ministry.image && typeof ministry.image === 'string') {
               // Fallback: If imageUrl not provided, convert base64 image to data URL
-              imageUrl = ministry.image.startsWith('data:') 
-                ? ministry.image 
+              imageUrl = ministry.image.startsWith('data:')
+                ? ministry.image
                 : `data:image/jpeg;base64,${ministry.image}`
             }
-            
+
             return {
               ministry_id: ministry.ministry_id,
               ministry_name: ministry.ministry_name,
@@ -462,9 +460,9 @@ export const useMinistriesStore = defineStore('ministries', {
               ...ministry // Include all other fields
             }
           })
-          
+
           const totalPages = response.data.pagination?.totalPages || 1
-          
+
           return {
             success: true,
             data: formattedMinistries,
@@ -519,11 +517,11 @@ export const useMinistriesStore = defineStore('ministries', {
       this.filters = { ...this.filters, ...filters }
       this.currentPage = 1
       // Refetch with new filters
-      this.fetchMinistries({ 
-        ...filters, 
-        page: 1, 
-        pageSize: this.itemsPerPage, 
-        search: this.searchQuery 
+      this.fetchMinistries({
+        ...filters,
+        page: 1,
+        pageSize: this.itemsPerPage,
+        search: this.searchQuery
       })
     },
 
@@ -564,7 +562,7 @@ export const useMinistriesStore = defineStore('ministries', {
         if (options.dateRange && options.dateRange.length === 2) {
           params.append('dateRange', JSON.stringify(options.dateRange))
         }
-        
+
         // Make request with responseType: 'blob' to handle binary data
         const response = await axios.get(`/church-records/ministries/exportExcel?${params}`, {
           responseType: 'blob',
@@ -573,7 +571,7 @@ export const useMinistriesStore = defineStore('ministries', {
             'Content-Type': 'application/json'
           }
         })
-        
+
         // Extract filename from content-disposition header or use default
         const contentDisposition = response.headers['content-disposition']
         let filename = 'ministries_export.xlsx'
@@ -583,7 +581,7 @@ export const useMinistriesStore = defineStore('ministries', {
             filename = filenameMatch[1]
           }
         }
-        
+
         // Create download link and trigger download
         const url = window.URL.createObjectURL(new Blob([response.data]))
         const link = document.createElement('a')
@@ -591,11 +589,11 @@ export const useMinistriesStore = defineStore('ministries', {
         link.setAttribute('download', filename)
         document.body.appendChild(link)
         link.click()
-        
+
         // Cleanup
         link.parentNode.removeChild(link)
         window.URL.revokeObjectURL(url)
-        
+
         return { success: true, message: 'Excel file downloaded successfully' }
       } catch (error) {
         this.error = error.response?.data?.error || error.message || 'Failed to export ministries to Excel'
