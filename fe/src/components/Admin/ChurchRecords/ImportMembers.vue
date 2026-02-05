@@ -39,6 +39,16 @@
           {{ successMessage }}
         </v-alert>
 
+        <!-- Upload Progress Bar -->
+        <v-progress-linear
+          v-if="uploading && uploadProgress > 0"
+          :value="uploadProgress"
+          :label="`${uploadProgress}%`"
+          color="primary"
+          class="mb-4"
+          height="24"
+        ></v-progress-linear>
+
         <div class="upload-section">
           <v-file-input
             v-model="selectedFile"
@@ -144,12 +154,14 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '@/api/axios'
+import { uploadFileWithChunking } from '@/utils/fileChunkUpload'
 import { ElMessage } from 'element-plus'
 
 // Component state
 const router = useRouter()
 const selectedFile = ref(null)
 const uploading = ref(false)
+const uploadProgress = ref(0)
 const errorMessage = ref('')
 const successMessage = ref('')
 const previewData = ref([])
@@ -194,40 +206,43 @@ const uploadFile = async () => {
   uploading.value = true
   errorMessage.value = ''
   successMessage.value = ''
+  uploadProgress.value = 0
 
   try {
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-
     const accessToken = localStorage.getItem('accessToken')
     if (!accessToken) {
       throw new Error('No access token found. Please log in again.')
     }
 
-    // Don't set Content-Type header - let axios set it automatically with boundary for FormData
-    const response = await axios.post('/church-records/members/import', formData, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      },
-      // Add timeout for large imports
-      timeout: 300000 // 5 minutes
+    // Use chunked upload utility which handles both small and large files
+    const result = await uploadFileWithChunking(selectedFile.value, accessToken, (progress) => {
+      // Update progress bar
+      uploadProgress.value = progress.percentComplete
+      console.log(`Upload progress: ${progress.chunksUploaded}/${progress.totalChunks} chunks`)
     })
 
-    if (response.data.success) {
-      importResults.value = response.data.data
-      successMessage.value = `Import completed successfully! ${response.data.data.imported || 0} new records added, ${response.data.data.updated || 0} records updated.`
+    if (result) {
+      importResults.value = result
+      successMessage.value = `Import completed successfully! ${result.imported || 0} new records added, ${result.updated || 0} records updated.`
       selectedFile.value = null
       previewData.value = []
       previewHeaders.value = []
+      uploadProgress.value = 0
     } else {
-      errorMessage.value = response.data.message || 'Import failed.'
+      errorMessage.value = 'Import failed: No results received'
     }
   } catch (error) {
     console.error('Upload error:', error)
     const errorMsg = error.response?.data?.message || error.message || 'Upload failed. Please try again.'
     errorMessage.value = errorMsg
+    
+    // Handle specific Vercel/payload errors
+    if (error.response?.status === 413 || error.message?.includes('too large')) {
+      errorMessage.value = 'File is too large. The system will automatically split it into chunks for upload. Please try again.'
+    }
   } finally {
     uploading.value = false
+    uploadProgress.value = 0
   }
 }
 

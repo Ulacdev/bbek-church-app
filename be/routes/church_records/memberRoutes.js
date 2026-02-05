@@ -148,6 +148,88 @@ router.post('/import', upload.single('file'), async (req, res) => {
 });
 
 /**
+ * IMPORT CHUNK - Upload a chunk of CSV/Excel data for large imports
+ * POST /api/church-records/members/import-chunk
+ * Used by chunked upload for files > 1MB (Vercel limitation)
+ */
+const chunkStorage = new Map(); // In-memory storage for chunk uploads
+
+router.post('/import-chunk', async (req, res) => {
+  try {
+    const { uploadId, chunkNumber, totalChunks, dataRows, fileName, fileExtension } = req.body;
+
+    if (!uploadId || typeof chunkNumber !== 'number' || !totalChunks || !Array.isArray(dataRows)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required chunk data: uploadId, chunkNumber, totalChunks, dataRows'
+      });
+    }
+
+    // Store chunk data
+    if (!chunkStorage.has(uploadId)) {
+      chunkStorage.set(uploadId, {
+        chunks: new Map(),
+        totalChunks,
+        fileName,
+        fileExtension,
+        createdAt: Date.now()
+      });
+    }
+
+    const uploadData = chunkStorage.get(uploadId);
+    uploadData.chunks.set(chunkNumber, dataRows);
+
+    // Check if all chunks are received
+    if (uploadData.chunks.size === totalChunks) {
+      // Combine all chunks in order
+      let memberDataArray = [];
+      for (let i = 1; i <= totalChunks; i++) {
+        if (uploadData.chunks.has(i)) {
+          memberDataArray = memberDataArray.concat(uploadData.chunks.get(i));
+        }
+      }
+
+      // Get user info for logging
+      const userInfo = {
+        acc_id: req.user?.acc_id || 'system',
+        email: req.user?.email || 'system@church.com',
+        name: req.user?.name || 'System Admin',
+        position: req.user?.position || 'admin'
+      };
+
+      // Process the combined data
+      const result = await importMembers(memberDataArray, userInfo);
+
+      // Clean up storage
+      chunkStorage.delete(uploadId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Chunked import completed',
+        data: result.data,
+        uploadComplete: true
+      });
+    } else {
+      // Still waiting for more chunks
+      return res.status(200).json({
+        success: true,
+        message: `Chunk ${chunkNumber}/${totalChunks} received`,
+        chunksReceived: uploadData.chunks.size,
+        totalChunks,
+        uploadComplete: false
+      });
+    }
+
+  } catch (error) {
+    console.error('Error importing chunk:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to process import chunk'
+    });
+  }
+});
+
+/**
  * GET ALL FOR SELECT - Get all members for select/dropdown elements
  * GET /api/church-records/members/getAllMembersForSelect
  * Returns simplified member data (member_id and fullname) without pagination
