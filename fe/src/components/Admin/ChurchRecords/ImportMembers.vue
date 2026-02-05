@@ -158,7 +158,7 @@ const importResults = ref(null)
 
 // Methods
 const handleFileSelect = (file) => {
-  if (file) {
+  if (file && file.name) {
     // Validate file type
     const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     if (!allowedTypes.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
@@ -178,6 +178,9 @@ const handleFileSelect = (file) => {
     errorMessage.value = ''
     // TODO: Implement preview functionality
     // previewFile(file)
+  } else {
+    errorMessage.value = 'Invalid file selected'
+    selectedFile.value = null
   }
 }
 
