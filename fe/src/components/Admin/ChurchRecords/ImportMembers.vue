@@ -161,7 +161,8 @@ const handleFileSelect = (file) => {
   if (file) {
     // Validate file type
     const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+    const fileName = file.name || ''
+    if (!allowedTypes.includes(file.type || '') && !fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
       errorMessage.value = 'Invalid file type. Please select a CSV or Excel file.'
       selectedFile.value = null
       return
@@ -278,11 +279,12 @@ const downloadTemplate = () => {
   let csvContent = headers.join(',') + '\n'
   sampleData.forEach(row => {
     const escapedRow = row.map(field => {
+      const fieldStr = String(field || '')
       // Escape quotes and wrap in quotes if contains comma, quote, or newline
-      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-        return `"${field.replace(/"/g, '""')}"`
+      if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+        return `"${fieldStr.replace(/"/g, '""')}"`
       }
-      return field
+      return fieldStr
     })
     csvContent += escapedRow.join(',') + '\n'
   })
