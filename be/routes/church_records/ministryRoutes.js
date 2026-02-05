@@ -53,9 +53,13 @@ router.post('/createMinistry', authenticateToken, async (req, res) => {
     // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
     let ministryData = req.body ? { ...req.body } : {};
 
+    // Debug: Log what was received
+    console.log('Create Ministry - req.body keys:', req.body ? Object.keys(req.body) : 'undefined');
+    console.log('Create Ministry - ministryData keys:', Object.keys(ministryData));
+    
     // Check if image is provided in body (base64 from JSON)
     if (req.body && req.body.image) {
-      console.log('Image provided as base64 string');
+      console.log('Image provided as base64 string, length:', req.body.image.length);
       ministryData.image = req.body.image;
     } else {
       console.log('No image provided for create');
@@ -260,9 +264,13 @@ router.put('/updateMinistry/:id', authenticateToken, async (req, res) => {
     // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
     let ministryData = req.body ? { ...req.body } : {};
 
+    // Debug: Log what was received
+    console.log('Update Ministry - req.body keys:', req.body ? Object.keys(req.body) : 'undefined');
+    console.log('Update Ministry - ministryData keys:', Object.keys(ministryData));
+    
     // Check if image is provided in body (base64 from JSON)
     if (req.body && req.body.image) {
-      console.log('Image provided as base64 string for update');
+      console.log('Image provided as base64 string for update, length:', req.body.image.length);
       ministryData.image = req.body.image;
     } else {
       // No image provided - don't include image field in update (keeps existing image)
