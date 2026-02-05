@@ -31,6 +31,8 @@ const publicRoutes = [
   '/api/church-records/ministries/exportExcel',
   '/api/church-records/members/getAllMembersForSelect',
   '/api/church-records/members/getAllDepartmentMembersForSelect',
+  // Allow import during local testing (temporarily public)
+  '/api/church-records/members/import',
   '/api/church-records/departments/getAllDepartmentsForSelect',
   '/api/church-records/church-leaders/getAllChurchLeadersForSelect',
   '/api/church-records/department-officers/getAllDepartmentOfficersForSelect',

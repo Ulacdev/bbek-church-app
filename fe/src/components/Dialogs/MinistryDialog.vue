@@ -371,10 +371,10 @@ watch(
       formData.description = newData.description || ''
       
       // Handle existing image (base64 from API)
-      if (newData.image) {
+      if (newData && newData.image) {
         // Backend returns base64 string without data URL prefix
         // Add prefix for display if not already present
-        if (newData.image.startsWith('data:')) {
+        if (newData.image.startsWith && newData.image.startsWith('data:')) {
           imagePreview.value = newData.image
         } else {
           imagePreview.value = `data:image/jpeg;base64,${newData.image}`
@@ -407,10 +407,10 @@ watch(
       formData.description = data.description || ''
       
       // Handle existing image (base64 from API)
-      if (data.image) {
+      if (data && data.image) {
         // Backend returns base64 string without data URL prefix
         // Add prefix for display if not already present
-        if (data.image.startsWith('data:')) {
+        if (data.image.startsWith && data.image.startsWith('data:')) {
           imagePreview.value = data.image
         } else {
           imagePreview.value = `data:image/jpeg;base64,${data.image}`
@@ -587,12 +587,12 @@ const handleSubmit = async () => {
     } else if (imagePreview.value && !imageFile.value && isEditMode.value) {
       // Existing image (from edit mode) - extract base64 string for FormData
       let imageBase64 = null
-      if (imagePreview.value.startsWith('data:')) {
+      if (imagePreview.value.startsWith && imagePreview.value.startsWith('data:')) {
         // Extract base64 string from data URL
         imageBase64 = imagePreview.value.includes(',') 
           ? imagePreview.value.split(',')[1] 
           : imagePreview.value.replace('data:image/jpeg;base64,', '').replace('data:image/png;base64,', '').replace('data:image/gif;base64,', '').replace('data:image/webp;base64,', '')
-      } else {
+      } else if (imagePreview.value) {
         // Already a base64 string (shouldn't happen, but handle it)
         imageBase64 = imagePreview.value
       }
