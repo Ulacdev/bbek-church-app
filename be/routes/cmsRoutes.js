@@ -27,6 +27,10 @@ const upload = multer({
  * POST - Upload image to public folder
  * POST /api/cms/upload-image
  * MUST be before /:pageName routes to avoid being matched as a pageName
+ * 
+ * IMPORTANT: This endpoint writes to the filesystem which ONLY works locally.
+ * On Vercel (serverless), use the base64 endpoint instead:
+ * POST /api/cms/:pageName/image/:fieldName
  */
 router.post('/upload-image', upload.single('image'), async (req, res) => {
   try {
@@ -37,6 +41,53 @@ router.post('/upload-image', upload.single('image'), async (req, res) => {
     const imageFile = req.file;
     const type = req.body.type || 'info';
     
+    // Check if running on Vercel (serverless environment)
+    const IS_VERCEL = process.env.VERCEL || process.env.VERCEL_ENV;
+    
+    if (IS_VERCEL) {
+      // Vercel has a read-only filesystem - cannot write images to disk
+      // Redirect to base64 upload endpoint instead
+      console.log('[CMS] Vercel detected - filesystem write not supported');
+      console.log('[CMS] Suggestion: Use POST /api/cms/:pageName/image/:fieldName with base64 data');
+      
+      // Convert buffer to base64
+      const base64Data = imageFile.buffer.toString('base64');
+      const mimeType = imageFile.mimetype;
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+      
+      // Try to save to database as fallback
+      try {
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 10000);
+        const ext = path.extname(imageFile.originalname) || '.jpg';
+        const filename = `cms_${type}_${timestamp}_${randomNum}${ext}`;
+        
+        // Save to database instead of filesystem
+        const result = await saveCmsImage('general', filename.replace(/\.[^/.]+$/, ''), imageFile.buffer, mimeType);
+        
+        if (result.success) {
+          return res.status(200).json({
+            success: true,
+            message: 'Image uploaded successfully (stored in database)',
+            imageId: result.imageId,
+            storedInDb: true
+          });
+        }
+      } catch (dbError) {
+        console.error('[CMS] Database fallback failed:', dbError.message);
+      }
+      
+      // If database fallback also fails, return informative error
+      return res.status(400).json({
+        success: false,
+        error: 'Image upload not supported on Vercel serverless deployment',
+        message: 'Vercel has a read-only filesystem. Please use base64 image upload instead: POST /api/cms/:pageName/image/:fieldName',
+        suggestion: 'Convert your image to base64 and use the base64 endpoint',
+        vercelLimitation: true
+      });
+    }
+    
+    // Local development - save to filesystem
     // Generate unique filename
     const timestamp = Date.now();
     const randomNum = Math.floor(Math.random() * 10000);
