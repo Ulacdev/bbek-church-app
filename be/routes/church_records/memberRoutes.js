@@ -87,7 +87,7 @@ router.post('/createMember', async (req, res) => {
  * POST /api/church-records/members/import
  * Supports both multipart/form-data (file upload) and base64 JSON body
  */
-router.post('/import', upload.single('file'), async (req, res) => {
+router.post('/import', authenticateToken, async (req, res) => {
   try {
     let fileBuffer;
     let fileExtension;
