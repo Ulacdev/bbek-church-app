@@ -12,7 +12,7 @@ const jwt = require('jsonwebtoken');
  * - /api/member-registration/**
  * - /api/example
  */
-  
+
 // List of public routes that don't require authentication
 const publicRoutes = [
   '/api/health',
@@ -44,16 +44,12 @@ const publicRoutes = [
   '/api/member-registration/register/burial-service',
   // Water baptism non-member registration (public - no auth required)
   '/api/services/water-baptisms/register-non-member',
-  // Burial service routes (public for non-member requests)
+  // Burial service routes (public for non-member submissions, protected for viewing)
   '/api/church-records/burial-services/createBurialService',
-  '/api/church-records/burial-services/getAllBurialServices',
-  '/api/church-records/burial-services/getBurialServiceById',
   '/api/church-records/burial-services/check-duplicate',
   '/api/church-records/burial-services/check-member-burial',
-  // Notification routes (require authentication)
-  // '/api/notifications/unified',  // Commented out - should require auth
-  // '/api/notifications/mark-as-read',  // Commented out - should require auth
-  // '/api/notifications/mark-all-as-read',  // Commented out - should require auth
+  // '/api/church-records/burial-services/getAllBurialServices',  // Requires auth - uncomment to make public
+  '/api/church-records/burial-services/getBurialServiceById',
   '/api/church-records/burial-services/exportExcel',
   '/api/church-records/burial-services/searchFulltext',
   '/api/church-records/burial-services/analyzeAvailability',
@@ -102,32 +98,33 @@ const publicRoutes = [
   '/api/cms/departmentcategories',
   '/api/cms/departmentcategories/full',
   '/api/cms/upload-image',
-  // CMS save routes (temporarily public for testing)
-  '/api/cms/header/save',
-  '/api/cms/home/save',
-  '/api/cms/about/save',
-  '/api/cms/imnew/save',
-  '/api/cms/services/save',
-  '/api/cms/events/save',
-  '/api/cms/give/save',
-  '/api/cms/footer/save',
-  '/api/cms/planvisit/save',
-  '/api/cms/waterbaptism/save',
-  '/api/cms/burialservice/save',
-  '/api/cms/sermons/save',
-  '/api/cms/youngpeople/save',
-  '/api/cms/adultmen/save',
-  '/api/cms/adultladies/save',
-  '/api/cms/learnmoreministry/save',
-  '/api/cms/learnmoreevents/save',
-  '/api/cms/acceptjesus/save',
-  '/api/cms/belief/save',
-  '/api/cms/churchleader/save',
-  '/api/cms/departmentofficer/save',
-  '/api/cms/ourstory/save',
-  '/api/cms/childdedication/save',
-  '/api/cms/marriageservice/save',
-  '/api/cms/info/save',
+  // CMS save routes - NOW REQUIRE AUTHENTICATION (moved from publicRoutes)
+  // Uncomment these to make them public again (NOT RECOMMENDED):
+  // '/api/cms/header/save',
+  // '/api/cms/home/save',
+  // '/api/cms/about/save',
+  // '/api/cms/imnew/save',
+  // '/api/cms/services/save',
+  // '/api/cms/events/save',
+  // '/api/cms/give/save',
+  // '/api/cms/footer/save',
+  // '/api/cms/planvisit/save',
+  // '/api/cms/waterbaptism/save',
+  // '/api/cms/burialservice/save',
+  // '/api/cms/sermons/save',
+  // '/api/cms/youngpeople/save',
+  // '/api/cms/adultmen/save',
+  // '/api/cms/adultladies/save',
+  // '/api/cms/learnmoreministry/save',
+  // '/api/cms/learnmoreevents/save',
+  // '/api/cms/acceptjesus/save',
+  // '/api/cms/belief/save',
+  // '/api/cms/churchleader/save',
+  // '/api/cms/departmentofficer/save',
+  // '/api/cms/ourstory/save',
+  // '/api/cms/childdedication/save',
+  // '/api/cms/marriageservice/save',
+  // '/api/cms/info/save',
   // forgot password routes
   '/api/church-records/accounts/forgotPassword',
   '/api/church-records/accounts/verifyResetToken',
@@ -137,6 +134,7 @@ const publicRoutes = [
   '/api/church-records/child-dedications/createChildDedication',
   '/api/church-records/child-dedications/check-duplicate',
   '/api/church-records/child-dedications/check-member-dedication',
+  // '/api/church-records/child-dedications/getAllChildDedications',  // Requires auth - uncomment to make public
 ];
 
 /**
@@ -148,10 +146,10 @@ const publicRoutes = [
 const isPublicRoute = (path, originalUrl) => {
   // Use originalUrl if available, otherwise use path
   const checkPath = originalUrl || path || '';
-  
+
   return publicRoutes.some(route => {
     if (!route || typeof route !== 'string') return false;
-    
+
     // Exact match
     if (checkPath === route || path === route) return true;
     // Wildcard match for routes starting with the public route

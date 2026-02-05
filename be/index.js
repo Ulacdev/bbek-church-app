@@ -87,7 +87,7 @@ const getAllowedOrigins = () => {
     if (process.env.FRONTEND_URL2) origins.push(process.env.FRONTEND_URL2.trim());
     return origins;
   }
-  
+
   // Default: localhost for development
   return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
 };
@@ -103,10 +103,10 @@ const corsOptions = {
       }
       return callback(null, true);
     }
-    
+
     // Check if origin is in allowed list
     const isAllowed = allowedOrigins.indexOf(origin) !== -1;
-    
+
     // In development, log CORS checks for debugging
     if (IS_DEVELOPMENT) {
       console.log('CORS Check:', {
@@ -115,7 +115,7 @@ const corsOptions = {
         isAllowed
       });
     }
-    
+
     if (isAllowed) {
       callback(null, true);
     } else {
@@ -138,31 +138,30 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  
+
   // Remove X-Powered-By header
   app.disable('x-powered-by');
-  
+
   next();
 });
 
 // CORS middleware
 app.use(cors(corsOptions));
 
-// Body parsers - Increased limit to handle base64 image/video uploads
-// Base64 encoding increases size by ~33%, and videos can be very large
-// CMS routes need higher limits for multiple images/videos in one request
-app.use(bodyParser.json({ limit: '500mb' }));
+// Body parsers - Increased limit to handle base64 image uploads
+// 50mb limit for CMS routes (images), 10mb for regular API routes
+app.use(bodyParser.json({ limit: '10mb' }));
 app.use(
   bodyParser.urlencoded({
     extended: true,
-    limit: '500mb'
+    limit: '10mb'
   })
 );
 
-// Additional body parser specifically for CMS routes with even higher limits
-// This handles cases where multiple large images/videos are sent together
-app.use('/api/cms', bodyParser.json({ limit: '500mb' }));
-app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb' }));
+// Additional body parser specifically for CMS routes with higher limits for images
+// Images are base64 encoded which increases size by ~33%
+app.use('/api/cms', bodyParser.json({ limit: '50mb' }));
+app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request logging middleware
 // In development: log all requests
@@ -294,56 +293,56 @@ app.use((err, req, res, next) => {
     timestamp: new Date().toISOString(),
     ...(IS_DEVELOPMENT && { stack: err.stack, body: req.body, query: req.query })
   };
-  
+
   console.error('Error occurred:', errorLog);
-  
+
   // Handle CORS errors
   if (err.message === 'Not allowed by CORS') {
-    return res.status(403).json({ 
-      error: 'CORS Error', 
-      message: 'Origin not allowed' 
+    return res.status(403).json({
+      error: 'CORS Error',
+      message: 'Origin not allowed'
     });
   }
-  
+
   // Handle payload too large error
   if (err.type === 'entity.too.large' || err.status === 413) {
     const maxSize = '500MB';
-    return res.status(413).json({ 
-      error: 'Payload too large', 
+    return res.status(413).json({
+      error: 'Payload too large',
       message: `The request payload is too large. Maximum size is ${maxSize}. Please reduce the size of images/videos or split them into multiple requests.`,
       maxSize: maxSize
     });
   }
-  
+
   // Handle JWT errors
   if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-    return res.status(401).json({ 
-      error: 'Authentication Error', 
-      message: 'Invalid or expired token' 
+    return res.status(401).json({
+      error: 'Authentication Error',
+      message: 'Invalid or expired token'
     });
   }
-  
+
   // Handle database max_connection errors
   const { isMaxConnectionError, isMaxUserConnectionsError } = require('./database/db');
   if (isMaxConnectionError(err)) {
     const isUserLimit = isMaxUserConnectionsError(err);
     const errorType = isUserLimit ? 'max_user_connections' : 'max_connections';
     console.error(`${errorType} error reached after retries:`, err);
-    return res.status(503).json({ 
-      error: 'Service Temporarily Unavailable', 
-      message: isUserLimit 
+    return res.status(503).json({
+      error: 'Service Temporarily Unavailable',
+      message: isUserLimit
         ? 'Database user connection limit reached. Please try again in a moment.'
         : 'Database connection limit reached. Please try again in a moment.',
       retryAfter: 5 // Suggest retrying after 5 seconds
     });
   }
-  
+
   // Default error response
   const errorResponse = {
     error: 'Internal server error',
     message: NODE_ENV === 'development' ? err.message : 'An error occurred while processing your request'
   };
-  
+
   res.status(err.status || 500).json(errorResponse);
 });
 
@@ -360,7 +359,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 CORS Origins: ${allowedOrigins.join(', ')}`);
   console.log(`⏰ Started at: ${new Date().toISOString()}`);
   console.log('='.repeat(60));
-  
+
   // Display database configuration status (without sensitive data)
   const dbHost = process.env.DB_HOST || 'localhost';
   const dbName = process.env.DB_NAME || 'bbekdb';
@@ -372,16 +371,16 @@ const server = app.listen(PORT, '0.0.0.0', () => {
 // Graceful shutdown for cloud platforms
 const gracefulShutdown = (signal) => {
   console.log(`\n${signal} received. Starting graceful shutdown...`);
-  
+
   // Stop token cleanup interval
   if (global.tokenCleanupInterval) {
     clearInterval(global.tokenCleanupInterval);
     console.log('Token cleanup interval stopped.');
   }
-  
+
   server.close(() => {
     console.log('HTTP server closed.');
-    
+
     // Close database connections
     const { pool } = require('./database/db');
     pool.end((err) => {
@@ -393,7 +392,7 @@ const gracefulShutdown = (signal) => {
       process.exit(0);
     });
   });
-  
+
   // Force close after 10 seconds
   setTimeout(() => {
     console.error('Forced shutdown after timeout');

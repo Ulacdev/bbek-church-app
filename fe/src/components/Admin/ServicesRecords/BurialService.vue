@@ -179,6 +179,16 @@
                 </div>
                 <div class="d-flex gap-2">
                   <v-btn
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    :disabled="loading"
+                    @click="bulkCompleteServices"
+                  >
+                    <v-icon left>mdi-check-all</v-icon>
+                    Mark as Completed
+                  </v-btn>
+                  <v-btn
                     color="error"
                     variant="flat"
                     size="small"
@@ -514,6 +524,55 @@ const toggleSelectAll = () => {
 
 const clearSelection = () => {
   selectedServices.value = []
+}
+
+const bulkCompleteServices = async () => {
+  // Count only approved services in the selection
+  const approvedCount = selectedServices.value.filter(s => s.status === 'approved').length;
+  const nonApprovedCount = selectedServices.value.length - approvedCount;
+  
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to mark ${approvedCount} approved burial service(s) as completed?`,
+      'Confirm Bulk Complete',
+      {
+        confirmButtonText: 'Yes, Mark as Completed',
+        cancelButtonText: 'Cancel',
+        type: 'info',
+      }
+    )
+
+    // Extract burial IDs for only approved services
+    const burialIds = selectedServices.value
+      .filter(s => s.status === 'approved')
+      .map(s => s.burial_id)
+
+    // Use the bulk complete endpoint
+    const result = await burialServiceStore.bulkCompleteBurialServices(burialIds)
+
+    if (result.success) {
+      const { completed, failed, message } = result.data || {}
+      
+      if (completed > 0) {
+        ElMessage.success(`Successfully marked ${completed} burial service(s) as completed`)
+      }
+      
+      if (failed > 0) {
+        ElMessage.warning(`Failed to mark ${failed} burial service(s) as completed`)
+      }
+      
+      if (message) {
+        ElMessage.info(message)
+      }
+    }
+
+    clearSelection()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error completing services:', error)
+      ElMessage.error('Failed to complete selected burial services')
+    }
+  }
 }
 
 const bulkDeleteServices = async () => {

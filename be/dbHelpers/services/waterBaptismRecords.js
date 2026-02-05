@@ -2,7 +2,9 @@ const { query } = require('../../database/db');
 const moment = require('moment');
 const XLSX = require('xlsx');
 const { archiveBeforeDelete } = require('../archiveHelper');
-const { sendWaterBaptismDetails } = require('../emailHelper');
+const { sendWaterBaptismDetails, sendAccountDetails } = require('../emailHelper');
+const { createMember, getSpecificMemberByEmailAndStatus } = require('../church_records/memberRecords');
+const { getAccountByEmail, createAccount } = require('../church_records/accountRecords');
 
 /**
  * Water Baptism Records CRUD Operations
@@ -158,15 +160,15 @@ function processBaptismRecord(record) {
     'member_phone_number', 'member_firstname', 'member_lastname', 'member_middle_name',
     'member_guardian_name', 'member_guardian_contact', 'member_guardian_relationship'
   ];
-  
+
   const processed = { ...record };
-  
+
   for (const field of fieldsToConvert) {
     if (processed[field] !== undefined) {
       processed[field] = convertBufferToString(processed[field]);
     }
   }
-  
+
   return processed;
 }
 
@@ -178,15 +180,15 @@ async function getNextBaptismId() {
   try {
     const sql = 'SELECT MAX(baptism_id) AS max_baptism_id FROM tbl_waterbaptism';
     const [rows] = await query(sql);
-    
+
     // If no records exist, start with 1, otherwise increment by 1
     const maxId = rows[0]?.max_baptism_id || null;
-    
+
     if (!maxId) {
       // First record - return "0000000001"
       return '0000000001';
     }
-    
+
     // Extract numeric part if baptism_id has prefix (e.g., "BAPTISM0000000001" -> 1)
     // Or if it's just numeric, use it directly
     const numericMatch = maxId.match(/\d+$/);
@@ -195,7 +197,7 @@ async function getNextBaptismId() {
       const newNumericId = numericPart + 1;
       return newNumericId.toString().padStart(9, '0');
     }
-    
+
     // If no numeric part found, start from 1
     return '0000000001';
   } catch (error) {
@@ -226,7 +228,7 @@ async function createWaterBaptism(baptismData) {
     // Get next baptism_id if not provided
     const new_baptism_id = await getNextBaptismId();
     console.log('New baptism ID:', new_baptism_id);
-    
+
     const {
       baptism_id = new_baptism_id,
       member_id,
@@ -261,7 +263,7 @@ async function createWaterBaptism(baptismData) {
     if (!member_id && is_member) {
       throw new Error('Missing required field: member_id for member registration');
     }
-    
+
     if (!is_member && (!firstname || !lastname || !email)) {
       throw new Error('Missing required fields: firstname, lastname, and email are required for non-member registration');
     }
@@ -291,7 +293,7 @@ async function createWaterBaptism(baptismData) {
 
     // Ensure baptism_id is set and convert to string
     const final_baptism_id = String(baptism_id || new_baptism_id).trim();
-    
+
     // Convert member_id to string (can be null for non-members)
     const final_member_id = member_id ? String(member_id).trim() : null;
 
@@ -304,7 +306,7 @@ async function createWaterBaptism(baptismData) {
     // Build SQL conditionally based on whether baptism_date is provided
     let sql;
     let params;
-    
+
     // Format marriage_date
     const formattedMarriageDate = marriage_date ? moment(marriage_date).format('YYYY-MM-DD') : null;
 
@@ -382,14 +384,14 @@ async function createWaterBaptism(baptismData) {
     }
 
     const [result] = await query(sql, params);
-    
+
     // Fetch the created baptism
     const createdBaptism = await getWaterBaptismById(final_baptism_id);
 
     // Send email notification (best-effort; do not fail creation)
     try {
       let recipientName, recipientEmail;
-      
+
       if (is_member && member_id) {
         // Get member details from tbl_members
         const [memberRows] = await query(
@@ -398,7 +400,7 @@ async function createWaterBaptism(baptismData) {
            WHERE member_id = ?`,
           [final_member_id]
         );
-        
+
         if (memberRows && memberRows.length > 0 && memberRows[0].email) {
           const member = memberRows[0];
           recipientName = `${member.firstname || ''} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname || ''}`.trim() || 'Valued Member';
@@ -409,7 +411,7 @@ async function createWaterBaptism(baptismData) {
         recipientName = `${firstname || ''} ${middle_name ? middle_name + ' ' : ''}${lastname || ''}`.trim() || 'Valued Member';
         recipientEmail = email;
       }
-      
+
       if (recipientEmail) {
         await sendWaterBaptismDetails({
           email: recipientEmail,
@@ -633,15 +635,15 @@ async function getAllWaterBaptisms(options = {}) {
           WHEN 'Cancelled' THEN 5 
           ELSE 6 
         END, wb.date_created DESC`;
-       break;
-     case 'Date Range (Newest)':
-       orderByClause += 'wb.baptism_date DESC';
-       break;
-     case 'Date Range (Oldest)':
-       orderByClause += 'wb.baptism_date ASC';
-       break;
-     default:
-       orderByClause += 'wb.date_created DESC'; // Default sorting
+        break;
+      case 'Date Range (Newest)':
+        orderByClause += 'wb.baptism_date DESC';
+        break;
+      case 'Date Range (Oldest)':
+        orderByClause += 'wb.baptism_date ASC';
+        break;
+      default:
+        orderByClause += 'wb.date_created DESC'; // Default sorting
     }
     sql += orderByClause;
 
@@ -677,11 +679,11 @@ async function getAllWaterBaptisms(options = {}) {
       disapproved: 0,
       cancelled: 0
     };
-    
+
     // Get total count of all records
     const [allTotalResult] = await query('SELECT COUNT(*) as total FROM tbl_waterbaptism');
     summaryStats.total = allTotalResult[0]?.total || 0;
-    
+
     // Map status counts
     allStatusCountsResult.forEach(row => {
       if (summaryStats.hasOwnProperty(row.status)) {
@@ -709,7 +711,7 @@ async function getAllWaterBaptisms(options = {}) {
 
     // Execute query to get paginated results
     const [rows] = await query(sql, params);
-    
+
     // Process all records to convert any buffer data to strings
     const processedRows = rows.map(processBaptismRecord);
 
@@ -756,7 +758,7 @@ async function getWaterBaptismByMemberId(memberId) {
     if (isNaN(memberIdInt)) {
       throw new Error('Invalid member ID: must be a valid integer');
     }
-    
+
     const sql = `SELECT 
       A.*, 
       B.member_id as member_member_id,
@@ -789,10 +791,10 @@ async function getWaterBaptismByMemberId(memberId) {
         data: []
       };
     }
-    
+
     // Process all records to convert any buffer data to strings
     const processedRows = rows.map(processBaptismRecord);
-    
+
     return {
       success: true,
       message: 'Water baptism records retrieved successfully',
@@ -814,7 +816,19 @@ async function getWaterBaptismById(baptismId) {
       throw new Error('Baptism ID is required');
     }
 
-    const sql = 'SELECT * FROM tbl_waterbaptism WHERE baptism_id = ?';
+    const sql = `SELECT w.*, 
+      m.firstname as member_firstname, 
+      m.lastname as member_lastname, 
+      m.middle_name as member_middle_name,
+      m.birthdate as member_birthdate,
+      m.gender as member_gender,
+      m.address as member_address,
+      m.phone_number as member_phone_number,
+      m.email as member_email,
+      m.civil_status as member_civil_status
+    FROM tbl_waterbaptism w 
+    LEFT JOIN tbl_members m ON w.member_id = m.member_id 
+    WHERE w.baptism_id = ?`;
     const [rows] = await query(sql, [baptismId]);
 
     if (rows.length === 0) {
@@ -847,22 +861,22 @@ async function getWaterBaptismById(baptismId) {
  * @returns {Promise<Object>} Result object
  */
 async function updateWaterBaptism(baptismId, baptismData) {
-   try {
+  try {
     let timeSlotWarning = null;
 
     if (!baptismId) {
-       throw new Error('Baptism ID is required');
-     }
+      throw new Error('Baptism ID is required');
+    }
 
-     // Check if baptism exists
-     const baptismCheck = await getWaterBaptismById(baptismId);
-     if (!baptismCheck.success) {
-       return {
-         success: false,
-         message: 'Water baptism not found',
-         data: null
-       };
-     }
+    // Check if baptism exists
+    const baptismCheck = await getWaterBaptismById(baptismId);
+    if (!baptismCheck.success) {
+      return {
+        success: false,
+        message: 'Water baptism not found',
+        data: null
+      };
+    }
 
     const {
       member_id,
@@ -1084,7 +1098,7 @@ async function updateWaterBaptism(baptismId, baptismData) {
     // Send email notification to the member/non-member (if we can resolve email)
     try {
       let recipientName, recipientEmail;
-      
+
       if (updatedBaptism.data.is_member === 1 && updatedBaptism.data.member_id) {
         // Get member contact details from tbl_members
         const [memberRows] = await query(
@@ -1104,15 +1118,15 @@ async function updateWaterBaptism(baptismId, baptismData) {
         recipientName = `${updatedBaptism.data.firstname || ''} ${updatedBaptism.data.middle_name ? updatedBaptism.data.middle_name + ' ' : ''}${updatedBaptism.data.lastname || ''}`.trim() || 'Valued Member';
         recipientEmail = updatedBaptism.data.email;
       }
-      
+
       if (recipientEmail) {
         console.log('DEBUG: Sending water baptism update email to:', recipientEmail);
         console.log('DEBUG: baptism_date from DB:', updatedBaptism.data.baptism_date);
         console.log('DEBUG: preferred_baptism_time from DB:', updatedBaptism.data.preferred_baptism_time);
-        
+
         // Get all registration fields from the baptism record
         const baptism = updatedBaptism.data;
-        
+
         await sendWaterBaptismDetails({
           email: recipientEmail,
           status: baptism.status,
@@ -1290,7 +1304,7 @@ async function exportWaterBaptismsToExcel(options = {}) {
     delete exportOptions.pageSize;
 
     const result = await getAllWaterBaptisms(exportOptions);
-    
+
     if (!result.success || !result.data || result.data.length === 0) {
       throw new Error('No water baptisms found to export');
     }
@@ -1366,8 +1380,8 @@ async function exportWaterBaptismsToExcel(options = {}) {
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Water Baptisms');
 
-    const excelBuffer = XLSX.write(workbook, { 
-      type: 'buffer', 
+    const excelBuffer = XLSX.write(workbook, {
+      type: 'buffer',
       bookType: 'xlsx',
       compression: true
     });
@@ -1387,9 +1401,9 @@ async function getSpecificWaterBaptismDataByMemberIdIfBaptized(memberId) {
   try {
     const sql = 'SELECT * FROM tbl_waterbaptism WHERE member_id = ? and status = "completed"';
     const [rows] = await query(sql, [memberId]);
-    if(rows.length === 0) {
+    if (rows.length === 0) {
       return null;
-    }else{
+    } else {
       // Process the record to convert any buffer data to strings
       return processBaptismRecord(rows[0]);
     }
@@ -1398,7 +1412,7 @@ async function getSpecificWaterBaptismDataByMemberIdIfBaptized(memberId) {
     throw error;
   }
 }
-  
+
 module.exports = {
   createWaterBaptism,
   getAllWaterBaptisms,
@@ -1407,7 +1421,278 @@ module.exports = {
   updateWaterBaptism,
   deleteWaterBaptism,
   bulkDeleteWaterBaptisms,
+  bulkCompleteWaterBaptisms,
+  bulkCompleteWaterBaptismsWithAccount,
   exportWaterBaptismsToExcel,
   getSpecificWaterBaptismDataByMemberIdIfBaptized,
   checkTimeSlotAvailability
 };
+
+// New comprehensive bulk complete function with member/account creation
+async function bulkCompleteWaterBaptismsWithAccount(baptismIds) {
+  try {
+    if (!Array.isArray(baptismIds) || baptismIds.length === 0) {
+      return {
+        success: false,
+        message: 'baptismIds array is required and cannot be empty'
+      };
+    }
+
+    let completed = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const baptismId of baptismIds) {
+      try {
+        const baptismResult = await getWaterBaptismById(baptismId);
+
+        if (!baptismResult.success || !baptismResult.data) {
+          failed++;
+          continue;
+        }
+
+        const baptism = baptismResult.data;
+
+        if (baptism.status === 'completed') {
+          skipped++;
+          continue;
+        }
+
+        if (baptism.status !== 'approved') {
+          skipped++;
+          continue;
+        }
+
+        // Always send account setup email and completion email for ALL baptisms (members and non-members)
+        console.log(`=== Processing water baptism ${baptismId} ===`);
+        console.log(`is_member: ${baptism.is_member}, email: ${baptism.email}`);
+
+        if (baptism.email) {
+          console.log(`✅ Sending account setup and completion emails to ${baptism.email}...`);
+
+          // Get the full name
+          const name = `${baptism.firstname || ''} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname || ''}`.trim();
+
+          // Generate temp password for account setup
+          const tempPassword = Math.random().toString(36).slice(-12);
+
+          // Create account directly using SQL to avoid circular dependency
+          let accountId = null;
+          try {
+            // Hash the password first
+            const bcrypt = require('bcrypt');
+            const SALT_ROUNDS = 10;
+            const salt = await bcrypt.genSalt(SALT_ROUNDS);
+            const hashedPassword = await bcrypt.hash(tempPassword, salt);
+
+            // Check if account already exists
+            const [existingAccounts] = await query(
+              'SELECT acc_id FROM tbl_accounts WHERE email = ?',
+              [baptism.email.toLowerCase()]
+            );
+
+            if (existingAccounts.length === 0) {
+              // Insert new account
+              const [insertResult] = await query(
+                `INSERT INTO tbl_accounts (email, password, position, acc_name, status, date_created) 
+                 VALUES (?, ?, 'Member', ?, 'active', NOW())`,
+                [baptism.email.toLowerCase(), hashedPassword, name || 'Water Baptism Member']
+              );
+              accountId = insertResult.insertId;
+              console.log(`✅ Account created with ID: ${accountId}`);
+            } else {
+              accountId = existingAccounts[0].acc_id;
+              console.log(`ℹ️ Account already exists with ID: ${accountId}`);
+            }
+          } catch (accountError) {
+            console.log(`⚠️ Account creation skipped: ${accountError.message}`);
+          }
+
+          // Send account setup email
+          try {
+            await sendAccountDetails({
+              acc_id: accountId || 0,
+              email: baptism.email,
+              name: name || 'Water Baptism Member',
+              type: 'new_account',
+              temporaryPassword: tempPassword
+            });
+            console.log(`✅ Account setup email sent successfully`);
+          } catch (emailError) {
+            console.error(`❌ Failed to send account setup email`);  // Don't log password in error
+          }
+        } else {
+          console.warn(`⚠️ No email address found for water baptism ${baptismId}. Skipping account setup email.`);
+        }
+
+        // Update the water baptism status to completed
+        const updateSql = `UPDATE tbl_waterbaptism SET status = 'completed' WHERE baptism_id = ?`;
+        await query(updateSql, [baptismId]);
+
+        // Send completion email with all registration info
+        try {
+          const email = baptism.email || baptism.member_email;
+
+          if (email) {
+            // Use baptism fields first, fall back to member fields
+            const firstname = baptism.firstname || baptism.member_firstname || '';
+            const lastname = baptism.lastname || baptism.member_lastname || '';
+            const middle_name = baptism.middle_name || baptism.member_middle_name || '';
+            const name = `${firstname} ${middle_name ? middle_name + ' ' : ''}${lastname}`.trim();
+
+            // Format birthdate from either source
+            const birthdate = baptism.birthdate || baptism.member_birthdate || '';
+
+            console.log(`Sending completion email to ${email} with registration info...`);
+            console.log(`Name: ${name}, Birthdate: ${birthdate}, Gender: ${baptism.gender || baptism.member_gender}`);
+
+            const baptismEmailResult = await sendWaterBaptismDetails({
+              email: email,
+              status: 'completed',
+              recipientName: name || 'Valued Member',
+              memberName: name || 'Valued Member',
+              baptismDate: baptism.baptism_date || moment().format('YYYY-MM-DD'),
+              location: baptism.location || '',
+              pastorName: baptism.pastor_name || '',
+              isMember: baptism.is_member === 1,
+              // Registration fields - use baptism fields first, fall back to member fields
+              firstname: firstname,
+              middleName: middle_name,
+              lastname: lastname,
+              birthdate: birthdate,
+              age: baptism.age || null,
+              gender: baptism.gender || baptism.member_gender || '',
+              address: baptism.address || baptism.member_address || '',
+              phoneNumber: baptism.phone_number || baptism.member_phone_number || '',
+              civilStatus: baptism.civil_status || baptism.member_civil_status || '',
+              profession: baptism.profession || ''
+            });
+
+            if (baptismEmailResult.success) {
+              console.log(`✅ Completion email sent successfully`);
+            } else {
+              console.error(`❌ Failed to send completion email: ${baptismEmailResult.message}`);
+            }
+          } else {
+            console.warn(`⚠️ No email address found. Skipping completion email notification.`);
+          }
+        } catch (emailError) {
+          console.error(`❌ Error sending completion email for water baptism ${baptismId}:`, emailError);
+        }
+
+        completed++;
+      } catch (err) {
+        console.error(`Error completing water baptism ${baptismId}:`, err);
+        failed++;
+      }
+    }
+
+    let message = `Successfully marked ${completed} water baptism record(s) as completed.`;
+
+    if (skipped > 0) {
+      message += ` ${skipped} record(s) were skipped because they are not approved.`;
+    }
+
+    if (failed > 0) {
+      message += ` ${failed} record(s) failed to complete.`;
+    }
+
+    return {
+      success: true,
+      message,
+      data: { completed, failed, skipped }
+    };
+  } catch (error) {
+    console.error('Error in bulk complete water baptisms:', error);
+    throw error;
+  }
+}
+
+async function bulkCompleteWaterBaptisms(baptismIds) {
+  try {
+    if (!Array.isArray(baptismIds) || baptismIds.length === 0) {
+      return {
+        success: false,
+        message: 'baptismIds array is required and cannot be empty'
+      };
+    }
+
+    let completed = 0;
+    let failed = 0;
+    let skipped = 0;
+
+    for (const baptismId of baptismIds) {
+      try {
+        const baptismResult = await getWaterBaptismById(baptismId);
+
+        if (!baptismResult.success || !baptismResult.data) {
+          failed++;
+          continue;
+        }
+
+        const baptism = baptismResult.data;
+
+        if (baptism.status === 'completed') {
+          skipped++;
+          continue;
+        }
+
+        if (baptism.status !== 'approved') {
+          skipped++;
+          continue;
+        }
+
+        const updateSql = `UPDATE tbl_waterbaptism SET status = 'completed' WHERE baptism_id = ?`;
+        await query(updateSql, [baptismId]);
+
+        try {
+          const email = baptism.email || baptism.member_email;
+
+          if (email) {
+            const recipientName = `${baptism.firstname || ''} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname || ''}`.trim() || 'Valued Member';
+
+            await sendWaterBaptismDetails({
+              email: email,
+              status: 'completed',
+              recipientName: recipientName,
+              memberName: recipientName,
+              baptismDate: baptism.baptism_date
+                ? moment(baptism.baptism_date).format('YYYY-MM-DD HH:mm:ss')
+                : moment().format('YYYY-MM-DD'),
+              baptismTime: baptism.baptism_time || '',
+              location: baptism.location || '',
+              pastorName: baptism.pastor_name || '',
+              isMember: baptism.is_member === 1
+            });
+          }
+        } catch (emailError) {
+          console.error(`Error sending completion email for baptism ${baptismId}:`, emailError);
+        }
+
+        completed++;
+      } catch (err) {
+        console.error(`Error completing water baptism ${baptismId}:`, err);
+        failed++;
+      }
+    }
+
+    let message = `Successfully marked ${completed} water baptism record(s) as completed.`;
+
+    if (skipped > 0) {
+      message += ` ${skipped} record(s) were skipped because they are not approved.`;
+    }
+
+    if (failed > 0) {
+      message += ` ${failed} record(s) failed to complete.`;
+    }
+
+    return {
+      success: true,
+      message,
+      data: { completed, failed, skipped }
+    };
+  } catch (error) {
+    console.error('Error in bulk complete water baptisms:', error);
+    throw error;
+  }
+}

@@ -44,10 +44,17 @@ export const useAccountsStore = defineStore('accounts', {
       this.loading = true
       this.error = null
       try {
-        const response = await axios.post('/church-records/accounts/login', { email, password })
+        // Encode password to obscure it in network logs (browser-native btoa)
+        const encodedPassword = btoa(password)
+
+        const response = await axios.post('/church-records/accounts/login', {
+          email,
+          password: encodedPassword,
+          passwordEncoded: true
+        })
         if (response.data && response.data.success) {
           // save the access token to the local storage
-          localStorage.setItem('userInfo', JSON.stringify({account: response.data.data.account, member: response.data.data.member}))
+          localStorage.setItem('userInfo', JSON.stringify({ account: response.data.data.account, member: response.data.data.member }))
           localStorage.setItem('accessToken', response.data.data.account.accessToken)
           return { success: true, data: response.data.data }
         } else {
@@ -85,7 +92,7 @@ export const useAccountsStore = defineStore('accounts', {
         params.append('offset', offset.toString())
         params.append('page', page.toString())
         params.append('pageSize', pageSize.toString())
-        
+
         // Add filter parameters (only if not default values)
         if (status && status !== 'All Status' && status !== 'All Statuses') {
           params.append('status', status)
@@ -100,14 +107,14 @@ export const useAccountsStore = defineStore('accounts', {
           params.append('dateRange', JSON.stringify(dateRange))
         }
         const response = await axios.get(`/church-records/accounts/getAllAccounts?${params}`)
-        
+
         if (response.data && response.data.success) {
           this.accounts = response.data.data || []
-          
+
           // Update pagination state
           this.currentPage = page
           this.itemsPerPage = pageSize
-          
+
           // Use backend pagination data if available
           if (response.data.pagination) {
             this.totalPages = response.data.pagination.totalPages || 1
@@ -118,7 +125,7 @@ export const useAccountsStore = defineStore('accounts', {
             this.totalCount = totalCount
             this.totalPages = Math.ceil(totalCount / pageSize) || 1
           }
-          
+
           // Update search query and filters if provided
           if (options.search !== undefined) {
             this.searchQuery = search
@@ -151,7 +158,7 @@ export const useAccountsStore = defineStore('accounts', {
       this.error = null
       try {
         const response = await axios.get(`/church-records/accounts/getAccountById/${id}`)
-        if (response.status === 200 ) {
+        if (response.status === 200) {
           return response.data.data
         } else {
           return null
@@ -174,7 +181,7 @@ export const useAccountsStore = defineStore('accounts', {
           }
         })
         console.log('Create account response:', response)
-        
+
         if (response.data && response.status === 201) {
           await this.fetchAccounts()
           return { success: true, data: response.data.data }
@@ -199,7 +206,7 @@ export const useAccountsStore = defineStore('accounts', {
       try {
         const response = await axios.put(`/church-records/accounts/updateAccount/${id}`, accountData)
         console.log('Update account response:', response)
-        
+
         if (response.data && response.status === 200) {
           await this.fetchAccounts()
           return { success: true, data: response.data.data, message: response.data.message }
@@ -338,11 +345,11 @@ export const useAccountsStore = defineStore('accounts', {
       this.filters = { ...this.filters, ...filters }
       this.currentPage = 1
       // Refetch with new filters
-      this.fetchAccounts({ 
-        ...filters, 
-        page: 1, 
-        pageSize: this.itemsPerPage, 
-        search: this.searchQuery 
+      this.fetchAccounts({
+        ...filters,
+        page: 1,
+        pageSize: this.itemsPerPage,
+        search: this.searchQuery
       })
     },
 

@@ -8,6 +8,7 @@ const {
   updateChildDedication,
   deleteChildDedication,
   bulkDeleteChildDedications,
+  bulkCompleteChildDedications,
   exportChildDedicationsToExcel,
   checkDuplicateChildDedication,
   checkTimeSlotAvailability
@@ -27,14 +28,14 @@ router.use(dateFormattingMiddleware);
 router.get('/check-duplicate', async (req, res) => {
   try {
     const { requested_by, child_firstname, child_lastname, date_of_birth, exclude_child_id } = req.query;
-    
+
     if (!requested_by || !child_firstname || !child_lastname || !date_of_birth) {
       return res.status(400).json({
         success: false,
         message: 'requested_by, child_firstname, child_lastname, and date_of_birth are required'
       });
     }
-    
+
     const result = await checkDuplicateChildDedication(
       requested_by,
       child_firstname,
@@ -42,7 +43,7 @@ router.get('/check-duplicate', async (req, res) => {
       date_of_birth,
       exclude_child_id || null
     );
-    
+
     if (result.isDuplicate) {
       return res.status(400).json({
         success: false,
@@ -50,7 +51,7 @@ router.get('/check-duplicate', async (req, res) => {
         data: { exists: true, dedication: result.dedication }
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: 'No duplicate found',
@@ -119,16 +120,16 @@ router.get('/check-time-slot', async (req, res) => {
 router.get('/check-member-dedication/:memberId', async (req, res) => {
   try {
     const { memberId } = req.params;
-    
+
     if (!memberId) {
       return res.status(400).json({
         success: false,
         message: 'Member ID is required'
       });
     }
-    
+
     const result = await getChildDedicationsByRequester(memberId);
-    
+
     if (result.success && result.data && result.data.length > 0) {
       return res.status(200).json({
         success: true,
@@ -136,7 +137,7 @@ router.get('/check-member-dedication/:memberId', async (req, res) => {
         data: { hasDedication: true, dedications: result.data }
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: 'Member has no existing child dedication requests',
@@ -159,7 +160,7 @@ router.get('/check-member-dedication/:memberId', async (req, res) => {
 router.post('/createChildDedication', async (req, res) => {
   try {
     const result = await createChildDedication(req.body);
-    
+
     if (result.success) {
       res.status(201).json({
         success: true,
@@ -266,7 +267,7 @@ router.get('/getChildDedicationById/:id', async (req, res) => {
     }
 
     const result = await getChildDedicationById(id);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -305,7 +306,7 @@ router.get('/getChildDedicationsByRequester/:memberId', async (req, res) => {
     }
 
     const result = await getChildDedicationsByRequester(memberId);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -347,7 +348,7 @@ router.put('/updateChildDedication/:id', async (req, res) => {
     // Check if user is admin
     const isAdmin = req.user?.role === 'admin' || req.user?.role === 'staff';
     const result = await updateChildDedication(id, req.body, isAdmin);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -387,7 +388,7 @@ router.delete('/deleteChildDedication/:id', async (req, res) => {
 
     const archivedBy = req.user?.acc_id || null;
     const result = await deleteChildDedication(id, archivedBy);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -455,6 +456,49 @@ router.delete('/bulkDeleteChildDedications', async (req, res) => {
 });
 
 /**
+ * BULK COMPLETE - Mark multiple child dedications as completed
+ * PUT /api/church-records/child-dedications/bulkCompleteChildDedications
+ * Body: { childIds: ["id1", "id2", "id3"] }
+ */
+router.put('/bulkCompleteChildDedications', async (req, res) => {
+  try {
+    const { childIds } = req.body;
+
+    if (!Array.isArray(childIds) || childIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'childIds array is required and cannot be empty'
+      });
+    }
+
+    // Skip audit trail for bulk operations to improve performance
+    req.skipAuditTrail = true;
+
+    const result = await bulkCompleteChildDedications(childIds);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error bulk completing child dedications:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to bulk complete child dedications'
+    });
+  }
+});
+
+/**
  * EXPORT - Export child dedication records to Excel
  * GET /api/church-records/child-dedications/exportExcel (query params)
  * POST /api/church-records/child-dedications/exportExcel (body payload)
@@ -463,14 +507,14 @@ router.get('/exportExcel', async (req, res) => {
   try {
     const options = req.query;
     const excelBuffer = await exportChildDedicationsToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `child_dedications_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting child dedications to Excel:', error);
@@ -485,14 +529,14 @@ router.post('/exportExcel', async (req, res) => {
   try {
     const options = req.body;
     const excelBuffer = await exportChildDedicationsToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `child_dedications_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting child dedications to Excel:', error);

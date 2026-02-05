@@ -32,7 +32,7 @@ export const useChildDedicationStore = defineStore('childDedication', {
   },
 
   actions: {
-  
+
     async fetchDedications(options = {}) {
       this.loading = true
       this.error = null
@@ -244,11 +244,11 @@ export const useChildDedicationStore = defineStore('childDedication', {
     setFilters(filters) {
       this.filters = { ...this.filters, ...filters }
       this.currentPage = 1
-      this.fetchDedications({ 
-        ...filters, 
-        page: 1, 
-        pageSize: this.itemsPerPage, 
-        search: this.searchQuery 
+      this.fetchDedications({
+        ...filters,
+        page: 1,
+        pageSize: this.itemsPerPage,
+        search: this.searchQuery
       })
     },
 
@@ -295,6 +295,44 @@ export const useChildDedicationStore = defineStore('childDedication', {
       } catch (error) {
         this.error = error.response?.data?.error || error.message || 'Failed to bulk delete child dedications'
         console.error('Error bulk deleting child dedications:', error)
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkCompleteChildDedications(childIds) {
+      this.loading = true
+      this.error = null
+      const accessToken = localStorage.getItem('accessToken')
+      try {
+        const response = await axios.put('/church-records/child-dedications/bulkCompleteChildDedications',
+          { childIds },
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        if (response.data.success) {
+          await this.fetchDedications({
+            page: this.currentPage,
+            pageSize: this.itemsPerPage,
+            search: this.searchQuery
+          })
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          this.error = response.data.message || 'Failed to bulk complete child dedications'
+          return { success: false, error: response.data.message }
+        }
+      } catch (error) {
+        this.error = error.response?.data?.error || error.message || 'Failed to bulk complete child dedications'
+        console.error('Error bulk completing child dedications:', error)
         return { success: false, error: this.error }
       } finally {
         this.loading = false

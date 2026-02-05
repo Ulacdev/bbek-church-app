@@ -170,6 +170,16 @@
                 </div>
                 <div class="d-flex gap-2">
                   <v-btn
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    :disabled="loading"
+                    @click="bulkCompleteDedications"
+                  >
+                    <v-icon left>mdi-check-all</v-icon>
+                    Mark as Completed
+                  </v-btn>
+                  <v-btn
                     color="error"
                     variant="flat"
                     size="small"
@@ -519,6 +529,54 @@ const toggleSelectAll = () => {
 
 const clearSelection = () => {
   selectedDedications.value = []
+}
+
+const bulkCompleteDedications = async () => {
+  // Count only approved dedications in the selection
+  const approvedCount = selectedDedications.value.filter(d => d.status === 'approved').length;
+  
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to mark ${approvedCount} approved child dedication(s) as completed?`,
+      'Confirm Bulk Complete',
+      {
+        confirmButtonText: 'Yes, Mark as Completed',
+        cancelButtonText: 'Cancel',
+        type: 'info',
+      }
+    )
+
+    // Extract child IDs for only approved dedications
+    const childIds = selectedDedications.value
+      .filter(d => d.status === 'approved')
+      .map(d => d.child_id)
+
+    // Use the bulk complete endpoint
+    const result = await childDedicationStore.bulkCompleteChildDedications(childIds)
+
+    if (result.success) {
+      const { completed, failed, message } = result.data || {}
+      
+      if (completed > 0) {
+        ElMessage.success(`Successfully marked ${completed} child dedication(s) as completed`)
+      }
+      
+      if (failed > 0) {
+        ElMessage.warning(`Failed to mark ${failed} child dedication(s) as completed`)
+      }
+      
+      if (message) {
+        ElMessage.info(message)
+      }
+    }
+
+    clearSelection()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error completing dedications:', error)
+      ElMessage.error('Failed to complete selected child dedications')
+    }
+  }
 }
 
 const bulkDeleteDedications = async () => {

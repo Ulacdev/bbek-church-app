@@ -128,7 +128,7 @@ async function createBurialService(burialData) {
   try {
     const new_burial_id = await getNextBurialId();
     console.log('New burial ID:', new_burial_id);
-    
+
     const {
       id, // Ignore id field if sent by frontend
       burial_id = new_burial_id,
@@ -460,15 +460,15 @@ async function getAllBurialServices(options = {}) {
           params.push(searchValue);
         }
         orderByClause += 'bs.date_created DESC';
-       break;
-     case 'Date Range (Newest)':
-       orderByClause += 'bs.service_date DESC';
-       break;
-     case 'Date Range (Oldest)':
-       orderByClause += 'bs.service_date ASC';
-       break;
-     default:
-       orderByClause += 'bs.date_created DESC';
+        break;
+      case 'Date Range (Newest)':
+        orderByClause += 'bs.service_date DESC';
+        break;
+      case 'Date Range (Oldest)':
+        orderByClause += 'bs.service_date ASC';
+        break;
+      default:
+        orderByClause += 'bs.date_created DESC';
     }
     sql += orderByClause;
 
@@ -501,10 +501,10 @@ async function getAllBurialServices(options = {}) {
       scheduled: 0,
       ongoing: 0
     };
-    
+
     const [allTotalResult] = await query('SELECT COUNT(*) as total FROM tbl_burialservice');
     summaryStats.total = allTotalResult[0]?.total || 0;
-    
+
     allStatusCountsResult.forEach(row => {
       if (summaryStats.hasOwnProperty(row.status)) {
         summaryStats[row.status] = row.count;
@@ -678,7 +678,7 @@ async function updateBurialService(burialId, burialData, isAdmin = false) {
 
     // Check current status and block updates if pending (except for admins or status changes)
     const currentData = burialCheck.data;
-    
+
     // Only block updates if user is NOT an admin and status is pending
     if (!isAdmin && currentData.status === 'pending' && status === undefined) {
       return {
@@ -1096,7 +1096,7 @@ async function analyzeBurialServiceAvailability(options = {}) {
       WHERE service_date BETWEEN ? AND ?
         AND status NOT IN ('Cancelled', 'Disapproved')
     `;
-    
+
     const params = [start + ' 00:00:00', end + ' 23:59:59'];
 
     if (location) {
@@ -1123,7 +1123,7 @@ async function analyzeBurialServiceAvailability(options = {}) {
     const endMoment = moment(endDate);
 
     while (current.isSameOrBefore(endMoment)) {
-      const dayServices = existingServices.filter(service => 
+      const dayServices = existingServices.filter(service =>
         moment(service.service_day).isSame(current, 'day')
       );
 
@@ -1171,7 +1171,7 @@ async function exportBurialServicesToExcel(options = {}) {
     delete exportOptions.pageSize;
 
     const result = await getAllBurialServices(exportOptions);
-    
+
     if (!result.success || !result.data || result.data.length === 0) {
       throw new Error('No burial services found to export');
     }
@@ -1220,8 +1220,8 @@ async function exportBurialServicesToExcel(options = {}) {
 
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Burial Services');
 
-    const excelBuffer = XLSX.write(workbook, { 
-      type: 'buffer', 
+    const excelBuffer = XLSX.write(workbook, {
+      type: 'buffer',
       bookType: 'xlsx',
       compression: true
     });
@@ -1229,6 +1229,117 @@ async function exportBurialServicesToExcel(options = {}) {
     return excelBuffer;
   } catch (error) {
     console.error('Error exporting burial services to Excel:', error);
+    throw error;
+  }
+}
+
+async function bulkCompleteBurialServices(burialIds) {
+  try {
+    if (!Array.isArray(burialIds) || burialIds.length === 0) {
+      return {
+        success: false,
+        message: 'burialIds array is required and cannot be empty'
+      };
+    }
+
+    let completed = 0;
+    let failed = 0;
+    let skipped = 0;
+    let skippedMessages = [];
+
+    for (const burialId of burialIds) {
+      try {
+        // Get current burial service details
+        const burialResult = await getBurialServiceById(burialId);
+
+        if (!burialResult.success || !burialResult.data) {
+          failed++;
+          continue;
+        }
+
+        const burial = burialResult.data;
+
+        // Skip if already completed
+        if (burial.status === 'completed') {
+          skipped++;
+          skippedMessages.push(`Burial service ${burialId} is already completed`);
+          continue;
+        }
+
+        // Skip if not approved (only approved services can be marked as completed)
+        if (burial.status !== 'approved') {
+          skipped++;
+          skippedMessages.push(`Burial service ${burialId} is not approved (current status: ${burial.status})`);
+          continue;
+        }
+
+        // Update the burial service to completed status
+        const updateSql = `UPDATE tbl_burialservice SET status = 'completed' WHERE burial_id = ?`;
+        await query(updateSql, [burialId]);
+
+        console.log(`✅ Burial service ${burialId} marked as completed. Sending email notification...`);
+
+        // Send email notification
+        try {
+          const email = burial.member_email || burial.requester_email;
+
+          console.log(`Email check - member_email: ${burial.member_email}, requester_email: ${burial.requester_email}, final: ${email}`);
+
+          if (email) {
+            const recipientName = burial.fullname || burial.requester_name || 'Valued Member';
+
+            console.log(`Sending completion email to ${email} for burial service ${burialId}`);
+
+            const emailResult = await sendBurialDetails({
+              email: email,
+              status: 'completed',
+              deceasedName: burial.deceased_name,
+              familyContact: recipientName,
+              burialDate: burial.service_date
+                ? moment(burial.service_date).format('YYYY-MM-DD HH:mm:ss')
+                : 'Completed',
+              location: burial.location || 'Church',
+              recipientName,
+              pastorName: burial.pastor_name,
+              isMember: !!burial.member_id
+            });
+
+            if (emailResult.success) {
+              console.log(`✅ Completion email sent successfully to ${email}`);
+            } else {
+              console.error(`❌ Failed to send completion email: ${emailResult.message}`);
+            }
+          } else {
+            console.warn(`⚠️ No email address found for burial service ${burialId}. Skipping email notification.`);
+          }
+        } catch (emailError) {
+          console.error(`❌ Error sending completion email for burial ${burialId}:`, emailError);
+        }
+
+        completed++;
+      } catch (err) {
+        console.error(`Error completing burial service ${burialId}:`, err);
+        failed++;
+      }
+    }
+
+    let message = `Successfully marked ${completed} burial service(s) as completed.`;
+
+    if (skipped > 0) {
+      message += ` ${skipped} service(s) were skipped because they are not approved.`;
+    }
+
+    if (failed > 0) {
+      message += ` ${failed} service(s) failed to complete.`;
+    }
+
+    return {
+      success: true,
+      message,
+      data: { completed, failed, skipped }
+    };
+  } catch (error) {
+    console.error('Error in bulk complete burial services:', error);
     throw error;
   }
 }
@@ -1241,6 +1352,7 @@ module.exports = {
   updateBurialService,
   deleteBurialService,
   bulkDeleteBurialServices,
+  bulkCompleteBurialServices,
   exportBurialServicesToExcel,
   searchBurialServicesFulltext,
   analyzeBurialServiceAvailability,

@@ -290,11 +290,11 @@ export const useBurialServiceStore = defineStore('burialService', {
     setFilters(filters) {
       this.filters = { ...this.filters, ...filters }
       this.currentPage = 1
-      this.fetchServices({ 
-        ...filters, 
-        page: 1, 
-        pageSize: this.itemsPerPage, 
-        search: this.searchQuery 
+      this.fetchServices({
+        ...filters,
+        page: 1,
+        pageSize: this.itemsPerPage,
+        search: this.searchQuery
       })
     },
 
@@ -341,6 +341,44 @@ export const useBurialServiceStore = defineStore('burialService', {
       } catch (error) {
         this.error = error.response?.data?.error || error.message || 'Failed to bulk delete burial services'
         console.error('Error bulk deleting burial services:', error)
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async bulkCompleteBurialServices(burialIds) {
+      this.loading = true
+      this.error = null
+      const accessToken = localStorage.getItem('accessToken')
+      try {
+        const response = await axios.put('/church-records/burial-services/bulkCompleteBurialServices',
+          { burialIds },
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        if (response.data.success) {
+          await this.fetchServices({
+            page: this.currentPage,
+            pageSize: this.itemsPerPage,
+            search: this.searchQuery
+          })
+          return {
+            success: true,
+            data: response.data.data,
+            message: response.data.message
+          }
+        } else {
+          this.error = response.data.message || 'Failed to bulk complete burial services'
+          return { success: false, error: response.data.message }
+        }
+      } catch (error) {
+        this.error = error.response?.data?.error || error.message || 'Failed to bulk complete burial services'
+        console.error('Error bulk completing burial services:', error)
         return { success: false, error: this.error }
       } finally {
         this.loading = false

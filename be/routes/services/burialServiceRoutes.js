@@ -8,6 +8,7 @@ const {
   updateBurialService,
   deleteBurialService,
   bulkDeleteBurialServices,
+  bulkCompleteBurialServices,
   exportBurialServicesToExcel,
   searchBurialServicesFulltext,
   analyzeBurialServiceAvailability
@@ -148,16 +149,16 @@ router.get('/check-duplicate', async (req, res) => {
 router.get('/check-member-burial/:memberId', async (req, res) => {
   try {
     const { memberId } = req.params;
-    
+
     if (!memberId) {
       return res.status(400).json({
         success: false,
         message: 'Member ID is required'
       });
     }
-    
+
     const result = await getBurialServicesByMemberId(memberId);
-    
+
     if (result.success && result.data && result.data.length > 0) {
       return res.status(200).json({
         success: true,
@@ -165,7 +166,7 @@ router.get('/check-member-burial/:memberId', async (req, res) => {
         data: { hasBurial: true, burials: result.data }
       });
     }
-    
+
     return res.status(200).json({
       success: true,
       message: 'Member has no existing burial service requests',
@@ -188,7 +189,7 @@ router.get('/check-member-burial/:memberId', async (req, res) => {
 router.post('/createBurialService', async (req, res) => {
   try {
     const result = await createBurialService(req.body);
-    
+
     if (result.success) {
       res.status(201).json({
         success: true,
@@ -204,17 +205,17 @@ router.post('/createBurialService', async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating burial service:', error);
-    
+
     // Provide more detailed error message for debugging
     let errorMessage = error.message || 'Failed to create burial service';
-    
+
     // Handle specific database constraint errors
     if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_NO_REFERENCED_ROW') {
       errorMessage = 'Invalid member ID or database constraint violation. Please ensure the member exists or provide non-member requester details.';
     } else if (error.code === 'ER_BAD_NULL_ERROR') {
       errorMessage = 'Missing required field. Please ensure all required fields are provided.';
     }
-    
+
     res.status(500).json({
       success: false,
       error: errorMessage,
@@ -343,7 +344,7 @@ router.get('/getBurialServicesByMemberId/:memberId', async (req, res) => {
     }
 
     const result = await getBurialServicesByMemberId(memberId);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -382,7 +383,7 @@ router.get('/getBurialServiceById/:id', async (req, res) => {
     }
 
     const result = await getBurialServiceById(id);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -424,7 +425,7 @@ router.put('/updateBurialService/:id', async (req, res) => {
     // Check if user is admin
     const isAdmin = req.user?.role === 'admin' || req.user?.role === 'staff';
     const result = await updateBurialService(id, req.body, isAdmin);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -464,7 +465,7 @@ router.delete('/deleteBurialService/:id', async (req, res) => {
 
     const archivedBy = req.user?.acc_id || null;
     const result = await deleteBurialService(id, archivedBy);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -532,6 +533,49 @@ router.delete('/bulkDeleteBurialServices', async (req, res) => {
 });
 
 /**
+ * BULK COMPLETE - Mark multiple burial service records as completed
+ * PUT /api/church-records/burial-services/bulkCompleteBurialServices
+ * Body: { burialIds: ["id1", "id2", "id3"] }
+ */
+router.put('/bulkCompleteBurialServices', async (req, res) => {
+  try {
+    const { burialIds } = req.body;
+
+    if (!Array.isArray(burialIds) || burialIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'burialIds array is required and cannot be empty'
+      });
+    }
+
+    // Skip audit trail for bulk operations to improve performance
+    req.skipAuditTrail = true;
+
+    const result = await bulkCompleteBurialServices(burialIds);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error bulk completing burial services:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to bulk complete burial services'
+    });
+  }
+});
+
+/**
  * EXPORT - Export burial service records to Excel
  * GET /api/church-records/burial-services/exportExcel (query params)
  * POST /api/church-records/burial-services/exportExcel (body payload)
@@ -540,14 +584,14 @@ router.get('/exportExcel', async (req, res) => {
   try {
     const options = req.query;
     const excelBuffer = await exportBurialServicesToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `burial_services_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting burial services to Excel:', error);
@@ -562,14 +606,14 @@ router.post('/exportExcel', async (req, res) => {
   try {
     const options = req.body;
     const excelBuffer = await exportBurialServicesToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `burial_services_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting burial services to Excel:', error);
@@ -590,7 +634,7 @@ router.get('/searchFulltext', async (req, res) => {
   try {
     const options = { ...req.query, useFulltext: true };
     const result = await searchBurialServicesFulltext(options);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,

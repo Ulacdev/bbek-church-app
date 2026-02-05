@@ -8,6 +8,7 @@ const {
   updateWaterBaptism,
   deleteWaterBaptism,
   bulkDeleteWaterBaptisms,
+  bulkCompleteWaterBaptismsWithAccount,
   exportWaterBaptismsToExcel
 } = require('../../dbHelpers/services/waterBaptismRecords');
 const { getMemberById, createMember, getSpecificMemberByEmailAndStatus } = require('../../dbHelpers/church_records/memberRecords');
@@ -48,11 +49,11 @@ const router = express.Router();
 router.post('/createWaterBaptism', async (req, res) => {
   try {
     // Check if creating a completed baptism for non-member
-    const isNonMemberCompleted = 
+    const isNonMemberCompleted =
       (req.body.is_member === false || req.body.is_member === 0 || req.body.is_member === 'false' || req.body.is_member === '0' || req.body.member_id === null) &&
-      req.body.status && 
+      req.body.status &&
       req.body.status.toLowerCase() === 'completed';
-    
+
     console.log(`=== CREATING WATER BAPTISM ===`);
     console.log(`Is non-member completed: ${isNonMemberCompleted}`);
     console.log(`Request body:`, JSON.stringify({
@@ -63,15 +64,15 @@ router.post('/createWaterBaptism', async (req, res) => {
       member_id: req.body.member_id,
       status: req.body.status
     }, null, 2));
-    
+
     const result = await createWaterBaptism(req.body);
-    
+
     if (result.success) {
       // If this is a non-member with completed status, create member and account
       if (isNonMemberCompleted) {
         const baptism = result.data;
         console.log(`✅ Creating member and account for completed non-member baptism: ${baptism.baptism_id}`);
-        
+
         try {
           // Format birthdate to YYYY-MM-DD
           let formattedBirthdate = null;
@@ -83,13 +84,13 @@ router.post('/createWaterBaptism', async (req, res) => {
               formattedBirthdate = null;
             }
           }
-          
+
           // Truncate address if too long (VARCHAR(45))
           let formattedAddress = baptism.address || '';
           if (formattedAddress.length > 44) {
             formattedAddress = formattedAddress.substring(0, 44);
           }
-          
+
           // Create member from baptism data
           const memberData = {
             firstname: baptism.firstname || '',
@@ -107,12 +108,12 @@ router.post('/createWaterBaptism', async (req, res) => {
             guardian_relationship: baptism.guardian_relationship || null,
             position: 'Member'
           };
-          
+
           console.log('Creating member record...');
           const memberResult = await createMember(memberData);
-          
+
           let existingMemberId = null;
-          
+
           if (memberResult.success && memberResult.data) {
             existingMemberId = memberResult.data.member_id;
             console.log(`✅ Member created successfully with ID: ${existingMemberId}`);
@@ -120,7 +121,7 @@ router.post('/createWaterBaptism', async (req, res) => {
             // Member already exists - try to find by email first
             console.log(`⚠️ Member already exists (duplicate detected). Looking up by email...`);
             let existingMember = await getSpecificMemberByEmailAndStatus(baptism.email);
-            
+
             if (!existingMember) {
               const sql = 'SELECT member_id FROM tbl_members WHERE phone_number = ?';
               const [rows] = await query(sql, [baptism.phone_number]);
@@ -131,7 +132,7 @@ router.post('/createWaterBaptism', async (req, res) => {
             } else {
               console.log(`✅ Found existing member by email with ID: ${existingMember.member_id}`);
             }
-            
+
             if (!existingMember && baptism.firstname && baptism.lastname && baptism.birthdate) {
               const nameSql = 'SELECT member_id FROM tbl_members WHERE LOWER(TRIM(firstname)) = LOWER(TRIM(?)) AND LOWER(TRIM(lastname)) = LOWER(TRIM(?)) AND birthdate = ?';
               const birthdateFormatted = moment(baptism.birthdate).format('YYYY-MM-DD');
@@ -141,21 +142,21 @@ router.post('/createWaterBaptism', async (req, res) => {
                 console.log(`✅ Found existing member by name + birthdate with ID: ${existingMember.member_id}`);
               }
             }
-            
+
             if (existingMember) {
               existingMemberId = existingMember.member_id;
             }
           }
-          
+
           if (existingMemberId) {
             // Update water baptism record with member_id
             console.log('Updating water baptism record with member_id...');
             await updateWaterBaptism(baptism.baptism_id, { member_id: existingMemberId, is_member: true });
-            
+
             // Create account for the member if not exists
             const tempPassword = Math.random().toString(36).slice(-12);
             console.log(`Generated temp password: ${tempPassword}`);
-            
+
             let accountResult = await getAccountByEmail(baptism.email);
             if (!accountResult.success || !accountResult.data) {
               const accountData = {
@@ -169,14 +170,14 @@ router.post('/createWaterBaptism', async (req, res) => {
             } else {
               console.log(`Account already exists for ${baptism.email}, using existing account`);
             }
-            
+
             if (accountResult.success && accountResult.data) {
               const account = accountResult.data;
               console.log(`✅ Account ready with ID: ${account.acc_id}`);
-              
+
               const name = `${baptism.firstname} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname}`.trim();
               console.log(`Sending welcome email to ${baptism.email} for ${name}...`);
-              
+
               const emailResult = await sendAccountDetails({
                 acc_id: account.acc_id,
                 email: baptism.email,
@@ -184,10 +185,10 @@ router.post('/createWaterBaptism', async (req, res) => {
                 type: 'new_account',
                 temporaryPassword: tempPassword
               });
-              
+
               if (emailResult.success) {
                 console.log(`✅ Welcome email sent successfully to ${baptism.email}`);
-                
+
                 console.log(`Sending water baptism completion confirmation email to ${baptism.email}...`);
                 const baptismEmailResult = await sendWaterBaptismDetails({
                   email: baptism.email,
@@ -210,7 +211,7 @@ router.post('/createWaterBaptism', async (req, res) => {
                   civilStatus: baptism.civil_status || '',
                   profession: baptism.profession || ''
                 });
-                
+
                 if (baptismEmailResult.success) {
                   console.log(`✅ Water baptism completion email sent to ${baptism.email}`);
                 } else {
@@ -226,7 +227,7 @@ router.post('/createWaterBaptism', async (req, res) => {
           console.error('Error creating member from completed baptism:', memberErr);
         }
       }
-      
+
       res.status(201).json({
         success: true,
         message: result.message,
@@ -334,7 +335,7 @@ router.get('/getWaterBaptismById/:id', async (req, res) => {
     }
 
     const result = await getWaterBaptismById(id);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -373,7 +374,7 @@ router.get('/getWaterBaptismByMemberId/:memberId', async (req, res) => {
     }
 
     const result = await getWaterBaptismByMemberId(memberId);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -419,23 +420,23 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
     console.log(`Baptism ID: ${id}`);
     console.log(`Request body status: ${req.body.status}`);
     console.log(`Current baptism status: ${currentBaptism.data?.status}`);
-    
-    const isStatusChangingToCompleted = 
-      req.body.status && 
-      req.body.status.toLowerCase() === 'completed' && 
-      currentBaptism.success && 
-      currentBaptism.data && 
+
+    const isStatusChangingToCompleted =
+      req.body.status &&
+      req.body.status.toLowerCase() === 'completed' &&
+      currentBaptism.success &&
+      currentBaptism.data &&
       currentBaptism.data.status?.toLowerCase() !== 'completed';
-      
+
     console.log(`Is status changing to completed: ${isStatusChangingToCompleted}`);
 
     const result = await updateWaterBaptism(id, req.body);
-    
+
     if (result.success) {
       // If status changed to "completed" and this is a non-member, create member record
       if (isStatusChangingToCompleted) {
         const baptism = currentBaptism.data;
-        
+
         if (baptism.is_member === 0 || baptism.is_member === '0' || baptism.is_member === false || baptism.is_member === 'false' || baptism.member_id === null) {
           console.log(`✅ Is non-member: is_member=${baptism.is_member} (${typeof baptism.is_member}), member_id=${baptism.member_id}`);
           // This is a non-member - create member record
@@ -449,7 +450,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               is_member: baptism.is_member,
               member_id: baptism.member_id
             }, null, 2));
-            
+
             // Format birthdate to YYYY-MM-DD
             let formattedBirthdate = null;
             if (baptism.birthdate) {
@@ -460,13 +461,13 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                 formattedBirthdate = null;
               }
             }
-            
+
             // Truncate address if too long (VARCHAR(45))
             let formattedAddress = baptism.address || '';
             if (formattedAddress.length > 44) {
               formattedAddress = formattedAddress.substring(0, 44);
             }
-            
+
             // Create member from baptism data
             const memberData = {
               firstname: baptism.firstname || '',
@@ -484,12 +485,12 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               guardian_relationship: baptism.guardian_relationship || null,
               position: 'Member'
             };
-            
+
             console.log('Creating member record...');
             const memberResult = await createMember(memberData);
-            
+
             let existingMemberId = null;
-            
+
             if (memberResult.success && memberResult.data) {
               // New member created successfully
               existingMemberId = memberResult.data.member_id;
@@ -498,7 +499,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               // Member already exists - try to find by email first
               console.log(`⚠️ Member already exists (duplicate detected). Looking up by email...`);
               let existingMember = await getSpecificMemberByEmailAndStatus(baptism.email);
-              
+
               if (!existingMember) {
                 // Try by phone number
                 console.log(`Email not found, trying phone number...`);
@@ -511,7 +512,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               } else {
                 console.log(`✅ Found existing member by email with ID: ${existingMember.member_id}`);
               }
-              
+
               // If still not found, try by name + birthdate
               if (!existingMember && baptism.firstname && baptism.lastname && baptism.birthdate) {
                 console.log(`Phone not found, trying name + birthdate...`);
@@ -523,7 +524,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                   console.log(`✅ Found existing member by name + birthdate with ID: ${existingMember.member_id}`);
                 }
               }
-              
+
               if (existingMember) {
                 existingMemberId = existingMember.member_id;
               } else {
@@ -535,16 +536,16 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                 });
               }
             }
-            
+
             if (existingMemberId) {
               // Update water baptism record with member_id
               console.log('Updating water baptism record with member_id...');
               await updateWaterBaptism(id, { member_id: existingMemberId, is_member: true });
-              
+
               // Create account for the member if not exists
               const tempPassword = Math.random().toString(36).slice(-12);
               console.log(`Generated temp password: ${tempPassword}`);
-              
+
               // Check if account exists
               let accountResult = await getAccountByEmail(baptism.email);
               if (!accountResult.success || !accountResult.data) {
@@ -560,15 +561,15 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               } else {
                 console.log(`Account already exists for ${baptism.email}, using existing account`);
               }
-              
+
               if (accountResult.success && accountResult.data) {
                 const account = accountResult.data;
                 console.log(`✅ Account ready with ID: ${account.acc_id}`);
-                
+
                 // Send welcome email with account details
                 const name = `${baptism.firstname} ${baptism.middle_name ? baptism.middle_name + ' ' : ''}${baptism.lastname}`.trim();
                 console.log(`Sending welcome email to ${baptism.email} for ${name}...`);
-                
+
                 const emailResult = await sendAccountDetails({
                   acc_id: account.acc_id,
                   email: baptism.email,
@@ -576,10 +577,10 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                   type: 'new_account',
                   temporaryPassword: tempPassword
                 });
-                
+
                 if (emailResult.success) {
                   console.log(`✅ Welcome email sent successfully to ${baptism.email}`);
-                  
+
                   // Also send water baptism completion confirmation email
                   console.log(`Sending water baptism completion confirmation email to ${baptism.email}...`);
                   const baptismEmailResult = await sendWaterBaptismDetails({
@@ -603,7 +604,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                     civilStatus: baptism.civil_status || '',
                     profession: baptism.profession || ''
                   });
-                  
+
                   if (baptismEmailResult.success) {
                     console.log(`✅ Water baptism completion email sent to ${baptism.email}`);
                   } else {
@@ -633,16 +634,16 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
           // Existing member - generate temporary password and send account setup email
           try {
             console.log(`Processing completed baptism for existing member. Baptism ID: ${id}`);
-            
+
             const memberResult = await getMemberById(result.data.member_id);
             if (memberResult.success && memberResult.data) {
               const member = memberResult.data;
               console.log(`Found member: ${member.firstname} ${member.lastname}, Email: ${member.email}`);
-              
+
               // Generate a random temporary password
               const tempPassword = Math.random().toString(36).slice(-12);
               console.log(`Generated temp password: ${tempPassword}`);
-              
+
               // Check if account exists, if not create one
               let accountResult = await getAccountByEmail(member.email);
               if (!accountResult.success || !accountResult.data) {
@@ -663,13 +664,13 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
               } else {
                 console.log(`Account already exists for ${member.email}, acc_id: ${accountResult.data.acc_id}`);
               }
-              
+
               if (accountResult.success && accountResult.data) {
                 const account = accountResult.data;
-                
+
                 const name = `${member.firstname} ${member.middle_name ? member.middle_name + ' ' : ''}${member.lastname}`.trim();
                 console.log(`Sending account setup email to ${member.email} for ${name}...`);
-                
+
                 const emailResult = await sendAccountDetails({
                   acc_id: account.acc_id,
                   email: member.email,
@@ -677,7 +678,7 @@ router.put('/updateWaterBaptism/:id', async (req, res) => {
                   type: 'new_account',
                   temporaryPassword: tempPassword
                 });
-                
+
                 if (emailResult.success) {
                   console.log(`✅ Account setup email sent successfully to ${member.email}`);
                 } else {
@@ -731,7 +732,7 @@ router.delete('/deleteWaterBaptism/:id', async (req, res) => {
 
     const archivedBy = req.user?.acc_id || null;
     const result = await deleteWaterBaptism(id, archivedBy);
-    
+
     if (result.success) {
       res.status(200).json({
         success: true,
@@ -807,14 +808,14 @@ router.get('/exportExcel', async (req, res) => {
   try {
     const options = req.query;
     const excelBuffer = await exportWaterBaptismsToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `water_baptisms_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting water baptisms to Excel:', error);
@@ -829,14 +830,14 @@ router.post('/exportExcel', async (req, res) => {
   try {
     const options = req.body;
     const excelBuffer = await exportWaterBaptismsToExcel(options);
-    
+
     const timestamp = moment().format('YYYY-MM-DD_HH-mm-ss');
     const filename = `water_baptisms_export_${timestamp}.xlsx`;
-    
+
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', excelBuffer.length);
-    
+
     res.send(excelBuffer);
   } catch (error) {
     console.error('Error exporting water baptisms to Excel:', error);
@@ -862,14 +863,14 @@ router.post('/register-non-member', async (req, res) => {
   try {
     // Validate required fields for non-member
     const { firstname, lastname, email } = req.body;
-    
+
     if (!firstname || !lastname || !email) {
       return res.status(400).json({
         success: false,
         message: 'First name, last name, and email are required for non-member registration'
       });
     }
-    
+
     // Check if email already exists (in accounts or members)
     const duplicateAccount = await checkDuplicateAccount(email);
     if (duplicateAccount.isDuplicate) {
@@ -879,7 +880,7 @@ router.post('/register-non-member', async (req, res) => {
         error: 'An account with this email already exists. Please use a different email or contact support.'
       });
     }
-    
+
     const existingMember = await getSpecificMemberByEmailAndStatus(email?.trim().toLowerCase());
     if (existingMember) {
       return res.status(400).json({
@@ -888,7 +889,7 @@ router.post('/register-non-member', async (req, res) => {
         error: 'A member with this email already exists. Please use a different email or contact support.'
       });
     }
-    
+
     // Create water baptism record with is_member = 0
     const baptismData = {
       ...req.body,
@@ -896,14 +897,14 @@ router.post('/register-non-member', async (req, res) => {
       member_id: null,
       status: 'pending'
     };
-    
+
     const result = await createWaterBaptism(baptismData);
-    
+
     if (result.success) {
       // Send confirmation email for pending registration
       const recipientName = `${req.body.firstname} ${req.body.lastname}`;
       console.log(`Sending pending registration confirmation email to ${req.body.email}...`);
-      
+
       const emailResult = await sendWaterBaptismDetails({
         email: req.body.email,
         status: 'pending',
@@ -932,13 +933,13 @@ router.post('/register-non-member', async (req, res) => {
         testimony: req.body.testimony || '',
         desireMinistry: req.body.desire_ministry || ''
       });
-      
+
       if (emailResult.success) {
         console.log(`✅ Pending registration confirmation email sent to ${req.body.email}`);
       } else {
         console.error(`❌ Failed to send pending registration email: ${emailResult.message}`);
       }
-      
+
       res.status(201).json({
         success: true,
         message: 'Water baptism registration submitted successfully! You will receive an email with further instructions.',
@@ -1063,6 +1064,49 @@ router.get('/check-time-slot', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to check time slot'
+    });
+  }
+});
+
+/**
+ * BULK COMPLETE - Mark multiple water baptism records as completed
+ * PUT /api/services/water-baptisms/bulkCompleteWaterBaptisms
+ * Body: { baptismIds: ["id1", "id2", "id3"] }
+ */
+router.put('/bulkCompleteWaterBaptisms', async (req, res) => {
+  try {
+    const { baptismIds } = req.body;
+
+    if (!Array.isArray(baptismIds) || baptismIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'baptismIds array is required and cannot be empty'
+      });
+    }
+
+    // Skip audit trail for bulk operations to improve performance
+    req.skipAuditTrail = true;
+
+    const result = await bulkCompleteWaterBaptismsWithAccount(baptismIds);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: result.message,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error bulk completing water baptisms:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to bulk complete water baptisms'
     });
   }
 });

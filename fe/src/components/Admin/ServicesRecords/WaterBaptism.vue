@@ -170,6 +170,16 @@
                 </div>
                 <div class="d-flex gap-2">
                   <v-btn
+                    color="success"
+                    variant="flat"
+                    size="small"
+                    :disabled="loading"
+                    @click="bulkCompleteBaptisms"
+                  >
+                    <v-icon left>mdi-check-all</v-icon>
+                    Mark as Completed
+                  </v-btn>
+                  <v-btn
                     color="error"
                     variant="flat"
                     size="small"
@@ -508,6 +518,54 @@ const toggleSelectAll = () => {
 
 const clearSelection = () => {
   selectedBaptisms.value = []
+}
+
+const bulkCompleteBaptisms = async () => {
+  // Count only approved baptisms in the selection
+  const approvedCount = selectedBaptisms.value.filter(b => b.status === 'approved').length;
+  
+  try {
+    await ElMessageBox.confirm(
+      `Are you sure you want to mark ${approvedCount} approved water baptism record(s) as completed?`,
+      'Confirm Bulk Complete',
+      {
+        confirmButtonText: 'Yes, Mark as Completed',
+        cancelButtonText: 'Cancel',
+        type: 'info',
+      }
+    )
+
+    // Extract baptism IDs for only approved baptisms
+    const baptismIds = selectedBaptisms.value
+      .filter(b => b.status === 'approved')
+      .map(b => b.baptism_id)
+
+    // Use the bulk complete endpoint
+    const result = await waterBaptismStore.bulkCompleteWaterBaptisms(baptismIds)
+
+    if (result.success) {
+      const { completed, failed, message } = result.data || {}
+      
+      if (completed > 0) {
+        ElMessage.success(`Successfully marked ${completed} water baptism record(s) as completed`)
+      }
+      
+      if (failed > 0) {
+        ElMessage.warning(`Failed to mark ${failed} water baptism record(s) as completed`)
+      }
+      
+      if (message) {
+        ElMessage.info(message)
+      }
+    }
+
+    clearSelection()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Error completing baptisms:', error)
+      ElMessage.error('Failed to complete selected water baptism records')
+    }
+  }
 }
 
 const bulkDeleteBaptisms = async () => {

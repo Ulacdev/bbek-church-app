@@ -1,4 +1,4 @@
-  import { defineStore } from 'pinia'
+import { defineStore } from 'pinia'
 import axios from '@/api/axios'
 
 export const useWaterBaptismStore = defineStore('waterBaptism', {
@@ -373,11 +373,11 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
     setFilters(filters) {
       this.filters = { ...this.filters, ...filters }
       this.currentPage = 1
-      this.fetchBaptisms({ 
-        ...filters, 
-        page: 1, 
-        pageSize: this.itemsPerPage, 
-        search: this.searchQuery 
+      this.fetchBaptisms({
+        ...filters,
+        page: 1,
+        pageSize: this.itemsPerPage,
+        search: this.searchQuery
       })
     },
 
@@ -430,18 +430,20 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
       }
     },
 
-    async bulkDeleteWaterBaptisms(baptismIds) {
+    async bulkCompleteWaterBaptisms(baptismIds) {
       this.loading = true
       this.error = null
       const accessToken = localStorage.getItem('accessToken')
       try {
-        const response = await axios.delete('/services/water-baptisms/bulkDeleteWaterBaptisms', {
-          data: { baptismIds },
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+        const response = await axios.put('/services/water-baptisms/bulkCompleteWaterBaptisms',
+          { baptismIds },
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
           }
-        })
+        )
         if (response.data.success) {
           await this.fetchBaptisms({
             page: this.currentPage,
@@ -454,12 +456,12 @@ export const useWaterBaptismStore = defineStore('waterBaptism', {
             message: response.data.message
           }
         } else {
-          this.error = response.data.message || 'Failed to bulk delete water baptisms'
+          this.error = response.data.message || 'Failed to bulk complete water baptisms'
           return { success: false, error: response.data.message }
         }
       } catch (error) {
-        this.error = error.response?.data?.error || error.message || 'Failed to bulk delete water baptisms'
-        console.error('Error bulk deleting water baptisms:', error)
+        this.error = error.response?.data?.error || error.message || 'Failed to bulk complete water baptisms'
+        console.error('Error bulk completing water baptisms:', error)
         return { success: false, error: this.error }
       } finally {
         this.loading = false
