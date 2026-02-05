@@ -42,6 +42,10 @@ const upload = multer({
  */
 router.post('/createMinistry', authenticateToken, upload.single('image'), async (req, res) => {
   try {
+    console.log('=== CREATE MINISTRY REQUEST ===');
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Request file:', req.file ? { originalname: req.file.originalname, size: req.file.size } : 'No file');
+    
     // Prepare ministry data from request
     let ministryData = { ...req.body };
 
@@ -57,6 +61,11 @@ router.post('/createMinistry', authenticateToken, upload.single('image'), async 
       console.log('No image provided for create');
     }
 
+    console.log('Calling createMinistry with data:', JSON.stringify(ministryData, (key, value) => {
+      if (key === 'image') return value instanceof Buffer ? '[Buffer]' : value;
+      return value;
+    }, 2));
+    
     const result = await createMinistry(ministryData);
     
     if (result.success) {
@@ -73,8 +82,19 @@ router.post('/createMinistry', authenticateToken, upload.single('image'), async 
       });
     }
   } catch (error) {
-    console.error('Error creating ministry:', error);
+    console.error('=== CREATE MINISTRY ERROR ===');
+    console.error('Error:', error.message);
     console.error('Error stack:', error.stack);
+    console.error('Error code:', error.code);
+    
+    // Check if it's a multer error
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        success: false,
+        error: 'File too large. Maximum size is 10MB.'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to create ministry',
