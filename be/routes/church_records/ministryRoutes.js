@@ -47,18 +47,14 @@ const upload = multer({
  *   - JSON body with base64 image: { ministry_name, schedule, leader_id, department_id, members, status?, date_created?, image?, description? }
  *   - multipart/form-data with file upload: form fields + 'image' file field
  */
-router.post('/createMinistry', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/createMinistry', authenticateToken, async (req, res) => {
   try {
     // Prepare ministry data from request
     // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
     let ministryData = req.body ? { ...req.body } : {};
 
-    // If file was uploaded via multer (multipart/form-data), use it
-    if (req.file) {
-      console.log('File uploaded via multer:', req.file.originalname, req.file.size, 'bytes');
-      ministryData.image = req.file;
-    } else if (req.body && req.body.image) {
-      // If image is provided as base64 string in JSON body
+    // Check if image is provided in body (base64 from JSON)
+    if (req.body && req.body.image) {
       console.log('Image provided as base64 string');
       ministryData.image = req.body.image;
     } else {
@@ -248,7 +244,7 @@ router.get('/getMinistryById/:id', async (req, res) => {
  *   - JSON body with base64 image: { ministry_name?, schedule?, leader_id?, department_id?, members?, status?, date_created?, image?, description? }
  *   - multipart/form-data with file upload: form fields + 'image' file field
  */
-router.put('/updateMinistry/:id', authenticateToken, upload.single('image'), async (req, res) => {
+router.put('/updateMinistry/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const ministryId = parseInt(id);
@@ -264,12 +260,8 @@ router.put('/updateMinistry/:id', authenticateToken, upload.single('image'), asy
     // Handle case when req.body is undefined (e.g., on Vercel when multer fails)
     let ministryData = req.body ? { ...req.body } : {};
 
-    // If file was uploaded via multer (multipart/form-data), use it
-    if (req.file) {
-      console.log('File uploaded via multer for update:', req.file.originalname, req.file.size, 'bytes');
-      ministryData.image = req.file;
-    } else if (req.body && req.body.image) {
-      // If image is provided as base64 string in JSON body
+    // Check if image is provided in body (base64 from JSON)
+    if (req.body && req.body.image) {
       console.log('Image provided as base64 string for update');
       ministryData.image = req.body.image;
     } else {
