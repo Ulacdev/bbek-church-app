@@ -29,6 +29,9 @@ const router = express.Router();
 // Use memory storage for hosting platforms (serverless environments)
 const storage = multer.memoryStorage();
 
+// In-memory storage for chunked uploads
+const chunkStorage = new Map();
+
 const upload = multer({
   storage: storage,
   limits: {
@@ -83,77 +86,10 @@ router.post('/createMember', async (req, res) => {
 
 
 /**
- * IMPORT - Import member records from CSV/Excel file
- * POST /api/church-records/members/import
- */
-router.post('/import', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded'
-      });
-    }
-
-    const fileBuffer = req.file.buffer;
-    const fileExtension = path.extname(req.file.originalname).toLowerCase();
-
-    let memberDataArray = [];
-
-    // Parse file based on type
-    if (fileExtension === '.csv') {
-      memberDataArray = await parseCSVBuffer(fileBuffer);
-    } else if (fileExtension === '.xlsx') {
-      memberDataArray = await parseExcelBuffer(fileBuffer);
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: 'Unsupported file type'
-      });
-    }
-
-    // Validate that we have data
-    if (!memberDataArray || memberDataArray.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No data found in file'
-      });
-    }
-
-    // Get user info for logging
-    const userInfo = {
-      acc_id: req.user?.acc_id || 'system',
-      email: req.user?.email || 'system@church.com',
-      name: req.user?.name || 'System Admin',
-      position: req.user?.position || 'admin'
-    };
-
-    // Import members
-    const result = await importMembers(memberDataArray, userInfo);
-
-    res.status(200).json({
-      success: true,
-      message: result.message,
-      data: result.data
-    });
-
-  } catch (error) {
-    console.error('Error importing members:', error);
-
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to import members'
-    });
-  }
-});
-
-/**
  * IMPORT CHUNK - Upload a chunk of CSV/Excel data for large imports
  * POST /api/church-records/members/import-chunk
  * Used by chunked upload for files > 1MB (Vercel limitation)
  */
-const chunkStorage = new Map(); // In-memory storage for chunk uploads
-
 router.post('/import-chunk', async (req, res) => {
   try {
     const { uploadId, chunkNumber, totalChunks, dataRows, fileName, fileExtension } = req.body;
@@ -281,6 +217,71 @@ router.post('/import-chunk', async (req, res) => {
       success: false,
       message: 'An error occurred while processing the chunk: ' + error.message,
       error: error.message
+    });
+  }
+});
+
+/**
+ * IMPORT - Import member records from CSV/Excel file
+ * POST /api/church-records/members/import
+ */
+router.post('/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const fileBuffer = req.file.buffer;
+    const fileExtension = path.extname(req.file.originalname).toLowerCase();
+
+    let memberDataArray = [];
+
+    // Parse file based on type
+    if (fileExtension === '.csv') {
+      memberDataArray = await parseCSVBuffer(fileBuffer);
+    } else if (fileExtension === '.xlsx') {
+      memberDataArray = await parseExcelBuffer(fileBuffer);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported file type'
+      });
+    }
+
+    // Validate that we have data
+    if (!memberDataArray || memberDataArray.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No data found in file'
+      });
+    }
+
+    // Get user info for logging
+    const userInfo = {
+      acc_id: req.user?.acc_id || 'system',
+      email: req.user?.email || 'system@church.com',
+      name: req.user?.name || 'System Admin',
+      position: req.user?.position || 'admin'
+    };
+
+    // Import members
+    const result = await importMembers(memberDataArray, userInfo);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('Error importing members:', error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to import members'
     });
   }
 });
