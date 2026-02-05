@@ -152,36 +152,57 @@ app.use(cors(corsOptions));
 // Base64 encoding increases size by ~33%, and videos can be very large
 // CMS routes need higher limits for multiple images/videos in one request
 
-// Skip body parsing for multipart/form-data requests (let multer handle them)
+// Use body-parser's type option to exclude multipart/form-data requests
 // This prevents body-parser from corrupting multipart requests before multer processes them
-app.use((req, res, next) => {
-  if (req.headers['content-type'] && req.headers['content-type'].startsWith('multipart/form-data')) {
-    // Skip body parsing for multipart requests - multer will handle them
-    return next();
+app.use(bodyParser.json({ 
+  limit: '500mb',
+  type: (req) => {
+    // Skip parsing if content-type is multipart/form-data
+    const contentType = req.headers['content-type'];
+    if (contentType && contentType.startsWith('multipart/form-data')) {
+      return false;
+    }
+    return 'application/json';
   }
-  // Continue with regular body parsing for other content types
-  next();
-});
-
-app.use(bodyParser.json({ limit: '500mb' }));
+}));
 app.use(
   bodyParser.urlencoded({
     extended: true,
-    limit: '500mb'
+    limit: '500mb',
+    type: (req) => {
+      // Skip parsing if content-type is multipart/form-data
+      const contentType = req.headers['content-type'];
+      if (contentType && contentType.startsWith('multipart/form-data')) {
+        return false;
+      }
+      return 'application/x-www-form-urlencoded';
+    }
   })
 );
 
 // Additional body parser specifically for CMS routes with even higher limits
-// This handles cases where multiple large images/videos are sent together
-// Also skip multipart/form-data for CMS routes
-app.use('/api/cms', (req, res, next) => {
-  if (req.headers['content-type'] && req.headers['content-type'].startsWith('multipart/form-data')) {
-    return next();
+// Also exclude multipart/form-data for CMS routes
+app.use('/api/cms', bodyParser.json({ 
+  limit: '500mb',
+  type: (req) => {
+    const contentType = req.headers['content-type'];
+    if (contentType && contentType.startsWith('multipart/form-data')) {
+      return false;
+    }
+    return 'application/json';
   }
-  next();
-});
-app.use('/api/cms', bodyParser.json({ limit: '500mb' }));
-app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb' }));
+}));
+app.use('/api/cms', bodyParser.urlencoded({ 
+  extended: true, 
+  limit: '500mb',
+  type: (req) => {
+    const contentType = req.headers['content-type'];
+    if (contentType && contentType.startsWith('multipart/form-data')) {
+      return false;
+    }
+    return 'application/x-www-form-urlencoded';
+  }
+}));
 
 // Request logging middleware
 // In development: log all requests
