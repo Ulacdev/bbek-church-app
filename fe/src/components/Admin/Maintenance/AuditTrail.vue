@@ -417,7 +417,7 @@ const exportLogs = async () => {
 
 const printLogs = () => {
   const printWindow = window.open('', '_blank')
-  const tableHeaders = ['User', 'Action', 'Module/Page', 'Description', 'Date & Time', 'IP Address', 'Status']
+  const tableHeaders = ['#', 'User', 'Action', 'Module/Page', 'Description', 'Date & Time', 'IP Address', 'Status']
 
   // Get current filter information for the header
   const filterInfo = []
@@ -439,6 +439,7 @@ const printLogs = () => {
 
   const rows = logs.value.map(log => `
     <tr>
+      <td style="text-align: center;"><input type="checkbox" /></td>
       <td>
         <div><strong>${log.user_name}</strong></div>
         <div style="font-size: 11px; color: #666;">${log.user_email}</div>
@@ -533,7 +534,7 @@ const printLogs = () => {
             <tr>${tableHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="7" style="text-align:center">No records found</td></tr>'}
+            ${rows || '<tr><td colspan="8" style="text-align:center">No records found</td></tr>'}
           </tbody>
         </table>
       </body>

@@ -138,6 +138,8 @@ const corsOptions = {
     
     // Check if origin is in allowed list
     const isAllowed = allowedOrigins.indexOf(origin) !== -1;
+      // Allow Vercel preview deployments (e.g. *.vercel.app) when running on Vercel
+      const isVercelPreview = !!origin && origin.endsWith('.vercel.app');
     
     // In development, log CORS checks for debugging
     if (IS_DEVELOPMENT) {
@@ -148,7 +150,7 @@ const corsOptions = {
       });
     }
     
-    if (isAllowed) {
+    if (isAllowed || (IS_VERCEL && isVercelPreview)) {
       callback(null, true);
     } else {
       if (IS_DEVELOPMENT) {
@@ -188,15 +190,14 @@ const skipMultipart = (contentType) => {
   return contentType && contentType.includes('multipart/form-data');
 };
 
-// For JSON requests - skip multipart
+// For JSON requests - skip multipart. Use boolean-returning `type` to avoid accidental
+// string return values that could be misinterpreted by body-parser.
 app.use(bodyParser.json({ 
   limit: '500mb',
-  type: (req, res, next) => {
-    const contentType = req.headers['content-type'] || '';
-    if (skipMultipart(contentType)) {
-      return 'binary' // Return a type that won't match
-    }
-    return 'application/json';
+  type: (req) => {
+    const contentType = (req.headers['content-type'] || '').toLowerCase();
+    if (skipMultipart(contentType)) return false;
+    return contentType.includes('application/json') || contentType === '';
   }
 }));
 
@@ -205,12 +206,10 @@ app.use(
   bodyParser.urlencoded({
     extended: true,
     limit: '500mb',
-    type: (req, res, next) => {
-      const contentType = req.headers['content-type'] || '';
-      if (skipMultipart(contentType)) {
-        return 'application/octet-stream' // Return a type that won't match
-      }
-      return 'application/x-www-form-urlencoded';
+    type: (req) => {
+      const contentType = (req.headers['content-type'] || '').toLowerCase();
+      if (skipMultipart(contentType)) return false;
+      return contentType.includes('application/x-www-form-urlencoded') || contentType === '';
     }
   })
 );
@@ -219,23 +218,19 @@ app.use(
 // This handles cases where multiple large images/videos are sent together
 app.use('/api/cms', bodyParser.json({ 
   limit: '500mb',
-  type: (req, res, next) => {
-    const contentType = req.headers['content-type'] || '';
-    if (skipMultipart(contentType)) {
-      return 'binary';
-    }
-    return 'application/json';
+  type: (req) => {
+    const contentType = (req.headers['content-type'] || '').toLowerCase();
+    if (skipMultipart(contentType)) return false;
+    return contentType.includes('application/json') || contentType === '';
   }
 }));
 app.use('/api/cms', bodyParser.urlencoded({ 
   extended: true, 
   limit: '500mb',
-  type: (req, res, next) => {
-    const contentType = req.headers['content-type'] || '';
-    if (skipMultipart(contentType)) {
-      return 'application/octet-stream';
-    }
-    return 'application/x-www-form-urlencoded';
+  type: (req) => {
+    const contentType = (req.headers['content-type'] || '').toLowerCase();
+    if (skipMultipart(contentType)) return false;
+    return contentType.includes('application/x-www-form-urlencoded') || contentType === '';
   }
 }));
 

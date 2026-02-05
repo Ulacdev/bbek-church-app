@@ -202,8 +202,7 @@ const uploadFile = async () => {
 
     const response = await axios.post('/church-records/members/import', formData, {
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'multipart/form-data'
+        'Authorization': `Bearer ${accessToken}`
       }
     })
 

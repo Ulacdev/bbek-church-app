@@ -857,14 +857,15 @@ const exportToCSV = () => {
 
 const printData = () => {
   const printWindow = window.open('', '_blank')
-  const tableHeaders = ['Archived Date', 'Original Table', 'Original ID', 'Archived By', 'Status']
+  const tableHeaders = ['#', 'Archived Date', 'Original Table', 'Original ID', 'Archived By', 'Status']
   
   // Get current user info for print footer
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
   const printedBy = currentUser.email || currentUser.name || 'Admin'
   
-  const rows = archives.value.map(archive => `
+  const rows = archives.value.map((archive, index) => `
     <tr>
+      <td style="text-align: center;"><input type="checkbox" /></td>
       <td>${formatDateTime(archive.archived_at)}</td>
       <td>${formatTableName(archive.original_table)}</td>
       <td>${archive.original_id}</td>
@@ -922,6 +923,22 @@ const printData = () => {
             margin-bottom: 15px;
             font-weight: bold;
           }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+          }
+          tr:nth-child(even) {
+            background-color: #fafafa;
+          }
+          input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+          }
         </style>
       </head>
       <body>
@@ -942,7 +959,7 @@ const printData = () => {
             <tr>${tableHeaders.map(h => `<th>${h}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${rows || '<tr><td colspan="5" style="text-align:center">No records found</td></tr>'}
+            ${rows || '<tr><td colspan="6" style="text-align:center">No records found</td></tr>'}
           </tbody>
         </table>
       </body>
