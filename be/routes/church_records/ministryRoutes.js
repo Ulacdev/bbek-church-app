@@ -267,6 +267,14 @@ router.put('/updateMinistry/:id', authenticateToken, upload.single('image'), asy
       });
     }
 
+    // Debug: Log request details
+    console.log('=== UPDATE MINISTRY REQUEST ===');
+    console.log('Ministry ID:', ministryId);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Req body keys:', Object.keys(req.body));
+    console.log('Req body:', JSON.stringify(req.body, null, 2));
+    console.log('Req file:', req.file ? { originalname: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype } : 'No file');
+    
     // Prepare ministry data from request
     let ministryData = { ...req.body };
 
