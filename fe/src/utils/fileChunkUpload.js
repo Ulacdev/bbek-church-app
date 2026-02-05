@@ -197,13 +197,19 @@ const uploadFileChunked = async (file, accessToken, onProgress) => {
     }
 
     console.log(`[Upload] File contains ${dataRows.length} rows`);
+    console.log('[Upload] Sample row:', JSON.stringify(dataRows[0]).substring(0, 200));
 
     // Step 2: Split into chunks
     const chunks = chunkData(dataRows);
     console.log(`[Upload] Split into ${chunks.length} chunks`);
+    chunks.forEach((chunk, idx) => {
+      const chunkSizeKB = (JSON.stringify(chunk).length / 1024).toFixed(2);
+      console.log(`[Upload] Chunk ${idx + 1}: ${chunk.length} rows, ${chunkSizeKB}KB`);
+    });
 
     // Generate unique upload ID
     const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    console.log(`[Upload] Generated upload ID: ${uploadId}`);
 
     // Step 3: Upload each chunk
     let uploadedChunks = 0;
@@ -213,50 +219,66 @@ const uploadFileChunked = async (file, accessToken, onProgress) => {
 
       console.log(`[Upload] Uploading chunk ${chunkNumber}/${chunks.length} (${chunk.length} rows)...`);
 
-      const response = await axios.post(
-        '/church-records/members/import-chunk',
-        {
+      try {
+        const chunkPayload = {
           uploadId,
           chunkNumber,
           totalChunks: chunks.length,
           dataRows: chunk,
           fileName: file.name,
           fileExtension: file.name.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '.csv'
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 300000 // 5 minutes per chunk
+        };
+
+        console.log(`[Upload] Chunk payload size: ${(JSON.stringify(chunkPayload).length / 1024).toFixed(2)}KB`);
+
+        const response = await axios.post(
+          '/church-records/members/import-chunk',
+          chunkPayload,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 300000 // 5 minutes per chunk
+          }
+        );
+
+        console.log(`[Upload] Chunk ${chunkNumber} response:`, response.data);
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || `Chunk ${chunkNumber} upload failed`);
         }
-      );
 
-      if (!response.data.success) {
-        throw new Error(response.data.message || `Chunk ${chunkNumber} upload failed`);
-      }
+        uploadedChunks++;
 
-      uploadedChunks++;
+        // Report progress
+        if (onProgress) {
+          onProgress({
+            chunksUploaded: uploadedChunks,
+            totalChunks: chunks.length,
+            percentComplete: Math.round((uploadedChunks / chunks.length) * 100)
+          });
+        }
 
-      // Report progress
-      if (onProgress) {
-        onProgress({
-          chunksUploaded: uploadedChunks,
-          totalChunks: chunks.length,
-          percentComplete: Math.round((uploadedChunks / chunks.length) * 100)
-        });
-      }
-
-      // If this was the last chunk and upload is complete, return results
-      if (response.data.uploadComplete) {
-        console.log('[Upload] All chunks received and processed on backend');
-        return response.data.data;
+        // If this was the last chunk and upload is complete, return results
+        if (response.data.uploadComplete) {
+          console.log('[Upload] All chunks received and processed on backend');
+          console.log('[Upload] Import results:', response.data.data);
+          return response.data.data;
+        }
+      } catch (chunkError) {
+        console.error(`[Upload] Error uploading chunk ${chunkNumber}:`, chunkError.message);
+        if (chunkError.response?.data) {
+          console.error(`[Upload] Backend error response:`, chunkError.response.data);
+        }
+        throw chunkError;
       }
     }
 
     throw new Error('Upload completed but results not received');
   } catch (error) {
     console.error('[Upload] Chunked upload error:', error);
+    console.error('[Upload] Error response:', error.response?.data);
     throw error;
   }
 };

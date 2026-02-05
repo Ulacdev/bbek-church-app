@@ -158,15 +158,45 @@ router.post('/import-chunk', async (req, res) => {
   try {
     const { uploadId, chunkNumber, totalChunks, dataRows, fileName, fileExtension } = req.body;
 
-    if (!uploadId || typeof chunkNumber !== 'number' || !totalChunks || !Array.isArray(dataRows)) {
+    console.log(`[CHUNK UPLOAD] Received chunk ${chunkNumber}/${totalChunks} for upload ${uploadId}`);
+    console.log(`[CHUNK UPLOAD] Data rows in chunk: ${Array.isArray(dataRows) ? dataRows.length : 'N/A'}`);
+
+    // Validate required fields
+    if (!uploadId) {
+      console.error('[CHUNK UPLOAD] Missing uploadId');
       return res.status(400).json({
         success: false,
-        message: 'Missing required chunk data: uploadId, chunkNumber, totalChunks, dataRows'
+        message: 'Missing required field: uploadId'
+      });
+    }
+
+    if (typeof chunkNumber !== 'number') {
+      console.error('[CHUNK UPLOAD] Invalid chunkNumber:', typeof chunkNumber);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid chunkNumber - must be a number'
+      });
+    }
+
+    if (!totalChunks || typeof totalChunks !== 'number') {
+      console.error('[CHUNK UPLOAD] Invalid totalChunks:', totalChunks);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid totalChunks - must be a number'
+      });
+    }
+
+    if (!Array.isArray(dataRows)) {
+      console.error('[CHUNK UPLOAD] dataRows is not an array:', typeof dataRows);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid dataRows - must be an array'
       });
     }
 
     // Store chunk data
     if (!chunkStorage.has(uploadId)) {
+      console.log(`[CHUNK UPLOAD] Creating new upload session: ${uploadId}`);
       chunkStorage.set(uploadId, {
         chunks: new Map(),
         totalChunks,
@@ -179,15 +209,23 @@ router.post('/import-chunk', async (req, res) => {
     const uploadData = chunkStorage.get(uploadId);
     uploadData.chunks.set(chunkNumber, dataRows);
 
+    console.log(`[CHUNK UPLOAD] Stored chunk ${chunkNumber}, total chunks received: ${uploadData.chunks.size}/${totalChunks}`);
+
     // Check if all chunks are received
     if (uploadData.chunks.size === totalChunks) {
       // Combine all chunks in order
       let memberDataArray = [];
       for (let i = 1; i <= totalChunks; i++) {
         if (uploadData.chunks.has(i)) {
-          memberDataArray = memberDataArray.concat(uploadData.chunks.get(i));
+          const chunkData = uploadData.chunks.get(i);
+          console.log(`[CHUNK UPLOAD] Adding chunk ${i} with ${chunkData.length} rows`);
+          memberDataArray = memberDataArray.concat(chunkData);
+        } else {
+          console.warn(`[CHUNK UPLOAD] Missing chunk ${i}!`);
         }
       }
+
+      console.log(`[CHUNK UPLOAD] All chunks received. Total rows: ${memberDataArray.length}`);
 
       // Get user info for logging
       const userInfo = {
@@ -198,17 +236,33 @@ router.post('/import-chunk', async (req, res) => {
       };
 
       // Process the combined data
-      const result = await importMembers(memberDataArray, userInfo);
+      try {
+        console.log(`[CHUNK UPLOAD] Starting import of ${memberDataArray.length} records...`);
+        const result = await importMembers(memberDataArray, userInfo);
+        console.log(`[CHUNK UPLOAD] Import completed successfully`);
 
-      // Clean up storage
-      chunkStorage.delete(uploadId);
+        // Clean up storage
+        chunkStorage.delete(uploadId);
 
-      return res.status(200).json({
-        success: true,
-        message: 'Chunked import completed',
-        data: result.data,
-        uploadComplete: true
-      });
+        return res.status(200).json({
+          success: true,
+          message: 'Chunked import completed',
+          data: result.data,
+          uploadComplete: true
+        });
+      } catch (importError) {
+        console.error('[CHUNK UPLOAD] Import error:', importError.message);
+        console.error('[CHUNK UPLOAD] Error stack:', importError.stack);
+        
+        // Clean up on error
+        chunkStorage.delete(uploadId);
+        
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to import members: ' + importError.message,
+          error: importError.message
+        });
+      }
     } else {
       // Still waiting for more chunks
       return res.status(200).json({
@@ -221,10 +275,12 @@ router.post('/import-chunk', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error importing chunk:', error);
+    console.error('[CHUNK UPLOAD] Unexpected error:', error.message);
+    console.error('[CHUNK UPLOAD] Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to process import chunk'
+      message: 'An error occurred while processing the chunk: ' + error.message,
+      error: error.message
     });
   }
 });
