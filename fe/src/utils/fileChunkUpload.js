@@ -140,21 +140,21 @@ export const chunkData = (dataArray, maxJsonSize = 900 * 1024) => { // 900KB per
 /**
  * Upload file with chunking for large files
  * Returns results of the import
+ * 
+ * IMPORTANT: On Vercel, FormData multipart requests fail with JSON parse errors.
+ * Solution: Always use JSON-based chunked upload instead of FormData.
  */
 export const uploadFileWithChunking = async (file, accessToken, onProgress) => {
   try {
     // Get file size
     const fileSizeInMB = file.size / (1024 * 1024);
     
-    // If file is small enough, use single upload
-    if (fileSizeInMB < 1) {
-      console.log(`[Upload] File size ${fileSizeInMB.toFixed(2)}MB - using single upload`);
-      return uploadFileSingle(file, accessToken);
-    }
-
-    // Large file - use chunked upload
-    console.log(`[Upload] File size ${fileSizeInMB.toFixed(2)}MB - using chunked upload`);
+    console.log(`[Upload] File size ${fileSizeInMB.toFixed(2)}MB - using chunked upload (JSON-based)`);
     console.log(`[Upload] File: ${file.name} (${file.size} bytes)`);
+    
+    // On Vercel, FormData causes "not valid JSON" errors
+    // Always use chunked upload with JSON payloads (avoids multipart issues)
+    // This also handles large files properly
     return uploadFileChunked(file, accessToken, onProgress);
   } catch (error) {
     console.error('[Upload] Upload error:', error.message);
