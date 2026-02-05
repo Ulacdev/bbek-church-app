@@ -173,6 +173,13 @@ app.use(
 
 // Additional body parser specifically for CMS routes with even higher limits
 // This handles cases where multiple large images/videos are sent together
+// Also skip multipart/form-data for CMS routes
+app.use('/api/cms', (req, res, next) => {
+  if (req.headers['content-type'] && req.headers['content-type'].startsWith('multipart/form-data')) {
+    return next();
+  }
+  next();
+});
 app.use('/api/cms', bodyParser.json({ limit: '500mb' }));
 app.use('/api/cms', bodyParser.urlencoded({ extended: true, limit: '500mb' }));
 
