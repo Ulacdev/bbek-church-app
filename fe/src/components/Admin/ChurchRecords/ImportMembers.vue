@@ -208,7 +208,9 @@ const uploadFile = async () => {
     const response = await axios.post('/church-records/members/import', formData, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
-      }
+      },
+      // Add timeout for large imports
+      timeout: 300000 // 5 minutes
     })
 
     if (response.data.success) {
