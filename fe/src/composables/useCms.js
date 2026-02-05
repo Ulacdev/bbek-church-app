@@ -163,6 +163,9 @@ export function useCms(pageName) {
       const value = content[key]
       const fieldPath = prefix ? `${prefix}.${key}` : key
 
+      // Skip undefined values
+      if (value === undefined) return
+
       // Handle null values as deletion markers
       if (value === null) {
         imagesObj[fieldPath] = null
@@ -170,15 +173,19 @@ export function useCms(pageName) {
         return
       }
 
-      if (typeof value === 'string' && (value.startsWith('data:image/') || value.startsWith('data:video/'))) {
-        // This is a base64 image or video
-        imagesObj[fieldPath] = value
-        // Remove from content (or keep a placeholder)
-        delete content[key]
+      // Only process strings for base64 check
+      if (typeof value === 'string') {
+        if (value.startsWith('data:image/') || value.startsWith('data:video/')) {
+          // This is a base64 image or video
+          imagesObj[fieldPath] = value
+          // Remove from content
+          delete content[key]
+        }
       } else if (Array.isArray(value)) {
         // Handle arrays (e.g., services array, carouselImages array)
         value.forEach((item, index) => {
-          if (typeof item === 'object') {
+          if (item === undefined) return
+          if (typeof item === 'object' && item !== null) {
             extractImagesFromContent(item, imagesObj, `${fieldPath}[${index}]`)
           } else if (typeof item === 'string' && (item.startsWith('data:image/') || item.startsWith('data:video/'))) {
             // Handle arrays of base64 images (e.g., carouselImages)
@@ -191,7 +198,7 @@ export function useCms(pageName) {
           }
         })
         // Remove null entries from array
-        const newArray = value.filter(item => item !== null)
+        const newArray = value.filter(item => item !== null && item !== undefined)
         if (newArray.length === 0) {
           delete content[key]
         } else if (newArray.length !== value.length) {
