@@ -5,6 +5,7 @@ const csv = require('csv-parser');
 const XLSX = require('xlsx');
 const fs = require('fs');
 const path = require('path');
+const { authenticateToken } = require('../../middleware/authMiddleware');
 const {
   createMember,
   getAllMembers,
