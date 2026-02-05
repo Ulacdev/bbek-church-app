@@ -158,11 +158,18 @@ const importResults = ref(null)
 
 // Methods
 const handleFileSelect = (file) => {
-  if (file) {
-    // Validate file type
+  if (file && file.name) {
+    // Get file extension from name
+    const fileName = file.name.toLowerCase()
+    const isCsv = fileName.endsWith('.csv')
+    const isExcel = fileName.endsWith('.xlsx')
+    
+    // Also check MIME type if available
     const allowedTypes = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-    const fileName = file.name || ''
-    if (!allowedTypes.includes(file.type || '') && !fileName.endsWith('.csv') && !fileName.endsWith('.xlsx')) {
+    const hasValidMimeType = file.type && allowedTypes.includes(file.type)
+    
+    // Allow if has valid extension OR valid MIME type
+    if (!isCsv && !isExcel && !hasValidMimeType) {
       errorMessage.value = 'Invalid file type. Please select a CSV or Excel file.'
       selectedFile.value = null
       return
