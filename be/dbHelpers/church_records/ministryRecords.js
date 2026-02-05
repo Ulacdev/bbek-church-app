@@ -97,6 +97,8 @@ function convertBlobToBase64(blob) {
  */
 async function createMinistry(ministryData) {
   try {
+    console.log('createMinistry called with data:', JSON.stringify(ministryData, null, 2));
+    
     const {
       ministry_name,
       schedule,
@@ -108,6 +110,8 @@ async function createMinistry(ministryData) {
       image = null,
       description = null
     } = ministryData;
+
+    console.log('Extracted fields:', { ministry_name, leader_id, department_id, members });
 
     // Validate required fields
     if (!ministry_name) {

@@ -74,9 +74,11 @@ router.post('/createMinistry', authenticateToken, upload.single('image'), async 
     }
   } catch (error) {
     console.error('Error creating ministry:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: error.message || 'Failed to create ministry'
+      error: error.message || 'Failed to create ministry',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
