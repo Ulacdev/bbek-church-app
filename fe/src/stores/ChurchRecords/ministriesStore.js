@@ -3,9 +3,14 @@ import axios from '@/api/axios'
 
 // Helper function to convert base64 to Blob
 function base64ToBlob(base64String, contentType = 'image/jpeg') {
+  // Handle null/undefined input
+  if (!base64String || typeof base64String !== 'string') {
+    return null
+  }
+  
   // Remove data URL prefix if present
   let base64 = base64String
-  if (base64String.includes(',')) {
+  if (base64String.includes && base64String.includes(',')) {
     const parts = base64String.split(',')
     base64 = parts[1]
     // Try to extract content type from data URL
@@ -276,17 +281,14 @@ export const useMinistriesStore = defineStore('ministries', {
           // imageFile is already a File object
           console.log('Adding image file to FormData for update:', ministryData.imageFile.name, ministryData.imageFile.size, 'bytes')
           formData.append('image', ministryData.imageFile)
-        } else if (ministryData.image !== undefined) {
-          if (ministryData.image) {
-            // If image is base64, convert to blob and add as file
-            console.log('Converting base64 image to file for FormData update')
-            const blob = base64ToBlob(ministryData.image)
+        } else if (ministryData.image !== undefined && ministryData.image) {
+          // If image is base64, convert to blob and add as file
+          console.log('Converting base64 image to file for FormData update')
+          const blob = base64ToBlob(ministryData.image)
+          if (blob) {
             const file = new File([blob], 'ministry-image.jpg', { type: blob.type })
             formData.append('image', file)
-          } else {
-            console.log('Image is empty/null - keeping existing image')
           }
-          // If image is null/empty, don't append (keeps existing image)
         } else {
           console.log('No image provided for update - keeping existing image')
         }
@@ -442,7 +444,7 @@ export const useMinistriesStore = defineStore('ministries', {
             let imageUrl = ministry.imageUrl || null
             if (!imageUrl && ministry.image) {
               // Fallback: If imageUrl not provided, convert base64 image to data URL
-              imageUrl = ministry.image.startsWith('data:') 
+              imageUrl = ministry.image.startsWith && ministry.image.startsWith('data:') 
                 ? ministry.image 
                 : `data:image/jpeg;base64,${ministry.image}`
             }
