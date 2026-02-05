@@ -402,6 +402,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.gcashLogoImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteGcashLogo"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.gcashLogoImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -434,6 +445,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.gcashQrImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteGcashQr"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.gcashQrImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -500,6 +522,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.mayaLogoImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteMayaLogo"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.mayaLogoImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -532,6 +565,17 @@
             </el-button>
           </template>
         </el-upload>
+        <el-button 
+          v-if="giveData.mayaQrImage" 
+          size="small" 
+          type="danger" 
+          plain
+          @click="deleteMayaQr"
+          class="ml-2"
+        >
+          <el-icon><Delete /></el-icon>
+          Delete
+        </el-button>
         <span v-if="!giveData.mayaQrImage" class="text-grey ml-2">No file chosen</span>
       </div>
     </div>
@@ -552,7 +596,7 @@
 
 <script setup>
 import { reactive, ref, watch, onMounted } from 'vue'
-import { Upload } from '@element-plus/icons-vue'
+import { Upload, Delete } from '@element-plus/icons-vue'
 import { useCms } from '@/composables/useCms'
 import Loader from './Loader.vue'
 
@@ -730,6 +774,23 @@ const handleMayaQrChange = (file) => {
   reader.readAsDataURL(fileObj)
 }
 
+// Delete functions for images
+const deleteGcashLogo = () => {
+  giveData.gcashLogoImage = null
+}
+
+const deleteGcashQr = () => {
+  giveData.gcashQrImage = null
+}
+
+const deleteMayaLogo = () => {
+  giveData.mayaLogoImage = null
+}
+
+const deleteMayaQr = () => {
+  giveData.mayaQrImage = null
+}
+
 // Save changes to CMS
 // Hero image is saved as BLOB in database (not in JSON)
 // Flow: base64 in content → composable extracts → backend converts to Buffer → saves as BLOB
@@ -762,15 +823,23 @@ const saveChanges = async () => {
       console.log('Reloaded data after save:', loadedData)
       
       if (loadedData && typeof loadedData === 'object') {
-        // Merge reloaded data
+        // Merge reloaded data - accept all values including empty strings
         Object.keys(defaultGiveData).forEach(key => {
           if (loadedData.hasOwnProperty(key)) {
-            // Special handling for heroImage
-            if (key === 'heroImage' && loadedData[key] && typeof loadedData[key] === 'string' && loadedData[key].startsWith('data:image/')) {
-              giveData[key] = loadedData[key]
-            } else if (key !== 'heroImage') {
-              giveData[key] = loadedData[key]
+            const newValue = loadedData[key]
+            // Always merge - this ensures empty strings from delete are reflected
+            if (key === 'heroImage') {
+              // Special handling for heroImage - only set if it's base64
+              if (newValue && typeof newValue === 'string' && newValue.startsWith('data:image/')) {
+                giveData[key] = newValue
+              }
+              // If heroImage is empty, keep existing (hero shouldn't be deleted)
+            } else {
+              giveData[key] = newValue
+              console.log(`Updated ${key} from reload:`, newValue)
             }
+          } else {
+            console.log(`Key ${key} not in loadedData, keeping current value:`, giveData[key])
           }
         })
         
