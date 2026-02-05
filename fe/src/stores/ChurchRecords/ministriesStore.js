@@ -232,8 +232,8 @@ export const useMinistriesStore = defineStore('ministries', {
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.post('/church-records/ministries/createMinistry', formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
+            // Note: Don't set Content-Type for FormData - axios will set it with boundary
           }
         })
         
@@ -306,8 +306,8 @@ export const useMinistriesStore = defineStore('ministries', {
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await axios.put(`/church-records/ministries/updateMinistry/${id}`, formData, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${accessToken}`
+            // Note: Don't set Content-Type for FormData - axios will set it with boundary
           }
         })
         
