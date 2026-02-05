@@ -105,6 +105,10 @@ router.post('/import', authenticateToken, async (req, res) => {
       
       // Extract extension from filename
       fileExtension = (fileData.extension || '').toLowerCase();
+      // Ensure extension has a dot prefix
+      if (fileExtension && !fileExtension.startsWith('.')) {
+        fileExtension = '.' + fileExtension;
+      }
       if (!fileExtension && fileData.filename) {
         fileExtension = path.extname(fileData.filename).toLowerCase();
       }
