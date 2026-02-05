@@ -24,7 +24,10 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     // Accept image files only
-    if (file.mimetype.startsWith('image/')) {
+    if (!file) {
+      // No file uploaded - this is okay, allow the request to continue
+      cb(null, true);
+    } else if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed'), false);
@@ -74,6 +77,13 @@ router.post('/createMinistry', authenticateToken, upload.single('image'), async 
     }
   } catch (error) {
     console.error('Error creating ministry:', error);
+    // Handle multer errors
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File size exceeds 10MB limit'
+      });
+    }
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to create ministry'
@@ -279,6 +289,13 @@ router.put('/updateMinistry/:id', authenticateToken, upload.single('image'), asy
     }
   } catch (error) {
     console.error('Error updating ministry:', error);
+    // Handle multer errors
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        error: 'File size exceeds 10MB limit'
+      });
+    }
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update ministry'
