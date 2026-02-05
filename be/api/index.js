@@ -103,25 +103,34 @@ const IS_DEVELOPMENT = NODE_ENV === 'development';
 //   - FRONTEND_URL (single URL): "https://app.com"
 //   - Default (development): localhost ports
 const getAllowedOrigins = () => {
+  // Production domain - always allowed
+  const productionOrigins = [
+    'https://biblebaptistekklesiaofkawit.xyz',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+  ];
+
   // Check for FRONTEND_URL (single URL) - cloud production
-  if (process.env.FRONTEND_URL1 || process.env.FRONTEND_URL2 ) {
-    return [process.env.FRONTEND_URL1.trim(), process.env.FRONTEND_URL2.trim()];
+  if (process.env.FRONTEND_URL1 || process.env.FRONTEND_URL2) {
+    const origins = [];
+    if (process.env.FRONTEND_URL1) origins.push(process.env.FRONTEND_URL1.trim());
+    if (process.env.FRONTEND_URL2) origins.push(process.env.FRONTEND_URL2.trim());
+    return [...origins, ...productionOrigins];
   }
 
-  // For Vercel, allow the deployment URLs
+  // Always include production domain and localhost
+  // Add Vercel preview deployments if on Vercel
   if (IS_VERCEL) {
     return [
-      'https://biblebaptistekklesiaofkawit.xyz',
+      ...productionOrigins,
       'https://bbek-church-app.vercel.app',
-      'https://bbek-church-app-git-main-ulacdev.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175'
+      'https://bbek-church-app-git-main-ulacdev.vercel.app'
     ];
   }
 
   // Default: localhost for development
-  return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'];
+  return productionOrigins;
 };
 
 const allowedOrigins = getAllowedOrigins();
